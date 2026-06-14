@@ -103,6 +103,9 @@ body{font-family:'Inter',sans-serif;background:var(--fog);color:var(--ink);font-
 .auth-tab.active{background:#c47a4a;color:#1a0f0a}
 .field{margin-bottom:16px}
 .field label{display:block;font-family:'Inter',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:rgba(245,237,230,.4);font-weight:500;margin-bottom:8px}
+.onboard-card .field label{color:#555}
+.onboard-card .field input{color:#1a0f0a;background:#f9f9f9;border:1.5px solid #ddd;border-radius:8px}
+.onboard-card .field input:focus{border-color:#c47a4a;background:white}
 .field input,.field select{width:100%;padding:12px 14px;border:1px solid rgba(210,160,120,.2);border-radius:0;font-family:'Inter',sans-serif;font-size:13px;color:#f5ede6;background:rgba(245,237,230,.04);outline:none;transition:border-color .15s}
 .field input:focus,.field select:focus{border-color:#c47a4a;background:rgba(196,122,74,.06)}
 .field select option{background:#211008;color:#f5ede6}
@@ -122,10 +125,10 @@ body{font-family:'Inter',sans-serif;background:var(--fog);color:var(--ink);font-
 /* ── ONBOARDING ── */
 .onboard-page{display:none;min-height:100vh;background:#1a0f0a;align-items:center;justify-content:center;padding:24px}
 .onboard-page.show{display:flex}
-.onboard-card{background:#211008;border-radius:0;padding:40px 36px;width:500px;max-width:100%;border:1px solid rgba(210,160,120,.2)}
-.onboard-eyebrow{font-family:'Inter',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#c47a4a;font-weight:600;margin-bottom:8px}
-.onboard-title{font-family:'Cormorant Garant',serif;font-size:26px;font-weight:300;color:#f5ede6;margin-bottom:6px;letter-spacing:.02em}
-.onboard-sub{font-family:'Inter',sans-serif;font-size:13px;color:rgba(245,237,230,.4);margin-bottom:24px;line-height:1.6}
+.onboard-card{background:white;border-radius:20px;padding:40px 36px;width:500px;max-width:100%;box-shadow:var(--shadow-lg);border:1px solid var(--line)}
+.onboard-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#c47a4a;font-weight:600;margin-bottom:8px}
+.onboard-title{font-family:'Cormorant Garant',serif;font-size:22px;font-weight:700;color:#1a0f0a;margin-bottom:6px;letter-spacing:-.01em}
+.onboard-sub{font-size:13px;color:#555;margin-bottom:24px;line-height:1.5}
 .onboard-progress{display:flex;gap:6px;margin-bottom:32px}
 .onboard-step-dot{height:4px;border-radius:99px;flex:1;background:var(--line);transition:background .3s}
 .onboard-step-dot.done{background:#c47a4a}
