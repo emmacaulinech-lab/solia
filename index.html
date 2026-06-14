@@ -1033,7 +1033,17 @@ function goView(id){
   if(id==='recap') renderRecap();
   if(id==='clients') renderClients();
   if(id==='settings') renderSettings();
-  if(id==='agenda') document.getElementById('agendaResult').innerHTML='';
+  if(id==='agenda'){
+  const saved=localStorage.getItem('solia_agenda');
+  if(saved){
+    const{date,rdvs}=JSON.parse(saved);
+    const today=new Date().toISOString().split('T')[0];
+    if(date===today){agendaRdvs=rdvs;renderAgendaResult();}
+    else{localStorage.removeItem('solia_agenda');document.getElementById('agendaResult').innerHTML='';}
+  } else {
+    document.getElementById('agendaResult').innerHTML='';
+  }
+}
 }
 
 function showUpgrade(id){
@@ -1767,7 +1777,8 @@ Réponds UNIQUEMENT en JSON valide sans backticks ni markdown :
     const match=text.match(/\[[\s\S]*\]/);
     if(!match) throw new Error('Aucun RDV détecté');
     agendaRdvs=JSON.parse(match[0]);
-    renderAgendaResult();
+localStorage.setItem('solia_agenda',JSON.stringify({date:new Date().toISOString().split('T')[0],rdvs:agendaRdvs}));
+renderAgendaResult();
   }catch(e){
     el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--red)">⚠️ Erreur : ${e.message}</div>`;
     console.error(e);
