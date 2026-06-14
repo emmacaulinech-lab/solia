@@ -1460,11 +1460,14 @@ function renderBanque(){
   const sm={};
   allSorted.forEach(t=>{running+=t.montant;sm[t.id]=running;});
 
-  let html='<table><thead><tr><th>Date</th><th>Libellé</th><th style="text-align:right">Montant</th><th style="text-align:right">Solde</th><th></th></tr></thead><tbody>';
+  let html='<table><thead><tr><th>Date</th><th>Libellé</th><th>Catégorie</th><th>Facture</th><th style="text-align:right">TVA</th><th style="text-align:right">Montant</th><th style="text-align:right">Solde</th><th></th></tr></thead><tbody>';
   for(const t of rows){
     html+=`<tr>
       <td class="td-mut">${dlbl(t.date)}</td>
       <td style="font-weight:500">${t.nom}</td>
+      <td class="td-mut">${t.categorie?`<span class="badge" style="background:var(--fog2);color:var(--mut)">${t.categorie}</span>`:'—'}</td>
+      <td>${t.factureId?`<span style="color:var(--mint);font-size:12px">✅ ${DB_FACTURES.find(f=>f.id===t.factureId)?.fournisseur||'Facture'}</span>`:`<button class="btn btn-ghost btn-sm" onclick="ouvrirRapprochementBanque('${t.id}')">🔗</button>`}</td>
+      <td class="td-mono" style="text-align:right;color:#92400e">${t.tva?fa(t.tva):'—'}</td>
       <td class="${t.montant>=0?'td-green':'td-red'}" style="text-align:right">${fm(t.montant,t.montant>0)}</td>
       <td class="td-mono" style="text-align:right;color:var(--mut)">${fa(sm[t.id]||0)}</td>
       <td style="white-space:nowrap">
@@ -1824,12 +1827,29 @@ function buildForm(ctx,editId=null){
   }
   if(ctx==='banque'){
     const t=editId?DB.banque.find(x=>x.id===editId):null;
+    const isAuto=CONFIG.formeJuridique==='auto';
+    const cats=isAuto
+      ?["Chiffre d'affaires",'Achat','Loyer','EDF','Téléphone','Abonnements','Assurance','URSSAF','Formation','Autre']
+      :["Chiffre d'affaires",'Achat','Loyer','EDF','Téléphone','Abonnements','Assurance','Salaires','TVA','Comptable','Autre'];
     return`
       <div class="g2">
         <div class="field"><label>Date</label><input type="date" id="fDate" value="${t?.date||today}"></div>
         <div class="field"><label>Montant (€)</label><input type="number" id="fMnt" value="${t?.montant||''}" placeholder="-1200 ou +500" step="0.01"></div>
       </div>
-      <div class="field"><label>Libellé</label><input type="text" id="fNom" value="${t?.nom||''}" placeholder="LOYER, EDF..."></div>`;
+      <div class="field"><label>Libellé</label><input type="text" id="fNom" value="${t?.nom||''}" placeholder="LOYER, EDF..."></div>
+      <div class="field"><label>Catégorie</label>
+        <select id="fCat">
+          <option value="">— Choisir —</option>
+          ${cats.map(c=>`<option value="${c}" ${t?.categorie===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      ${DB_FACTURES.filter(f=>!f.rapprochee).length>0?`
+      <div class="field"><label>Rapprocher avec une facture <span style="font-size:10px;color:var(--mut)">(optionnel)</span></label>
+        <select id="fFacture">
+          <option value="">— Aucune facture —</option>
+          ${DB_FACTURES.filter(f=>!f.rapprochee).map(f=>`<option value="${f.id}" ${t?.factureId===f.id?'selected':''}>${f.fournisseur} — ${dlbl(f.date)} — ${fa(f.montantTTC)}</option>`).join('')}
+        </select>
+      </div>`:''}`;
   }
   if(ctx==='fixes'){
     const t=editId?DB.fixes.find(x=>x.id===editId):null;
@@ -1873,10 +1893,24 @@ async function saveEntry(){
       if(mEditId){const i=DB.caisse.findIndex(x=>x.id===mEditId);DB.caisse[i]=t;}
       else DB.caisse.push(t);
     } else if(mCtx==='banque'){
-      const t={id,date:g('fDate'),nom:g('fNom'),montant:parseFloat(g('fMnt'))};
+      const factureId=document.getElementById('fFacture')?.value||'';
+      const facture=factureId?DB_FACTURES.find(f=>f.id===factureId):null;
+      const t={
+        id,date:g('fDate'),nom:g('fNom'),
+        montant:parseFloat(g('fMnt')),
+        categorie:g('fCat')||'Autre',
+        factureId:factureId||null,
+        tva:facture?facture.tva:0
+      };
       if(!t.date||isNaN(t.montant)||!t.nom){toast('⚠ Remplis tous les champs');return;}
       if(mEditId){const i=DB.banque.findIndex(x=>x.id===mEditId);DB.banque[i]=t;}
       else DB.banque.push(t);
+      // Marquer la facture comme rapprochée
+      if(facture){
+        facture.rapprochee=true;
+        facture.operationBanqueId=id;
+        await saveFacture(facture);
+      }
     } else if(mCtx==='fixes'){
       const t={id,mois:g('fMois'),nom:g('fNom'),montant:parseFloat(g('fMnt'))||0};
       if(mEditId){const i=DB.fixes.findIndex(x=>x.id===mEditId);DB.fixes[i]=t;}
@@ -3039,6 +3073,51 @@ async function validerRapprochement(factureId){
   closeMo('mainModal');
   renderFactures();
   toast('✓ Facture rapprochée !');
+}
+
+function ouvrirRapprochementBanque(banqueId){
+  const b=DB.banque.find(x=>x.id===banqueId);
+  if(!b) return;
+  const facturesDispos=DB_FACTURES.filter(f=>!f.rapprochee);
+
+  document.getElementById('mTitle').textContent='🔗 Rapprocher avec une facture';
+  document.getElementById('mBody').innerHTML=`
+    <div style="background:var(--fog);border-radius:10px;padding:12px 14px;margin-bottom:16px">
+      <div style="font-weight:700">${b.nom}</div>
+      <div style="font-size:12px;color:var(--mut)">${dlbl(b.date)}</div>
+      <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--red);margin-top:4px">${fm(b.montant)}</div>
+    </div>
+    ${facturesDispos.length?`
+    <div class="field"><label>Facture correspondante</label>
+      <select id="rap-facture-id">
+        <option value="">— Choisir une facture —</option>
+        ${facturesDispos.map(f=>`<option value="${f.id}">${f.fournisseur} — ${dlbl(f.date)} — ${fa(f.montantTTC)}</option>`).join('')}
+      </select>
+    </div>`
+    :`<div style="font-size:13px;color:var(--mut);text-align:center;padding:16px">Aucune facture non rapprochée disponible.<br>Importez d'abord une facture dans la section Factures.</div>`}`;
+
+  document.querySelector('#mainModal .modal-footer').innerHTML=`
+    <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>
+    ${facturesDispos.length?`<button class="btn btn-primary" onclick="validerRapprochementBanque('${banqueId}')">✓ Rapprocher</button>`:''}`;
+  document.getElementById('mainModal').classList.add('open');
+}
+
+async function validerRapprochementBanque(banqueId){
+  const factureId=document.getElementById('rap-facture-id')?.value;
+  if(!factureId){toast('⚠ Sélectionne une facture');return;}
+  const b=DB.banque.find(x=>x.id===banqueId);
+  const f=DB_FACTURES.find(x=>x.id===factureId);
+  if(!b||!f) return;
+  b.factureId=factureId;
+  b.tva=f.tva;
+  f.rapprochee=true;
+  f.operationBanqueId=banqueId;
+  await saveAll();
+  await saveFacture(f);
+  closeMo('mainModal');
+  renderBanque();
+  renderFactures();
+  toast('✓ Rapprochement effectué !');
 }
 
 document.addEventListener('keydown',e=>{
