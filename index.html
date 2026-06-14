@@ -1959,65 +1959,152 @@ function renderAgendaResult(){
     return;
   }
 
+  const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
+  const collabs=CONFIG.praticiennes||[];
   const today=new Date().toISOString().split('T')[0];
+
   let html=`
     <div class="card">
       <div class="card-header">
         <span class="card-title">✅ ${agendaRdvs.length} RDV détectés</span>
         <button class="btn btn-primary btn-sm" onclick="encaisserTousRdvs()">💰 Tout encaisser</button>
       </div>
-      <table>
-        <thead><tr>
-          <th>Heure</th>
-          <th>Client(e)</th>
-          <th>Prestation</th>
-          <th>Praticien(ne)</th>
-          <th>Montant</th>
-          <th></th>
-        </tr></thead>
-        <tbody>
-          ${agendaRdvs.map((r,i)=>`
-            <tr>
-              <td class="td-mut">${r.heure_debut}${r.heure_fin?' → '+r.heure_fin:''}</td>
-              <td style="font-weight:600">${r.nom||'—'}</td>
-              <td class="td-mut">${r.prestation||'—'}
-  ${r.prestation&&!CONFIG.prestations.includes(r.prestation)?
-    `<button onclick="ajouterPrestationAgenda('${r.prestation.replace(/'/g,"\\'")}',this)" 
-    style="margin-left:6px;background:#c47a4a;color:white;border:none;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer">
-    + Ajouter
-    </button>`:''}
-</td>
-              <td class="td-mut">${r.praticien||CONFIG.proprietaire||'Vous'}</td>
-              <td><input type="number" placeholder="Montant €" step="0.01" id="rdv-mnt-${i}" style="width:90px;padding:5px 8px;border:1.5px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:12px"></td>
-              <td><button class="btn btn-primary btn-sm" onclick="encaisserRdv(${i})">+ Caisse</button></td>
-            </tr>`).join('')}
-        </tbody>
-      </table>
+      <div style="padding:0">
+        ${agendaRdvs.map((r,i)=>`
+          <div id="rdv-row-${i}" style="padding:16px 18px;border-bottom:1px solid var(--fog)">
+            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
+              <div>
+                <div style="font-weight:700;font-size:14px">${r.nom||'—'}</div>
+                <div style="font-size:12px;color:var(--mut)">${r.heure_debut||''}${r.heure_fin?' → '+r.heure_fin:''} · ${r.prestation||'—'}</div>
+                ${r.prestation&&!CONFIG.prestations.includes(r.prestation)?
+                  `<button onclick="ajouterPrestationAgenda('${r.prestation.replace(/'/g,"\\'")}',this)" 
+                  style="margin-top:4px;background:#c47a4a;color:white;border:none;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer">
+                  + Ajouter aux prestations
+                  </button>`:''}
+              </div>
+              <button onclick="supprimerRdv(${i})" style="background:none;border:none;cursor:pointer;color:var(--mut);font-size:18px">✕</button>
+            </div>
+
+            <!-- Praticien -->
+            <div style="margin-bottom:10px">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);font-weight:600;margin-bottom:5px">Praticien(ne)</div>
+              <select id="rdv-prat-${i}" style="padding:6px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:12px;width:100%">
+                <option value="">✦ ${CONFIG.proprietaire||'Vous'}</option>
+                ${collabs.map(c=>`<option value="${c.id}" ${r.praticien===c.nom?'selected':''}>${c.nom}</option>`).join('')}
+              </select>
+            </div>
+
+            <!-- Paiements splittés -->
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);font-weight:600;margin-bottom:6px">Règlement(s)</div>
+            <div id="rdv-payments-${i}">
+              <div class="rdv-payment-line" style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+                <input type="number" placeholder="Montant €" step="0.01" class="rdv-mnt" style="flex:1;padding:6px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:12px" oninput="updateRdvTotal(${i})">
+                <select class="rdv-mode" style="padding:6px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:12px">
+                  ${modes.map(m=>`<option>${m}</option>`).join('')}
+                </select>
+                <button onclick="this.closest('.rdv-payment-line').remove();updateRdvTotal(${i})" style="background:none;border:none;cursor:pointer;color:var(--mut);font-size:16px">✕</button>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+              <button onclick="addPaymentLine(${i})" style="background:none;border:1.5px dashed #ddd;border-radius:6px;padding:5px 12px;font-size:11px;color:#c47a4a;font-weight:600;cursor:pointer">+ Ajouter un mode</button>
+              <span id="rdv-total-${i}" style="font-size:12px;color:var(--mut)">Total : 0,00 €</span>
+            </div>
+
+            <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%" onclick="encaisserRdv(${i})">💰 Encaisser</button>
+          </div>`).join('')}
+      </div>
     </div>`;
   el.innerHTML=html;
 }
 
+function addPaymentLine(i){
+  const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
+  const container=document.getElementById(`rdv-payments-${i}`);
+  const line=document.createElement('div');
+  line.className='rdv-payment-line';
+  line.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:6px';
+  line.innerHTML=`
+    <input type="number" placeholder="Montant €" step="0.01" class="rdv-mnt" style="flex:1;padding:6px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:12px" oninput="updateRdvTotal(${i})">
+    <select class="rdv-mode" style="padding:6px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:12px">
+      ${modes.map(m=>`<option>${m}</option>`).join('')}
+    </select>
+    <button onclick="this.closest('.rdv-payment-line').remove();updateRdvTotal(${i})" style="background:none;border:none;cursor:pointer;color:var(--mut);font-size:16px">✕</button>`;
+  container.appendChild(line);
+}
+
+function updateRdvTotal(i){
+  const lines=document.querySelectorAll(`#rdv-payments-${i} .rdv-mnt`);
+  const total=[...lines].reduce((s,inp)=>s+(parseFloat(inp.value)||0),0);
+  const el=document.getElementById(`rdv-total-${i}`);
+  if(el) el.textContent=`Total : ${total.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} €`;
+}
+
+function supprimerRdv(i){
+  document.getElementById(`rdv-row-${i}`)?.remove();
+  agendaRdvs.splice(i,1);
+  localStorage.setItem('solia_agenda',JSON.stringify({date:new Date().toISOString().split('T')[0],rdvs:agendaRdvs}));
+}
+
 async function encaisserRdv(i){
   const r=agendaRdvs[i];
-  const mnt=parseFloat(document.getElementById(`rdv-mnt-${i}`)?.value);
-  if(!mnt||mnt<=0){toast('⚠ Saisis le montant');return;}
-
+  const pratId=document.getElementById(`rdv-prat-${i}`)?.value||'';
+  const lines=document.querySelectorAll(`#rdv-payments-${i} .rdv-payment-line`);
   const today=new Date().toISOString().split('T')[0];
-  const modes=CONFIG.modes||['ESP','VIR','CHQ'];
-  const t={
-    id:genId(),date:today,
-    nom:r.nom||'',
-    prestation:r.prestation||'',
-    praticien:'',
-    montant:mnt,
-    reglement:modes[0],
-    paye:false
-  };
-  DB.caisse.push(t);
+  let count=0;
+
+  for(const line of lines){
+    const mnt=parseFloat(line.querySelector('.rdv-mnt')?.value)||0;
+    const mode=line.querySelector('.rdv-mode')?.value||'ESP';
+    if(!mnt||mnt<=0) continue;
+    DB.caisse.push({
+      id:genId(),date:today,
+      nom:r.nom||'',
+      prestation:r.prestation||'',
+      praticien:pratId,
+      montant:mnt,
+      reglement:mode,
+      paye:['CHQ','PLANITY'].includes(mode)?true:mode==='VIR'?false:true,
+    });
+    count++;
+  }
+
+  if(!count){toast('⚠ Saisis au moins un montant');return;}
   await saveAll();
   agendaRdvs.splice(i,1);
+  localStorage.setItem('solia_agenda',JSON.stringify({date:today,rdvs:agendaRdvs}));
   renderAgendaResult();
-  toast(`✓ ${r.nom} encaissé(e) !`);
+  toast(`✓ ${r.nom} encaissé(e) — ${count} ligne${count>1?'s':''} !`);
+}
+
+async function encaisserTousRdvs(){
+  const today=new Date().toISOString().split('T')[0];
+  let count=0;
+  for(let i=0;i<agendaRdvs.length;i++){
+    const r=agendaRdvs[i];
+    const pratId=document.getElementById(`rdv-prat-${i}`)?.value||'';
+    const lines=document.querySelectorAll(`#rdv-payments-${i} .rdv-payment-line`);
+    for(const line of lines){
+      const mnt=parseFloat(line.querySelector('.rdv-mnt')?.value)||0;
+      const mode=line.querySelector('.rdv-mode')?.value||'ESP';
+      if(!mnt||mnt<=0) continue;
+      DB.caisse.push({
+        id:genId(),date:today,
+        nom:r.nom||'',
+        prestation:r.prestation||'',
+        praticien:pratId,
+        montant:mnt,
+        reglement:mode,
+        paye:['CHQ','PLANITY'].includes(mode)?true:mode==='VIR'?false:true,
+      });
+      count++;
+    }
+  }
+  if(!count){toast('⚠ Saisis au moins un montant');return;}
+  await saveAll();
+  agendaRdvs=[];
+  localStorage.removeItem('solia_agenda');
+  renderAgendaResult();
+  toast(`✓ ${count} ligne${count>1?'s':''} encaissée${count>1?'s':''} !`);
 }
 
 async function encaisserTousRdvs(){
