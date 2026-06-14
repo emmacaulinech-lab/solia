@@ -485,6 +485,23 @@ td{padding:11px 14px;vertical-align:middle}
     <div class="view active" id="view-dashboard">
       <div class="page-header">
         <div>
+          <div class="view" id="view-agenda">
+  <div class="page-header">
+    <div><div class="page-title">📸 Import agenda</div><div class="page-sub">Photo ou screenshot de n'importe quel planning</div></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header"><span class="card-title">📅 Importer mon planning du jour</span></div>
+    <div style="padding:20px">
+      <div style="font-size:13px;color:#555;margin-bottom:16px">Prenez une photo ou screenshot de votre agenda (Planity, Wavy, Google Calendar, agenda papier...) — l'IA extrait automatiquement vos rendez-vous.</div>
+      <label style="display:inline-flex;align-items:center;gap:8px;background:#c47a4a;color:white;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">
+        📸 Choisir une image
+        <input type="file" accept="image/*" onchange="importAgenda(event)" style="display:none">
+      </label>
+      <div style="font-size:12px;color:#888;margin-top:10px">JPG, PNG, HEIC acceptés · Votre clé API doit être configurée dans les paramètres</div>
+    </div>
+  </div>
+  <div id="agendaResult"></div>
+</div>
           <div class="page-title">🏠 Tableau de bord</div>
           <div class="page-sub" id="dash-period">—</div>
         </div>
@@ -976,6 +993,7 @@ function obPrev(){if(obStep>0){obStep--;renderObStep();}}
 // ══════════════════════════════════════
 const NAV=[
   {id:'dashboard',icon:'🏠',label:'Dashboard',plans:['simple','avance','complet']},
+  {id:'agenda',icon:'📸',label:'Import agenda',plans:['complet']},
   {id:'caisse',icon:'🧳',label:'Caisse',plans:['simple','avance','complet']},
   {id:'clients',icon:'👥',label:'Clientes',plans:['simple','avance','complet']},
   {id:'banque',icon:'🏦',label:'Banque',plans:['avance','complet']},
@@ -1013,6 +1031,7 @@ function goView(id){
   if(id==='recap') renderRecap();
   if(id==='clients') renderClients();
   if(id==='settings') renderSettings();
+  if(id==='agenda') document.getElementById('agendaResult').innerHTML='';
 }
 
 function showUpgrade(id){
@@ -1682,6 +1701,161 @@ function toast(msg){
   const el=document.getElementById('toast');
   el.textContent=msg;el.classList.add('show');
   setTimeout(()=>el.classList.remove('show'),2400);
+}
+
+// ══════════════════════════════════════
+// IMPORT AGENDA
+// ══════════════════════════════════════
+let agendaRdvs=[];
+
+async function importAgenda(event){
+  const file=event.target.files[0];
+  if(!file) return;
+
+  const apiKey=localStorage.getItem('solia_apikey');
+  if(!apiKey){
+    toast('⚠ Configure ta clé API dans les paramètres');
+    return;
+  }
+
+  const el=document.getElementById('agendaResult');
+  el.innerHTML=`<div style="text-align:center;padding:40px">
+    <div class="spinner" style="margin:0 auto 12px"></div>
+    <div style="font-size:13px;color:#888">Analyse de votre planning en cours...</div>
+  </div>`;
+
+  try{
+    const base64=await new Promise((res,rej)=>{
+      const reader=new FileReader();
+      reader.onload=()=>res(reader.result.split(',')[1]);
+      reader.onerror=rej;
+      reader.readAsDataURL(file);
+    });
+    const mediaType=file.type||'image/jpeg';
+
+    const response=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:2000,
+        messages:[{
+          role:'user',
+          content:[
+            {type:'image',source:{type:'base64',media_type:mediaType,data:base64}},
+            {type:'text',text:`Analyse cet agenda et extrais tous les rendez-vous visibles.
+Pour chaque RDV donne : heure_debut, heure_fin, nom (client/cliente), prestation (type de soin/service).
+Si tu vois un nom de praticien/praticienne associé au RDV, indique-le dans "praticien".
+Ignore les créneaux vides ou bloqués.
+Réponds UNIQUEMENT en JSON valide sans backticks ni markdown :
+[{"heure_debut":"10:00","heure_fin":"11:00","nom":"Marie Dupont","prestation":"Soin visage","praticien":""}]`}
+          ]
+        }]
+      })
+    });
+
+    const data=await response.json();
+    if(data.error) throw new Error(data.error.message||'Erreur API');
+    const text=data.content.map(i=>i.text||'').join('');
+    const match=text.match(/\[[\s\S]*\]/);
+    if(!match) throw new Error('Aucun RDV détecté');
+    agendaRdvs=JSON.parse(match[0]);
+    renderAgendaResult();
+  }catch(e){
+    el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--red)">⚠️ Erreur : ${e.message}</div>`;
+    console.error(e);
+  }
+  event.target.value='';
+}
+
+function renderAgendaResult(){
+  const el=document.getElementById('agendaResult');
+  if(!agendaRdvs.length){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">📅</div><div class="empty-title">Aucun RDV détecté</div><div class="empty-sub">Essayez avec une image plus nette</div></div>`;
+    return;
+  }
+
+  const today=new Date().toISOString().split('T')[0];
+  let html=`
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">✅ ${agendaRdvs.length} RDV détectés</span>
+        <button class="btn btn-primary btn-sm" onclick="encaisserTousRdvs()">💰 Tout encaisser</button>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Heure</th>
+          <th>Client(e)</th>
+          <th>Prestation</th>
+          <th>Praticien(ne)</th>
+          <th>Montant</th>
+          <th></th>
+        </tr></thead>
+        <tbody>
+          ${agendaRdvs.map((r,i)=>`
+            <tr>
+              <td class="td-mut">${r.heure_debut}${r.heure_fin?' → '+r.heure_fin:''}</td>
+              <td style="font-weight:600">${r.nom||'—'}</td>
+              <td class="td-mut">${r.prestation||'—'}</td>
+              <td class="td-mut">${r.praticien||CONFIG.proprietaire||'Vous'}</td>
+              <td><input type="number" placeholder="Montant €" step="0.01" id="rdv-mnt-${i}" style="width:90px;padding:5px 8px;border:1.5px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:12px"></td>
+              <td><button class="btn btn-primary btn-sm" onclick="encaisserRdv(${i})">+ Caisse</button></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  el.innerHTML=html;
+}
+
+async function encaisserRdv(i){
+  const r=agendaRdvs[i];
+  const mnt=parseFloat(document.getElementById(`rdv-mnt-${i}`)?.value);
+  if(!mnt||mnt<=0){toast('⚠ Saisis le montant');return;}
+
+  const today=new Date().toISOString().split('T')[0];
+  const modes=CONFIG.modes||['ESP','VIR','CHQ'];
+  const t={
+    id:genId(),date:today,
+    nom:r.nom||'',
+    prestation:r.prestation||'',
+    praticien:'',
+    montant:mnt,
+    reglement:modes[0],
+    paye:false
+  };
+  DB.caisse.push(t);
+  await saveAll();
+  agendaRdvs.splice(i,1);
+  renderAgendaResult();
+  toast(`✓ ${r.nom} encaissé(e) !`);
+}
+
+async function encaisserTousRdvs(){
+  const today=new Date().toISOString().split('T')[0];
+  const modes=CONFIG.modes||['ESP','VIR','CHQ'];
+  let count=0;
+  for(let i=0;i<agendaRdvs.length;i++){
+    const mnt=parseFloat(document.getElementById(`rdv-mnt-${i}`)?.value);
+    if(!mnt||mnt<=0) continue;
+    const r=agendaRdvs[i];
+    DB.caisse.push({
+      id:genId(),date:today,
+      nom:r.nom||'',prestation:r.prestation||'',
+      praticien:'',montant:mnt,
+      reglement:modes[0],paye:false
+    });
+    count++;
+  }
+  if(!count){toast('⚠ Saisis au moins un montant');return;}
+  await saveAll();
+  agendaRdvs=[];
+  renderAgendaResult();
+  toast(`✓ ${count} prestation${count>1?'s':''} encaissée${count>1?'s':''} !`);
 }
 
 document.addEventListener('keydown',e=>{
