@@ -499,6 +499,27 @@ td{padding:11px 14px;vertical-align:middle}
         </div>
       </div>
       <div class="card" style="margin-top:16px">
+    <div class="card-header"><span class="card-title">📊 Résultat du mois</span></div>
+    <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">CA</div>
+        <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:500;color:var(--mint)">${fa(ca)}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">Charges</div>
+        <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:500;color:var(--red)">${fm([...DB.fixes,...DB.variables].filter(f=>inM(f.mois||'',mois)).reduce((s,f)=>s+(f.montant||0),0))}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">Résultat</div>
+        ${(()=>{
+          const charges=[...DB.fixes,...DB.variables].filter(f=>inM(f.mois||'',mois)).reduce((s,f)=>s+(f.montant||0),0);
+          const res=ca+charges;
+          return`<div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:${res>=0?'var(--mint)':'var(--red)'}">${fm(res,true)}</div>`;
+        })()}
+      </div>
+    </div>
+  </div>
+      <div class="card" style="margin-top:16px">
         <div class="card-header"><span class="card-title">⏳ Virements en attente</span></div>
         <div id="dashVir"></div>
       </div>
@@ -971,7 +992,7 @@ const NAV=[
   {id:'caisse',icon:'🧳',label:'Caisse',plans:['simple','avance','complet']},
   {id:'clients',icon:'👥',label:'Clientes',plans:['simple','avance','complet']},
   {id:'banque',icon:'🏦',label:'Banque',plans:['avance','complet']},
-  {id:'charges',icon:'📋',label:'Charges',plans:['avance','complet']},
+  {id:'charges',icon:'📋',label:'Charges',plans:['simple','avance','complet']},
   {id:'recap',icon:'📊',label:'Récap',plans:['avance','complet']},
   {id:'settings',icon:'⚙️',label:'Paramètres',plans:['simple','avance','complet']},
 ];
