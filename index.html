@@ -1893,8 +1893,9 @@ async function saveEntry(){
       const mode=g('fMode');
       const t={id,date:g('fDate'),praticien:g('fPrat'),nom:g('fNom'),prestation:g('fPrest'),
         montant:parseFloat(g('fMnt')),reglement:mode,
-        paye:['CHQ','PLANITY'].includes(mode)?true:mode==='VIR'?false:g('fPaye')==='1',
-        depose:['CHQ','PLANITY','VIR'].includes(mode)};
+        paye:['CHQ','PLANITY'].includes(mode)?true:mode==='VIR'?false:true,
+depose:['ESP','CHQ'].includes(mode)?false:false,
+rapprocheBanque:false
       if(!t.date||isNaN(t.montant)||!t.nom){toast('⚠ Remplis tous les champs');return;}
       if(mEditId){const i=DB.caisse.findIndex(x=>x.id===mEditId);DB.caisse[i]=t;}
       else DB.caisse.push(t);
