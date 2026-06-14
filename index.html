@@ -1369,23 +1369,7 @@ const vir=DB.caisse.filter(t=>modesAttente.includes(t.reglement)&&!t.paye&&t.mon
         💡 TVA collectée estimée : ${fa(tvaCollectee)} à reverser
       </div>`:''}
     </div>`;
-    <div class="card" style="margin-top:16px">
-      <div class="card-header"><span class="card-title">📊 Résultat du mois</span></div>
-      <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
-        <div>
-          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">CA</div>
-          <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:500;color:var(--mint)">${fa(ca)}</div>
-        </div>
-        <div>
-          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">Charges</div>
-          <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:500;color:var(--red)">${fm(charges)}</div>
-        </div>
-        <div>
-          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">Résultat</div>
-          <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:${res>=0?'var(--mint)':'var(--red)'}">${fm(res,true)}</div>
-        </div>
-      </div>
-    </div>`;
+    
 }
 
 // ══════════════════════════════════════
