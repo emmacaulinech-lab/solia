@@ -804,23 +804,26 @@ function renderObStep(){
       </div>`;
   }
   else if(obStep===3){
+    const isAuto=CONFIG.formeJuridique==='auto';
     body.innerHTML=`
-      <div class="g2">
-        <div class="field"><label>Objectif mensuel (€)</label>
-          <input type="number" id="ob-obj" value="${CONFIG.objectif}" placeholder="5000">
-        </div>
-        <div class="field"><label>Solde bancaire initial (€)</label>
-          <input type="number" id="ob-solde" value="${CONFIG.soldeInit}" placeholder="0">
-        </div>
+      <div class="field"><label>Forme juridique</label>
+        <select id="ob-forme" onchange="renderObStep3Preview()">
+          <option value="">— Choisir —</option>
+          <option value="auto" ${CONFIG.formeJuridique==='auto'?'selected':''}>🧾 Auto-entrepreneur</option>
+          <option value="eurl" ${CONFIG.formeJuridique==='eurl'?'selected':''}>🏢 EURL</option>
+          <option value="sasu" ${CONFIG.formeJuridique==='sasu'?'selected':''}>🏢 SASU</option>
+          <option value="sas" ${CONFIG.formeJuridique==='sas'?'selected':''}>🏢 SAS</option>
+          <option value="sarl" ${CONFIG.formeJuridique==='sarl'?'selected':''}>🏢 SARL</option>
+        </select>
       </div>
-      <div class="g2">
-        <div class="field"><label>Taux redevance (%)</label>
-          <input type="number" id="ob-redev" value="${CONFIG.redev*100}" placeholder="10" step="1">
-        </div>
-        <div class="field"><label>Taux TVA (%)</label>
-          <input type="number" id="ob-tva" value="${CONFIG.tva*100}" placeholder="20" step="1">
-        </div>
-      </div>`;
+      <div class="field"><label>Objectif mensuel (€)</label>
+        <input type="number" id="ob-obj" value="${CONFIG.objectif||5000}" placeholder="5000">
+      </div>
+      <div class="field"><label>Solde bancaire initial (€)</label>
+        <input type="number" id="ob-solde" value="${CONFIG.soldeInit||0}" placeholder="0">
+      </div>
+      <div id="ob-forme-extra"></div>`;
+    renderObStep3Preview();
   }
   else if(obStep===4){
     body.innerHTML=`
@@ -866,6 +869,34 @@ function obAddPrest(){
   renderObStep();
 }
 
+function renderObStep3Preview(){
+  const forme=document.getElementById('ob-forme')?.value||CONFIG.formeJuridique||'';
+  const el=document.getElementById('ob-forme-extra');
+  if(!el) return;
+  if(forme==='auto'){
+    el.innerHTML=`
+      <div style="background:rgba(196,122,74,.08);border:1px solid rgba(196,122,74,.2);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+        <div style="font-size:12px;color:#c47a4a;font-weight:600;margin-bottom:4px">💡 Auto-entrepreneur</div>
+        <div style="font-size:12px;color:#555;line-height:1.5">Pas de TVA. Solia calculera vos cotisations URSSAF automatiquement.</div>
+      </div>
+      <div class="field"><label>Taux URSSAF (%)</label>
+        <input type="number" id="ob-urssaf" value="${CONFIG.urssaf||21.2}" placeholder="21.2" step="0.1">
+        <div style="font-size:11px;color:#888;margin-top:4px">Taux standard BIC services : 21,2%</div>
+      </div>`;
+  } else if(forme){
+    el.innerHTML=`
+      <div style="background:rgba(196,122,74,.08);border:1px solid rgba(196,122,74,.2);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+        <div style="font-size:12px;color:#c47a4a;font-weight:600;margin-bottom:4px">💡 Société</div>
+        <div style="font-size:12px;color:#555;line-height:1.5">TVA applicable. La redevance franchise pourra être configurée dans vos charges.</div>
+      </div>
+      <div class="field"><label>Taux TVA (%)</label>
+        <input type="number" id="ob-tva" value="${CONFIG.tva?CONFIG.tva*100:20}" placeholder="20" step="1">
+      </div>`;
+  } else {
+    el.innerHTML='';
+  }
+}
+
 function obSaveStep(){
   if(obStep===0){
     const salon=document.getElementById('ob-salon')?.value?.trim();
@@ -885,10 +916,19 @@ function obSaveStep(){
     if(!CONFIG.prestations.length){toast('⚠ Sélectionne au moins une prestation');return false;}
   }
   else if(obStep===3){
+    const forme=document.getElementById('ob-forme')?.value;
+    if(!forme){toast('⚠ Choisis ta forme juridique');return false;}
+    CONFIG.formeJuridique=forme;
     CONFIG.objectif=parseFloat(document.getElementById('ob-obj')?.value)||5000;
     CONFIG.soldeInit=parseFloat(document.getElementById('ob-solde')?.value)||0;
-    CONFIG.redev=(parseFloat(document.getElementById('ob-redev')?.value)||10)/100;
-    CONFIG.tva=(parseFloat(document.getElementById('ob-tva')?.value)||20)/100;
+    if(forme==='auto'){
+      CONFIG.tva=0;
+      CONFIG.urssaf=parseFloat(document.getElementById('ob-urssaf')?.value)||21.2;
+    } else {
+      CONFIG.tva=(parseFloat(document.getElementById('ob-tva')?.value)||20)/100;
+      CONFIG.urssaf=0;
+    }
+    CONFIG.redev=0; // configuré dans les charges si besoin
   }
   return true;
 }
