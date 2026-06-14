@@ -279,6 +279,7 @@ td{padding:11px 14px;vertical-align:middle}
 #dashModes span[style*="DM Mono"]{font-family:'Playfair Display',serif !important;font-weight:400}
 #dashTop .td-violet{font-family:'Playfair Display',serif !important;font-weight:400}
 #dashVir .td-violet{font-family:'Playfair Display',serif !important;font-weight:400}
+.badge-cb{background:#d1fae5;color:#065f46}
   
 @media(max-width:768px){
   .main{margin-left:0;padding:16px}
@@ -1036,8 +1037,28 @@ function genId(){return Date.now()+'-'+Math.random().toString(36).slice(2,8);}
 function prevMois(m){const[y,mo]=m.split('-').map(Number);let pm=mo-1,py=y;if(pm<1){pm=12;py--;}return`${py}-${String(pm).padStart(2,'0')}`;}
 
 function bdg(m){
-  const map={ESP:'badge-esp',VIR:'badge-vir',CHQ:'badge-chq',PLANITY:'badge-planity',CA:'badge-ca'};
-  return`<span class="badge ${map[m]||'badge-esp'}">${m}</span>`;
+  const map={
+    ESP:'badge-esp',
+    VIR:'badge-vir',
+    CHQ:'badge-chq',
+    PLANITY:'badge-planity',
+    CB:'badge-cb',
+    CA:'badge-ca'
+  };
+  // Couleurs auto pour les modes personnalisés
+  const colors=[
+    {bg:'#fce7f3',color:'#9d174d'},
+    {bg:'#d1fae5',color:'#065f46'},
+    {bg:'#e0e7ff',color:'#3730a3'},
+    {bg:'#fef3c7',color:'#92400e'},
+    {bg:'#fee2e2',color:'#991b1b'},
+    {bg:'#f3e8ff',color:'#6b21a8'},
+  ];
+  if(map[m]) return`<span class="badge ${map[m]}">${m}</span>`;
+  // Mode personnalisé — couleur basée sur le nom
+  const idx=m.split('').reduce((s,c)=>s+c.charCodeAt(0),0)%colors.length;
+  const c=colors[idx];
+  return`<span class="badge" style="background:${c.bg};color:${c.color}">${m}</span>`;
 }
 
 function getPratNom(id){
