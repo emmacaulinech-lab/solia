@@ -1374,6 +1374,13 @@ function renderSettings(){
           <button class="btn btn-primary btn-sm" onclick="addPrest()">+ Ajouter</button>
         </div>
       </div>
+  <div class="card" style="margin-bottom:16px;border-color:#fca5a5">
+      <div class="card-header"><span class="card-title" style="color:var(--red)">⚠️ Zone dangereuse</span></div>
+      <div style="padding:16px">
+        <div style="font-size:13px;color:#555;margin-bottom:16px">La suppression de votre compte est irréversible. Toutes vos données seront définitivement effacées.</div>
+        <button class="btn btn-danger" onclick="deleteAccount()">Supprimer mon compte</button>
+      </div>
+    </div>
     </div>`;
 }
 
@@ -1417,6 +1424,26 @@ async function delMode(i){
   await saveAll();
   renderSettings();
   toast('Mode supprimé');
+}
+
+async function deleteAccount(){
+  if(!confirm('Supprimer définitivement votre compte et toutes vos données ?')) return;
+  if(!confirm('Cette action est irréversible. Confirmer ?')) return;
+  try{
+    // Supprimer les données Firestore
+    await userRef.collection('data').doc('main').delete();
+    // Supprimer le compte Firebase Auth
+    await currentUser.delete();
+    toast('Compte supprimé');
+    showLanding();
+  }catch(e){
+    if(e.code==='auth/requires-recent-login'){
+      toast('⚠ Reconnectez-vous avant de supprimer votre compte');
+      await auth.signOut();
+    } else {
+      toast('⚠ Erreur : '+e.message);
+    }
+  }
 }
 
 // ══════════════════════════════════════
