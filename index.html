@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Solia — Comptabilité beauté</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garant:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -36,44 +36,47 @@
 body{font-family:'Inter',sans-serif;background:var(--fog);color:var(--ink);font-size:14px;min-height:100vh}
 
 /* ── LANDING ── */
-.landing{display:none;min-height:100vh;background:var(--ink);color:var(--white);flex-direction:column}
+.landing{display:none;min-height:100vh;background:#1a0f0a;color:#f5ede6;flex-direction:column}
 .landing.show{display:flex}
-.land-nav{display:flex;justify-content:space-between;align-items:center;padding:24px 48px;border-bottom:1px solid rgba(255,255,255,.08)}
-.land-logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.02em;color:var(--white)}
-.land-logo span{color:var(--violet2)}
+.land-nav{display:flex;justify-content:space-between;align-items:center;padding:28px 56px;border-bottom:1px solid rgba(210,160,120,.12)}
+.land-logo{font-family:'Cormorant Garant',serif;font-size:26px;font-weight:300;letter-spacing:.18em;text-transform:uppercase;color:#f5ede6}
+.land-logo span{color:#c47a4a}
 .land-nav-right{display:flex;gap:12px;align-items:center}
-.land-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 24px;position:relative;overflow:hidden}
-.land-hero::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(108,71,255,.25) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-60%);pointer-events:none}
-.land-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--violet2);font-weight:600;margin-bottom:20px}
-.land-h1{font-family:'Syne',sans-serif;font-size:clamp(36px,6vw,72px);font-weight:800;line-height:1.05;letter-spacing:-.03em;margin-bottom:24px}
-.land-h1 em{color:var(--violet2);font-style:normal}
-.land-sub{font-size:18px;color:rgba(255,255,255,.55);max-width:520px;line-height:1.6;margin-bottom:48px}
-.land-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.land-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:100px 24px 80px;position:relative;overflow:hidden}
+.land-hero::before{content:'';position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(196,122,74,.12) 0%,transparent 68%);top:40%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+.land-eyebrow{font-family:'Inter',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:.22em;color:#c47a4a;font-weight:500;margin-bottom:28px}
+.land-h1{font-family:'Cormorant Garant',serif;font-size:clamp(48px,7vw,88px);font-weight:300;line-height:1.08;letter-spacing:-.01em;margin-bottom:28px;color:#f5ede6}
+.land-h1 em{color:#c47a4a;font-style:italic}
+.land-h1 strong{font-weight:600;font-style:normal}
+.land-sub{font-family:'Inter',sans-serif;font-size:15px;color:rgba(245,237,230,.45);max-width:460px;line-height:1.75;margin-bottom:52px;font-weight:300}
+.land-divider{width:40px;height:1px;background:#c47a4a;margin:0 auto 52px;opacity:.6}
+.land-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
 
 /* ── PLANS ── */
-.plans-section{background:var(--ink2);padding:80px 24px}
-.plans-title{font-family:'Syne',sans-serif;font-size:32px;font-weight:700;text-align:center;color:var(--white);margin-bottom:8px;letter-spacing:-.02em}
-.plans-sub{text-align:center;color:rgba(255,255,255,.45);margin-bottom:48px;font-size:15px}
-.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:900px;margin:0 auto}
-.plan-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:28px 24px;position:relative;transition:border-color .2s}
-.plan-card.featured{background:var(--violet);border-color:var(--violet);box-shadow:0 0 60px rgba(108,71,255,.4)}
-.plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--mint);color:var(--ink);font-size:11px;font-weight:700;padding:4px 12px;border-radius:99px;text-transform:uppercase;letter-spacing:.08em}
-.plan-name{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--white);margin-bottom:6px}
-.plan-price{font-family:'DM Mono',monospace;font-size:36px;font-weight:500;color:var(--white);margin-bottom:4px}
-.plan-price span{font-size:14px;opacity:.5}
-.plan-desc{font-size:12px;color:rgba(255,255,255,.45);margin-bottom:20px;line-height:1.5}
-.plan-features{list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
-.plan-features li{font-size:13px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:8px}
-.plan-features li::before{content:'✓';color:var(--mint);font-weight:700;font-size:12px;flex-shrink:0}
-.plan-features li.off{color:rgba(255,255,255,.25)}
-.plan-features li.off::before{content:'–';color:rgba(255,255,255,.2)}
+.plans-section{background:#150c08;padding:96px 24px;border-top:1px solid rgba(210,160,120,.1)}
+.plans-title{font-family:'Cormorant Garant',serif;font-size:38px;font-weight:300;text-align:center;color:#f5ede6;margin-bottom:8px;letter-spacing:.02em}
+.plans-sub{text-align:center;color:rgba(245,237,230,.35);margin-bottom:56px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;font-family:'Inter',sans-serif}
+.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;max-width:860px;margin:0 auto;background:rgba(210,160,120,.15);border:1px solid rgba(210,160,120,.15)}
+.plan-card{background:#1a0f0a;padding:36px 28px;position:relative;transition:background .2s}
+.plan-card:hover{background:#201208}
+.plan-card.featured{background:#211008}
+.plan-badge{position:absolute;top:20px;right:20px;background:#c47a4a;color:#1a0f0a;font-family:'Inter',sans-serif;font-size:9px;font-weight:700;padding:4px 10px;border-radius:0;text-transform:uppercase;letter-spacing:.12em}
+.plan-name{font-family:'Cormorant Garant',serif;font-size:22px;font-weight:400;color:#f5ede6;margin-bottom:8px;letter-spacing:.04em}
+.plan-price{font-family:'Cormorant Garant',serif;font-size:48px;font-weight:300;color:#c47a4a;margin-bottom:4px;line-height:1}
+.plan-price span{font-size:14px;color:rgba(245,237,230,.35);font-family:'Inter',sans-serif;font-weight:300}
+.plan-desc{font-family:'Inter',sans-serif;font-size:12px;color:rgba(245,237,230,.35);margin-bottom:28px;line-height:1.6;letter-spacing:.02em}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:32px}
+.plan-features li{font-family:'Inter',sans-serif;font-size:12px;color:rgba(245,237,230,.6);display:flex;align-items:center;gap:10px;letter-spacing:.02em}
+.plan-features li::before{content:'—';color:#c47a4a;font-weight:300;flex-shrink:0}
+.plan-features li.off{color:rgba(245,237,230,.2)}
+.plan-features li.off::before{content:'—';color:rgba(245,237,230,.15)}
 
 /* ── BUTTONS ── */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border-radius:var(--r-sm);border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;transition:all .15s;text-decoration:none;white-space:nowrap}
-.btn-primary{background:var(--violet);color:white}
-.btn-primary:hover{background:var(--violet2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(108,71,255,.4)}
-.btn-ghost{background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15)}
-.btn-ghost:hover{background:rgba(255,255,255,.06);color:white}
+.btn-primary{background:#c47a4a;color:#1a0f0a}
+.btn-primary:hover{background:#d4895a;transform:translateY(-1px);box-shadow:0 4px 20px rgba(196,122,74,.35)}
+.btn-ghost{background:transparent;color:rgba(245,237,230,.6);border:1px solid rgba(245,237,230,.2)}
+.btn-ghost:hover{background:rgba(245,237,230,.05);color:#f5ede6}
 .btn-white{background:white;color:var(--ink)}
 .btn-white:hover{background:var(--fog)}
 .btn-outline{background:transparent;color:var(--violet);border:1.5px solid var(--violet)}
@@ -258,7 +261,7 @@ td{padding:11px 14px;vertical-align:middle}
 <!-- ══════════════ LANDING ══════════════ -->
 <div class="landing" id="landing">
   <nav class="land-nav">
-    <div class="land-logo">sol<span>ia</span></div>
+    <div class="land-logo">S O L <span>I A</span></div>
     <div class="land-nav-right">
       <button class="btn btn-ghost" onclick="showAuth('login')">Se connecter</button>
       <button class="btn btn-primary" onclick="showAuth('signup')">Essayer gratuitement</button>
@@ -266,14 +269,15 @@ td{padding:11px 14px;vertical-align:middle}
   </nav>
 
   <div class="land-hero">
-    <div class="land-eyebrow">Comptabilité pour professionnelles de la beauté</div>
-    <h1 class="land-h1">Votre compta,<br><em>enfin simple.</em></h1>
-    <p class="land-sub">Solia remplace vos tableaux Excel et vos classeurs papier. Encaissements, charges, récap mensuel — tout au même endroit.</p>
-    <div class="land-cta">
-      <button class="btn btn-primary btn-lg" onclick="showAuth('signup')">Commencer maintenant</button>
-      <button class="btn btn-ghost btn-lg" onclick="document.getElementById('plans-section').scrollIntoView({behavior:'smooth'})">Voir les tarifs</button>
-    </div>
+  <div class="land-eyebrow">Comptabilité pour professionnelles de la beauté</div>
+  <h1 class="land-h1">La gestion de votre salon,<br><em>enfin à votre hauteur.</em></h1>
+  <div class="land-divider"></div>
+  <p class="land-sub">Encaissements, charges, récap mensuel — Solia remplace vos tableaux Excel avec l'élégance que votre métier mérite.</p>
+  <div class="land-cta">
+    <button class="btn btn-primary btn-lg" onclick="showAuth('signup')">Commencer maintenant</button>
+    <button class="btn btn-ghost btn-lg" onclick="document.getElementById('plans-section').scrollIntoView({behavior:'smooth'})">Voir les formules</button>
   </div>
+</div>
 
   <div class="plans-section" id="plans-section">
     <div class="plans-title">Choisissez votre formule</div>
