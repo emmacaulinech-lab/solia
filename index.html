@@ -500,7 +500,7 @@ td{padding:11px 14px;vertical-align:middle}
       </div>
       <div id="dashResultat"></div>
       <div class="card" style="margin-top:16px">
-        <div class="card-header"><span class="card-title">⏳ Virements en attente</span></div>
+        <div class="card-header"><span class="card-title">⏳ Paiements en attente</span></div>
         <div id="dashVir"></div>
       </div>
     </div>
@@ -1129,13 +1129,14 @@ document.getElementById('dashModes').innerHTML=modes.map(m=>`
 const vir=DB.caisse.filter(t=>modesAttente.includes(t.reglement)&&!t.paye&&t.montant>0&&inM(t.date,mois));
   const virEl=document.getElementById('dashVir');
   if(!vir.length){
-    virEl.innerHTML='<div style="padding:16px 18px;font-size:13px;color:var(--mut)">✅ Aucun virement en attente</div>';
+    virEl.innerHTML='<div style="padding:16px 18px;font-size:13px;color:var(--mut)">✅ Aucun paiement en attente</div>';
   } else {
     virEl.innerHTML=`<div style="padding:0"><table>
       <tbody>${vir.map(t=>`<tr>
         <td>${dlbl(t.date)}</td>
         <td style="font-weight:600">${t.nom}</td>
         <td>${t.prestation||'—'}</td>
+        <td>${bdg(t.reglement)}</td>
         <td class="td-violet" style="text-align:right">${fa(t.montant)}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
