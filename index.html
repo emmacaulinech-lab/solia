@@ -1350,14 +1350,14 @@ function renderSettings(){
           ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map((m,i)=>`
             <div style="display:flex;align-items:center;gap:6px;background:#f9f6f4;border:1.5px solid #ddd;border-radius:20px;padding:6px 12px">
               <span style="font-size:13px;font-weight:600;color:#1a0f0a">${m}</span>
-              ${['ESP','VIR','CHQ'].includes(m)?'':`<button onclick="delMode(${i})" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px;line-height:1">✕</button>`}
+              <button onclick="delMode(${i})" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px;line-height:1">✕</button>
             </div>`).join('')}
         </div>
         <div style="display:flex;gap:8px">
           <input type="text" id="newMode" placeholder="ex: CB, Lydia, Virement..." class="fi" style="flex:1;color:#1a0f0a">
           <button class="btn btn-primary btn-sm" onclick="addMode()">+ Ajouter</button>
         </div>
-        <div style="font-size:11px;color:#888;margin-top:8px">ESP, VIR et CHQ sont obligatoires et ne peuvent pas être supprimés.</div>
+        <div style="font-size:11px;color:#888;margin-top:8px">💡 Personnalisez librement vos modes de règlement.</div>
       </div>
     </div>
 
