@@ -877,7 +877,6 @@ function renderObStep(){
       </div>`;
   }
   else if(obStep===3){
-    const isAuto=CONFIG.formeJuridique==='auto';
     body.innerHTML=`
       <div class="field"><label>Forme juridique</label>
         <select id="ob-forme" onchange="renderObStep3Preview()">
@@ -895,7 +894,8 @@ function renderObStep(){
       <div class="field"><label>Solde bancaire initial (€)</label>
         <input type="number" id="ob-solde" value="${CONFIG.soldeInit||0}" placeholder="0">
       </div>
-      <div id="ob-forme-extra"></div>`;
+      <div id="ob-forme-extra"></div>
+      <div id="ob-charges-preview"></div>`;
     renderObStep3Preview();
   }
   else if(obStep===4){
@@ -945,29 +945,86 @@ function obAddPrest(){
 function renderObStep3Preview(){
   const forme=document.getElementById('ob-forme')?.value||CONFIG.formeJuridique||'';
   const el=document.getElementById('ob-forme-extra');
+  const elCharges=document.getElementById('ob-charges-preview');
   if(!el) return;
+
   if(forme==='auto'){
     el.innerHTML=`
       <div style="background:rgba(196,122,74,.08);border:1px solid rgba(196,122,74,.2);border-radius:8px;padding:12px 14px;margin-bottom:12px">
-        <div style="font-size:12px;color:#c47a4a;font-weight:600;margin-bottom:4px">💡 Auto-entrepreneur</div>
-        <div style="font-size:12px;color:#555;line-height:1.5">Pas de TVA. Solia calculera vos cotisations URSSAF automatiquement.</div>
+        <div style="font-size:12px;color:#c47a4a;font-weight:600;margin-bottom:4px">🧾 Auto-entrepreneur</div>
+        <div style="font-size:12px;color:#555;line-height:1.5">Pas de TVA. Cotisations URSSAF calculées automatiquement sur votre CA.</div>
       </div>
       <div class="field"><label>Taux URSSAF (%)</label>
-        <input type="number" id="ob-urssaf" value="${CONFIG.urssaf||21.2}" placeholder="21.2" step="0.1">
-        <div style="font-size:11px;color:#888;margin-top:4px">Taux standard BIC services : 21,2%</div>
+        <input type="number" id="ob-urssaf" value="${CONFIG.urssaf||21.2}" placeholder="21.2" step="0.1" onchange="renderChargesPreview()">
+        <div style="font-size:11px;color:#888;margin-top:4px">Standard BIC services : 21,2% · BNC : 22,2%</div>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#444;margin-bottom:10px;margin-top:4px">Vos charges habituelles :</div>
+      <div style="display:flex;flex-direction:column;gap:8px" id="ob-charges-list">
+        ${renderChargesCheckboxes('auto')}
       </div>`;
   } else if(forme){
     el.innerHTML=`
       <div style="background:rgba(196,122,74,.08);border:1px solid rgba(196,122,74,.2);border-radius:8px;padding:12px 14px;margin-bottom:12px">
-        <div style="font-size:12px;color:#c47a4a;font-weight:600;margin-bottom:4px">💡 Société</div>
-        <div style="font-size:12px;color:#555;line-height:1.5">TVA applicable. La redevance franchise pourra être configurée dans vos charges.</div>
+        <div style="font-size:12px;color:#c47a4a;font-weight:600;margin-bottom:4px">🏢 Société</div>
+        <div style="font-size:12px;color:#555;line-height:1.5">TVA applicable. Les charges sociales dépendent de votre statut.</div>
       </div>
       <div class="field"><label>Taux TVA (%)</label>
         <input type="number" id="ob-tva" value="${CONFIG.tva?CONFIG.tva*100:20}" placeholder="20" step="1">
+      </div>
+      <div class="field"><label>Avez-vous des salariés ?</label>
+        <select id="ob-salaries" onchange="renderObStep3Preview()">
+          <option value="non" ${CONFIG.salaries==='non'?'selected':''}>Non</option>
+          <option value="oui" ${CONFIG.salaries==='oui'?'selected':''}>Oui</option>
+        </select>
+      </div>
+      ${document.getElementById('ob-salaries')?.value==='oui'||CONFIG.salaries==='oui'?`
+      <div class="field"><label>Nombre de salariés</label>
+        <input type="number" id="ob-nb-salaries" value="${CONFIG.nbSalaries||1}" min="1" placeholder="1">
+      </div>`:''}
+      <div style="font-size:12px;font-weight:600;color:#444;margin-bottom:10px;margin-top:4px">Vos charges habituelles :</div>
+      <div style="display:flex;flex-direction:column;gap:8px" id="ob-charges-list">
+        ${renderChargesCheckboxes('societe')}
       </div>`;
   } else {
     el.innerHTML='';
+    if(elCharges) elCharges.innerHTML='';
   }
+}
+
+function renderChargesCheckboxes(type){
+  const chargesAuto=[
+    {id:'urssaf',label:'URSSAF',desc:'Calculé auto sur CA',locked:true},
+    {id:'loyer',label:'Loyer / Local',desc:'Si vous avez un local professionnel'},
+    {id:'edf',label:'EDF / Énergie',desc:'Électricité du local'},
+    {id:'materiel',label:'Matériel & consommables',desc:'Achats professionnels'},
+    {id:'tel',label:'Téléphone pro',desc:'Abonnement professionnel'},
+    {id:'logiciels',label:'Abonnements logiciels',desc:'Planity, Solia, etc.'},
+    {id:'assurance',label:'Assurance pro',desc:'RC professionnelle'},
+    {id:'formation',label:'Formation',desc:'Formations professionnelles'},
+  ];
+  const chargesSociete=[
+    {id:'loyer',label:'Loyer / Local',desc:'Si vous avez un local professionnel'},
+    {id:'edf',label:'EDF / Énergie',desc:'Électricité du local'},
+    {id:'materiel',label:'Matériel & consommables',desc:'Achats professionnels'},
+    {id:'tel',label:'Téléphone pro',desc:'Abonnement professionnel'},
+    {id:'logiciels',label:'Abonnements logiciels',desc:'Planity, Solia, etc.'},
+    {id:'assurance',label:'Assurance pro',desc:'RC professionnelle'},
+    {id:'comptable',label:'Expert-comptable',desc:'Honoraires comptables'},
+    {id:'salaires',label:'Salaires & charges sociales',desc:'Si vous avez des salariés'},
+    {id:'cotisations',label:'Cotisations dirigeant',desc:'URSSAF dirigeant'},
+    {id:'formation',label:'Formation',desc:'Formations professionnelles'},
+  ];
+  const charges=type==='auto'?chargesAuto:chargesSociete;
+  const selected=CONFIG.chargesSelectionnees||[];
+  return charges.map(c=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:#f9f6f4;border:1px solid #eee">
+      <input type="checkbox" id="chk-${c.id}" ${c.locked||selected.includes(c.id)?'checked':''} ${c.locked?'disabled':''} style="accent-color:#c47a4a;width:16px;height:16px">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:#1a0f0a">${c.label}</div>
+        <div style="font-size:11px;color:#888">${c.desc}</div>
+      </div>
+      ${c.locked?'<span style="font-size:10px;color:#c47a4a;font-weight:600">AUTO</span>':''}
+    </div>`).join('');
 }
 
 function obSaveStep(){
@@ -994,14 +1051,46 @@ function obSaveStep(){
     CONFIG.formeJuridique=forme;
     CONFIG.objectif=parseFloat(document.getElementById('ob-obj')?.value)||5000;
     CONFIG.soldeInit=parseFloat(document.getElementById('ob-solde')?.value)||0;
+
     if(forme==='auto'){
       CONFIG.tva=0;
       CONFIG.urssaf=parseFloat(document.getElementById('ob-urssaf')?.value)||21.2;
     } else {
       CONFIG.tva=(parseFloat(document.getElementById('ob-tva')?.value)||20)/100;
       CONFIG.urssaf=0;
+      CONFIG.salaries=document.getElementById('ob-salaries')?.value||'non';
+      CONFIG.nbSalaries=parseInt(document.getElementById('ob-nb-salaries')?.value)||0;
     }
-    CONFIG.redev=0; // configuré dans les charges si besoin
+
+    // Récupérer les charges sélectionnées
+    CONFIG.chargesSelectionnees=[];
+    document.querySelectorAll('#ob-charges-list input[type=checkbox]:checked').forEach(cb=>{
+      CONFIG.chargesSelectionnees.push(cb.id.replace('chk-',''));
+    });
+    CONFIG.redev=0;
+
+    // Pré-créer les charges dans DB
+    const mois=new Date().toISOString().slice(0,7);
+    const chargesACreer={
+      loyer:{nom:'LOYER',type:'fixes'},
+      edf:{nom:'EDF',type:'fixes'},
+      materiel:{nom:'MATÉRIEL',type:'variables'},
+      tel:{nom:'TÉLÉPHONE PRO',type:'fixes'},
+      logiciels:{nom:'ABONNEMENTS LOGICIELS',type:'fixes'},
+      assurance:{nom:'ASSURANCE PRO',type:'fixes'},
+      comptable:{nom:'EXPERT-COMPTABLE',type:'fixes'},
+      salaires:{nom:'SALAIRES',type:'fixes'},
+      cotisations:{nom:'COTISATIONS DIRIGEANT',type:'fixes'},
+      formation:{nom:'FORMATION',type:'variables'},
+    };
+    CONFIG.chargesSelectionnees.forEach(id=>{
+      if(!chargesACreer[id]) return;
+      const c=chargesACreer[id];
+      const exists=DB[c.type].some(f=>f.mois===mois&&f.nom===c.nom);
+      if(!exists){
+        DB[c.type].push({id:genId(),mois,nom:c.nom,montant:0,prev:0,paye:false});
+      }
+    });
   }
   return true;
 }
@@ -2055,7 +2144,6 @@ function renderImportBanqueResult(){
     return;
   }
 
-  // Détecter les doublons
   const doublons=new Set();
   importedMouvements.forEach((m,i)=>{
     const exists=DB.banque.some(b=>b.date===m.date&&Math.abs(b.montant-m.montant)<0.01&&b.nom.toLowerCase()===m.libelle.toLowerCase());
@@ -2066,9 +2154,17 @@ function renderImportBanqueResult(){
   const totalCredit=nouveaux.filter(m=>m.montant>0).reduce((s,m)=>s+m.montant,0);
   const totalDebit=nouveaux.filter(m=>m.montant<0).reduce((s,m)=>s+m.montant,0);
 
+  // Charges prévues pour rapprochement
+  const moisActuel=new Date().toISOString().slice(0,7);
+  const chargesNonRaprochees=[...DB.fixes,...DB.variables].filter(f=>f.mois===moisActuel&&!f.rapproche);
+
+  const categories=CONFIG.formeJuridique==='auto'
+    ?['Chiffre d\'affaires','Matériel','Loyer','EDF','Téléphone','Abonnements','Assurance','Formation','Autre']
+    :['Chiffre d\'affaires','Matériel','Loyer','EDF','Téléphone','Abonnements','Assurance','Salaires','Comptable','TVA','Autre'];
+
   let html=`
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
-      <div class="kpi"><div class="kpi-label">Mouvements détectés</div><div class="kpi-value">${importedMouvements.length}</div></div>
+      <div class="kpi"><div class="kpi-label">Mouvements</div><div class="kpi-value">${importedMouvements.length}</div></div>
       <div class="kpi"><div class="kpi-label">Crédits</div><div class="kpi-value" style="color:var(--mint)">${fa(totalCredit)}</div></div>
       <div class="kpi"><div class="kpi-label">Débits</div><div class="kpi-value" style="color:var(--red)">${fm(totalDebit)}</div></div>
     </div>
@@ -2078,15 +2174,31 @@ function renderImportBanqueResult(){
         <button class="btn btn-primary btn-sm" onclick="importerTousMouvements()">✓ Tout importer</button>
       </div>
       <table>
-        <thead><tr><th>Date</th><th>Libellé</th><th style="text-align:right">Montant</th><th></th></tr></thead>
+        <thead><tr>
+          <th>Date</th>
+          <th>Libellé</th>
+          <th style="text-align:right">Montant</th>
+          <th>Catégorie</th>
+          <th>Rapprocher avec</th>
+          <th></th>
+        </tr></thead>
         <tbody>
           ${importedMouvements.map((m,i)=>{
             const isDup=doublons.has(i);
+            const autocat=m.montant>0?'Chiffre d\'affaires':'';
             return`<tr style="opacity:${isDup?0.4:1}">
               <td class="td-mut">${dlbl(m.date)}</td>
-              <td style="font-weight:500">${m.libelle}</td>
+              <td style="font-weight:500;font-size:12px">${m.libelle}</td>
               <td class="${m.montant>=0?'td-green':'td-red'}" style="text-align:right">${fm(m.montant,m.montant>0)}</td>
-              <td>${isDup?'<span style="font-size:11px;color:var(--mut)">Déjà importé</span>':`<button class="btn btn-primary btn-sm" onclick="importerMouvement(${i})">+ Banque</button>`}</td>
+              <td>${isDup?'—':`<select id="cat-${i}" style="padding:4px 6px;border:1.5px solid #ddd;border-radius:6px;font-size:11px;max-width:130px">
+                <option value="">— Catégorie —</option>
+                ${categories.map(c=>`<option value="${c}" ${c===autocat?'selected':''}>${c}</option>`).join('')}
+              </select>`}</td>
+              <td>${isDup||m.montant>0?'—':`<select id="rap-${i}" style="padding:4px 6px;border:1.5px solid #ddd;border-radius:6px;font-size:11px;max-width:130px">
+                <option value="">— Aucun —</option>
+                ${chargesNonRaprochees.map(c=>`<option value="${c.id}">${c.nom} (${fa(Math.abs(c.prev||c.montant||0))})</option>`).join('')}
+              </select>`}</td>
+              <td>${isDup?`<span style="font-size:11px;color:var(--mut)">Déjà importé</span>`:`<button class="btn btn-primary btn-sm" onclick="importerMouvement(${i})">+ Banque</button>`}</td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -2097,11 +2209,46 @@ function renderImportBanqueResult(){
 
 async function importerMouvement(i){
   const m=importedMouvements[i];
-  DB.banque.push({id:genId(),date:m.date,nom:m.libelle,montant:m.montant});
+  const cat=document.getElementById(`cat-${i}`)?.value||'Autre';
+  const rapId=document.getElementById(`rap-${i}`)?.value||'';
+
+  DB.banque.push({id:genId(),date:m.date,nom:m.libelle,montant:m.montant,categorie:cat});
+
+  // Rapprochement avec charge prévue
+  if(rapId){
+    const charge=[...DB.fixes,...DB.variables].find(f=>f.id===rapId);
+    if(charge){
+      charge.montant=m.montant;
+      charge.rapproche=true;
+      charge.paye=true;
+    }
+  }
+
   await saveAll();
   importedMouvements.splice(i,1);
   renderImportBanqueResult();
   toast('✓ Mouvement importé !');
+}
+
+async function importerTousMouvements(){
+  const moisActuel=new Date().toISOString().slice(0,7);
+  let count=0;
+  importedMouvements.forEach((m,i)=>{
+    const isDup=DB.banque.some(b=>b.date===m.date&&Math.abs(b.montant-m.montant)<0.01&&b.nom.toLowerCase()===m.libelle.toLowerCase());
+    if(isDup) return;
+    const cat=document.getElementById(`cat-${i}`)?.value||'Autre';
+    const rapId=document.getElementById(`rap-${i}`)?.value||'';
+    DB.banque.push({id:genId(),date:m.date,nom:m.libelle,montant:m.montant,categorie:cat});
+    if(rapId){
+      const charge=[...DB.fixes,...DB.variables].find(f=>f.id===rapId);
+      if(charge){charge.montant=m.montant;charge.rapproche=true;charge.paye=true;}
+    }
+    count++;
+  });
+  await saveAll();
+  importedMouvements=[];
+  renderImportBanqueResult();
+  toast(`✓ ${count} mouvements importés !`);
 }
 
 async function importerTousMouvements(){
