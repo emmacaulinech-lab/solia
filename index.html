@@ -1838,10 +1838,16 @@ function buildForm(ctx,editId=null){
       </div>
       <div class="field"><label>Libellé</label><input type="text" id="fNom" value="${t?.nom||''}" placeholder="LOYER, EDF..."></div>
       <div class="field"><label>Catégorie</label>
-        <select id="fCat">
+        <select id="fCat" onchange="checkDepot()">
           <option value="">— Choisir —</option>
           ${cats.map(c=>`<option value="${c}" ${t?.categorie===c?'selected':''}>${c}</option>`).join('')}
         </select>
+      </div>
+      <div class="field" id="depot-field" style="display:none"><label>Rapprocher avec des prestations caisse <span style="font-size:10px;color:var(--mut)">(dépôt ESP ou CHQ)</span></label>
+        <div id="depot-list" style="max-height:200px;overflow-y:auto;border:1.5px solid #ddd;border-radius:8px;padding:8px"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--mut)">
+          Total sélectionné : <span id="depot-total" style="font-weight:700;color:#c47a4a">0,00 €</span>
+        </div>
       </div>
       ${DB_FACTURES.filter(f=>!f.rapprochee).length>0?`
       <div class="field"><label>Rapprocher avec une facture <span style="font-size:10px;color:var(--mut)">(optionnel)</span></label>
@@ -1905,6 +1911,12 @@ async function saveEntry(){
       if(!t.date||isNaN(t.montant)||!t.nom){toast('⚠ Remplis tous les champs');return;}
       if(mEditId){const i=DB.banque.findIndex(x=>x.id===mEditId);DB.banque[i]=t;}
       else DB.banque.push(t);
+      // Marquer les prestations comme déposées
+      const checks=document.querySelectorAll('#depot-list input:checked');
+      for(const cb of checks){
+        const prestation=DB.caisse.find(x=>x.id===cb.value);
+        if(prestation) prestation.depose=true;
+      }
       // Marquer la facture comme rapprochée
       if(facture){
         facture.rapprochee=true;
@@ -3118,6 +3130,44 @@ async function validerRapprochementBanque(banqueId){
   renderBanque();
   renderFactures();
   toast('✓ Rapprochement effectué !');
+}
+
+function checkDepot(){
+  const cat=document.getElementById('fCat')?.value;
+  const field=document.getElementById('depot-field');
+  const list=document.getElementById('depot-list');
+  if(!field||!list) return;
+
+  const isDepot=cat==="Chiffre d'affaires";
+  field.style.display=isDepot?'block':'none';
+  if(!isDepot) return;
+
+  // Prestations ESP et CHQ non déposées
+  const prestations=DB.caisse.filter(t=>
+    t.montant>0&&
+    ['ESP','CHQ'].includes(t.reglement)&&
+    !t.depose
+  ).sort((a,b)=>b.date.localeCompare(a.date));
+
+  if(!prestations.length){
+    list.innerHTML='<div style="font-size:12px;color:var(--mut);padding:8px">Aucune prestation ESP/CHQ en attente de dépôt</div>';
+    return;
+  }
+
+  list.innerHTML=prestations.map(t=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--fog)">
+      <input type="checkbox" id="dep-${t.id}" value="${t.id}" data-mnt="${t.montant}" onchange="updateDepotTotal()" style="accent-color:#c47a4a;width:15px;height:15px">
+      <label for="dep-${t.id}" style="flex:1;cursor:pointer;font-size:12px">
+        ${dlbl(t.date)} — <strong>${t.nom}</strong> — ${t.prestation||'—'} — <span style="color:#c47a4a;font-weight:600">${fa(t.montant)}</span> ${bdg(t.reglement)}
+      </label>
+    </div>`).join('');
+}
+
+function updateDepotTotal(){
+  const tot=[...document.querySelectorAll('#depot-list input:checked')]
+    .reduce((s,c)=>s+parseFloat(c.dataset.mnt),0);
+  const el=document.getElementById('depot-total');
+  if(el) el.textContent=tot.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
 }
 
 document.addEventListener('keydown',e=>{
