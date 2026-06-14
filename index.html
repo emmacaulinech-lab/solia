@@ -1766,7 +1766,7 @@ function buildForm(ctx,editId=null){
       ${prats.length>0?`<div class="field"><label>Praticienne</label>
         <div class="prat-toggle" id="pratToggle">
           <button class="prat-btn emma" onclick="setPrat('')">✦ ${CONFIG.proprietaire||'Vous'}</button>
-          ${prats.map((p,i)=>`<button class="prat-btn" onclick="setPrat('${p.id||i}')">${p.nom}</button>`).join('')}
+          ${prats.filter(p=>p.nom.toLowerCase()!==(CONFIG.proprietaire||'').toLowerCase()).map((p,i)=>`<button class="prat-btn" onclick="setPrat('${p.id||i}')">${p.nom}</button>`).join('')}
         </div>
         <input type="hidden" id="fPrat" value="${t?.praticien||''}">
       </div>`:'<input type="hidden" id="fPrat" value="">'}
@@ -1990,7 +1990,7 @@ function renderAgendaResult(){
               <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);font-weight:600;margin-bottom:5px">Praticien(ne)</div>
               <select id="rdv-prat-${i}" style="padding:6px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:12px;width:100%">
                 <option value="">✦ ${CONFIG.proprietaire||'Vous'}</option>
-                ${collabs.map(c=>`<option value="${c.id}" ${r.praticien===c.nom?'selected':''}>${c.nom}</option>`).join('')}
+${collabs.filter(c=>c.nom.toLowerCase()!==CONFIG.proprietaire?.toLowerCase()).map(c=>`<option value="${c.id}">${c.nom}</option>`).join('')}
               </select>
             </div>
 
