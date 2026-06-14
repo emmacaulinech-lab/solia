@@ -1343,6 +1343,24 @@ function renderSettings(){
       </div>
     </div>
 
+<div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">💳 Modes de règlement</span></div>
+      <div style="padding:16px">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+          ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map((m,i)=>`
+            <div style="display:flex;align-items:center;gap:6px;background:#f9f6f4;border:1.5px solid #ddd;border-radius:20px;padding:6px 12px">
+              <span style="font-size:13px;font-weight:600;color:#1a0f0a">${m}</span>
+              ${['ESP','VIR','CHQ'].includes(m)?'':`<button onclick="delMode(${i})" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px;line-height:1">✕</button>`}
+            </div>`).join('')}
+        </div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="newMode" placeholder="ex: CB, Lydia, Virement..." class="fi" style="flex:1;color:#1a0f0a">
+          <button class="btn btn-primary btn-sm" onclick="addMode()">+ Ajouter</button>
+        </div>
+        <div style="font-size:11px;color:#888;margin-top:8px">ESP, VIR et CHQ sont obligatoires et ne peuvent pas être supprimés.</div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-header"><span class="card-title">💅 Prestations</span></div>
       <div style="padding:16px">
@@ -1378,6 +1396,26 @@ async function delPrest(i){
   CONFIG.prestations.splice(i,1);
   await saveAll();
   renderSettings();
+}
+
+async function addMode(){
+  if(!CONFIG.modes) CONFIG.modes=['ESP','VIR','CHQ','PLANITY'];
+  const v=document.getElementById('newMode')?.value?.trim().toUpperCase();
+  if(!v){toast('⚠ Saisis un mode');return;}
+  if(CONFIG.modes.includes(v)){toast('⚠ Déjà dans la liste');return;}
+  CONFIG.modes.push(v);
+  document.getElementById('newMode').value='';
+  await saveAll();
+  renderSettings();
+  toast('✓ Mode ajouté');
+}
+
+async function delMode(i){
+  if(!CONFIG.modes) return;
+  CONFIG.modes.splice(i,1);
+  await saveAll();
+  renderSettings();
+  toast('Mode supprimé');
 }
 
 // ══════════════════════════════════════
@@ -1420,7 +1458,7 @@ function buildForm(ctx,editId=null){
       </div>
       <div class="g2">
         <div class="field"><label>Mode règlement</label>
-          <select id="fMode">${['ESP','VIR','CHQ','PLANITY'].map(m=>`<option${t?.reglement===m?' selected':''}>${m}</option>`).join('')}</select>
+          <select id="fMode">${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>`<option${t?.reglement===m?' selected':''}>${m}</option>`).join('')}</select>
         </div>
         <div class="field"><label>Payé ?</label>
           <select id="fPaye"><option value="1"${t?.paye?' selected':''}>✅ Oui</option><option value="0"${!t?.paye?' selected':''}>⬜ Non</option></select>
