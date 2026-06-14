@@ -1536,6 +1536,39 @@ function renderSettings(){
     </div>
 
     <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <span class="card-title">👥 Mon équipe</span>
+        <button class="btn btn-primary btn-sm" onclick="openAddCollab()">+ Ajouter</button>
+      </div>
+      <div id="equipeList" style="padding:0">
+        ${(CONFIG.praticiennes||[]).length?
+          (CONFIG.praticiennes||[]).map((p,i)=>`
+            <div style="padding:14px 18px;border-bottom:1px solid var(--fog)">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                <div>
+                  <div style="font-weight:700;font-size:14px">${p.nom}</div>
+                  <div style="font-size:11px;color:var(--mut)">${p.statut||'Auto-entrepreneur'} · ${p.taux||40}% société</div>
+                </div>
+                <div style="display:flex;gap:6px">
+                  <button class="btn btn-ghost btn-sm" onclick="openEditCollab(${i})">✏️</button>
+                  <button class="btn btn-danger btn-sm" onclick="delCollab(${i})">✕</button>
+                </div>
+              </div>
+              <div style="font-size:11px;font-weight:600;color:#444;margin-bottom:6px">Règles d'encaissement :</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>{
+                  const regle=(p.regles||{})[m]||'societe';
+                  return`<div onclick="toggleRegleCollab(${i},'${m}')" style="cursor:pointer;padding:5px 10px;border-radius:20px;border:1.5px solid ${regle==='societe'?'#c47a4a':'#ddd'};background:${regle==='societe'?'rgba(196,122,74,.1)':'#f9f6f4'};font-size:11px;font-weight:600;color:${regle==='societe'?'#c47a4a':'#888'}">
+                    ${m} → ${regle==='societe'?'Société':'Collaborateur'}
+                  </div>`;
+                }).join('')}
+              </div>
+            </div>`).join('')
+          :`<div style="padding:20px;text-align:center;font-size:13px;color:var(--mut)">Aucun collaborateur — ajoutez votre équipe</div>`}
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
       <div class="card-header"><span class="card-title">💳 Ma formule</span></div>
       <div style="padding:16px">
         <div style="font-size:14px;font-weight:600;margin-bottom:8px">${planNames[CONFIG.plan]||CONFIG.plan}</div>
@@ -2318,6 +2351,103 @@ Réponds UNIQUEMENT en JSON valide sans backticks :
     el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--red)">⚠️ Erreur : ${e.message}</div>`;
   }
   event.target.value='';
+}
+
+function openAddCollab(){
+  document.getElementById('mTitle').textContent='👤 Nouveau collaborateur';
+  document.getElementById('mBody').innerHTML=buildFormCollab();
+  document.querySelector('#mainModal .modal-footer').innerHTML=`
+    <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>
+    <button class="btn btn-primary" onclick="saveCollab()">Ajouter</button>`;
+  document.getElementById('mainModal').classList.add('open');
+}
+
+function openEditCollab(i){
+  const p=CONFIG.praticiennes[i];
+  document.getElementById('mTitle').textContent='✏️ Modifier collaborateur';
+  document.getElementById('mBody').innerHTML=buildFormCollab(p);
+  document.querySelector('#mainModal .modal-footer').innerHTML=`
+    <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>
+    <button class="btn btn-primary" onclick="saveCollab(${i})">Enregistrer</button>`;
+  document.getElementById('mainModal').classList.add('open');
+}
+
+function buildFormCollab(p=null){
+  const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
+  return`
+    <div class="field"><label>Prénom</label>
+      <input type="text" id="fc-nom" value="${p?.nom||''}" placeholder="Prénom">
+    </div>
+    <div class="g2">
+      <div class="field"><label>Statut</label>
+        <select id="fc-statut">
+          <option value="auto" ${p?.statut==='auto'?'selected':''}>Auto-entrepreneur</option>
+          <option value="salarie" ${p?.statut==='salarie'?'selected':''}>Salarié(e)</option>
+          <option value="associe" ${p?.statut==='associe'?'selected':''}>Associé(e)</option>
+        </select>
+      </div>
+      <div class="field"><label>Taux société (%)</label>
+        <input type="number" id="fc-taux" value="${p?.taux||40}" min="0" max="100" step="1">
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:#444;margin-bottom:10px">Règles d'encaissement par mode :</div>
+    <div style="font-size:11px;color:#888;margin-bottom:10px">Définissez pour chaque mode si l'encaissement va à la société ou au collaborateur.</div>
+    ${modes.map(m=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee">
+        <span style="font-size:13px;font-weight:600">${m}</span>
+        <div style="display:flex;border-radius:8px;overflow:hidden;border:1.5px solid #ddd">
+          <button id="regle-${m}-soc" onclick="setRegle('${m}','societe')" style="padding:6px 12px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${!p?.regles||p?.regles[m]==='societe'?'#c47a4a':'#f9f6f4'};color:${!p?.regles||p?.regles[m]==='societe'?'white':'#888'};transition:all .15s">Société</button>
+          <button id="regle-${m}-col" onclick="setRegle('${m}','collab')" style="padding:6px 12px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${p?.regles&&p?.regles[m]==='collab'?'#1a0f0a':'#f9f6f4'};color:${p?.regles&&p?.regles[m]==='collab'?'white':'#888'};transition:all .15s">Collaborateur</button>
+        </div>
+      </div>`).join('')}`;
+}
+
+let tempRegles={};
+function setRegle(mode, val){
+  tempRegles[mode]=val;
+  const socBtn=document.getElementById(`regle-${mode}-soc`);
+  const colBtn=document.getElementById(`regle-${mode}-col`);
+  if(socBtn){socBtn.style.background=val==='societe'?'#c47a4a':'#f9f6f4';socBtn.style.color=val==='societe'?'white':'#888';}
+  if(colBtn){colBtn.style.background=val==='collab'?'#1a0f0a':'#f9f6f4';colBtn.style.color=val==='collab'?'white':'#888';}
+}
+
+async function saveCollab(editIdx=null){
+  const nom=document.getElementById('fc-nom')?.value?.trim();
+  const statut=document.getElementById('fc-statut')?.value||'auto';
+  const taux=parseInt(document.getElementById('fc-taux')?.value)||40;
+  if(!nom){toast('⚠ Saisis un prénom');return;}
+
+  const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
+  const regles={};
+  modes.forEach(m=>regles[m]=tempRegles[m]||'societe');
+
+  const collab={id:editIdx!=null?(CONFIG.praticiennes[editIdx].id||genId()):genId(),nom,statut,taux,regles};
+
+  if(!CONFIG.praticiennes) CONFIG.praticiennes=[];
+  if(editIdx!=null) CONFIG.praticiennes[editIdx]=collab;
+  else CONFIG.praticiennes.push(collab);
+
+  tempRegles={};
+  await saveAll();
+  closeMo('mainModal');
+  renderSettings();
+  toast('✓ Collaborateur enregistré');
+}
+
+async function toggleRegleCollab(i, mode){
+  const p=CONFIG.praticiennes[i];
+  if(!p.regles) p.regles={};
+  p.regles[mode]=p.regles[mode]==='collab'?'societe':'collab';
+  await saveAll();
+  renderSettings();
+}
+
+async function delCollab(i){
+  if(!confirm('Supprimer ce collaborateur ?')) return;
+  CONFIG.praticiennes.splice(i,1);
+  await saveAll();
+  renderSettings();
+  toast('Collaborateur supprimé');
 }
 
 document.addEventListener('keydown',e=>{
