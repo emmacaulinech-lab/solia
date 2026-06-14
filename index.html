@@ -256,6 +256,18 @@ td{padding:11px 14px;vertical-align:middle}
 .view{display:none}
 .view.active{display:block}
 
+.modal{background:white;border-radius:20px;padding:28px;width:480px;max-width:96vw;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto}
+.modal h2{font-family:'Cormorant Garant',serif;font-size:18px;font-weight:600;color:#1a0f0a;margin-bottom:20px}
+.modal .field label{color:#444;font-size:10px}
+.modal .field input,.modal .field select{color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px}
+.modal .field input:focus,.modal .field select:focus{border-color:#c47a4a;background:white}
+.modal .field select option{color:#1a0f0a;background:white}
+.prat-toggle{display:flex;border-radius:8px;overflow:hidden;border:1.5px solid #ddd;margin-bottom:4px}
+.prat-btn{flex:1;padding:9px;border:none;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;background:#f9f6f4;color:#888;transition:all .15s}
+.prat-btn.emma{background:#c47a4a;color:white}
+.prat-btn.p1{background:#8B4513;color:white}
+.prat-btn.p2{background:#6B3410;color:white}
+
 @media(max-width:768px){
   .main{margin-left:0;padding:16px}
   .sidebar{display:none}
