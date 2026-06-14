@@ -1632,11 +1632,17 @@ function renderSettings(){
       <div class="card-header"><span class="card-title">💳 Modes de règlement</span></div>
       <div style="padding:16px">
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
-          ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map((m,i)=>`
-            <div style="display:flex;align-items:center;gap:6px;background:#f9f6f4;border:1.5px solid #ddd;border-radius:20px;padding:6px 12px">
-              <span style="font-size:13px;font-weight:600;color:#1a0f0a">${m}</span>
-              <button onclick="event.stopPropagation();delMode(${i})" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px;line-height:1;padding:0 2px">✕</button>
-            </div>`).join('')}
+          ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map((m,i)=>{
+  const type=(CONFIG.modesTypes||{})[m]||(['ESP','CHQ'].includes(m)?'physique':'virement');
+  return`<div style="display:flex;align-items:center;gap:8px;background:#f9f6f4;border:1.5px solid #ddd;border-radius:12px;padding:8px 12px;margin-bottom:6px">
+    <span style="font-size:13px;font-weight:600;color:#1a0f0a;min-width:80px">${m}</span>
+    <div style="display:flex;border-radius:6px;overflow:hidden;border:1.5px solid #ddd">
+      <button onclick="setModeType('${m}','physique')" style="padding:4px 10px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${type==='physique'?'#c47a4a':'#f9f6f4'};color:${type==='physique'?'white':'#888'}">💵 Physique</button>
+      <button onclick="setModeType('${m}','virement')" style="padding:4px 10px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${type==='virement'?'#1a0f0a':'#f9f6f4'};color:${type==='virement'?'white':'#888'}">🏦 Virement</button>
+    </div>
+    <button onclick="delMode(${i})" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:16px;margin-left:auto">✕</button>
+  </div>`;
+}).join('')}
         </div>
         <div style="display:flex;gap:8px">
           <input type="text" id="newMode" placeholder="ex: CB, Lydia, Virement..." class="fi" style="flex:1;color:#1a0f0a">
@@ -1896,6 +1902,7 @@ async function saveEntry(){
         paye:['CHQ','PLANITY'].includes(mode)?true:mode==='VIR'?false:true,
 depose:['ESP','CHQ'].includes(mode)?false:false,
 rapprocheBanque:false
+  };
       if(!t.date||isNaN(t.montant)||!t.nom){toast('⚠ Remplis tous les champs');return;}
       if(mEditId){const i=DB.caisse.findIndex(x=>x.id===mEditId);DB.caisse[i]=t;}
       else DB.caisse.push(t);
@@ -3217,10 +3224,12 @@ function updateRapprochementList(banqueId){
 
   // Filtrer les prestations selon le mode
   // Pour ESP et CHQ on filtre sur depose, pour les autres sur rapprocheBanque
+  const modesTypes=CONFIG.modesTypes||{};
+  const typeMode=modesTypes[type]||(['ESP','CHQ'].includes(type)?'physique':'virement');
   const prestations=DB.caisse.filter(t=>{
     if(t.montant<=0) return false;
     if(t.reglement!==type) return false;
-    if(['ESP','CHQ'].includes(type)) return !t.depose;
+    if(typeMode==='physique') return !t.depose;
     return !t.rapprocheBanque;
   }).sort((a,b)=>b.date.localeCompare(a.date));
 
@@ -3268,7 +3277,9 @@ async function validerRapprochementCaisse(banqueId){
   for(const cb of checks){
     const prestation=DB.caisse.find(x=>x.id===cb.value);
     if(prestation){
-      if(['ESP','CHQ'].includes(prestation.reglement)) prestation.depose=true;
+      const modesTypes=CONFIG.modesTypes||{};
+      const typeMode=modesTypes[prestation.reglement]||(['ESP','CHQ'].includes(prestation.reglement)?'physique':'virement');
+      if(typeMode==='physique') prestation.depose=true;
       else prestation.rapprocheBanque=true;
       ids.push(cb.value);
     }
@@ -3278,6 +3289,13 @@ async function validerRapprochementCaisse(banqueId){
   closeMo('mainModal');
   renderBanque();
   toast(`✓ ${ids.length} prestation${ids.length>1?'s':''} rapprochée${ids.length>1?'s':''} !`);
+}
+
+async function setModeType(mode, type){
+  if(!CONFIG.modesTypes) CONFIG.modesTypes={};
+  CONFIG.modesTypes[mode]=type;
+  await saveAll();
+  renderSettings();
 }
 
 document.addEventListener('keydown',e=>{
