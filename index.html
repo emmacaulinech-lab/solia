@@ -2577,7 +2577,8 @@ function renderEquipe(){
       </div>`;
     return;
   }
-
+  
+let html='';
   // Section Emma (propriétaire)
   const proprietaireNom=CONFIG.proprietaire||'Moi';
 const rowsEmma=DB.caisse.filter(t=>inM(t.date,mois)&&t.montant>0&&(!t.praticien||t.praticien===''));
@@ -2613,7 +2614,7 @@ if(caEmma>0){
   }
 
 
-  let html='';
+  let html2='';
   for(const collab of collabs){
     const rows=DB.caisse.filter(t=>inM(t.date,mois)&&t.montant>0&&t.praticien===collab.id);
     if(!rows.length){
@@ -2718,7 +2719,7 @@ if(caEmma>0){
       </div>
     </div>`;
   }
-  document.getElementById('equipeContent').innerHTML=html;
+  document.getElementById('equipeContent').innerHTML=html+html2;
 }
 
 document.addEventListener('keydown',e=>{
