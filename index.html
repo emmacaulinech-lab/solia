@@ -1803,7 +1803,13 @@ function renderAgendaResult(){
             <tr>
               <td class="td-mut">${r.heure_debut}${r.heure_fin?' → '+r.heure_fin:''}</td>
               <td style="font-weight:600">${r.nom||'—'}</td>
-              <td class="td-mut">${r.prestation||'—'}</td>
+              <td class="td-mut">${r.prestation||'—'}
+  ${r.prestation&&!CONFIG.prestations.includes(r.prestation)?
+    `<button onclick="ajouterPrestationAgenda('${r.prestation.replace(/'/g,"\\'")}',this)" 
+    style="margin-left:6px;background:#c47a4a;color:white;border:none;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer">
+    + Ajouter
+    </button>`:''}
+</td>
               <td class="td-mut">${r.praticien||CONFIG.proprietaire||'Vous'}</td>
               <td><input type="number" placeholder="Montant €" step="0.01" id="rdv-mnt-${i}" style="width:90px;padding:5px 8px;border:1.5px solid #ddd;border-radius:6px;font-family:'Inter',sans-serif;font-size:12px"></td>
               <td><button class="btn btn-primary btn-sm" onclick="encaisserRdv(${i})">+ Caisse</button></td>
@@ -1858,6 +1864,14 @@ async function encaisserTousRdvs(){
   agendaRdvs=[];
   renderAgendaResult();
   toast(`✓ ${count} prestation${count>1?'s':''} encaissée${count>1?'s':''} !`);
+}
+
+async function ajouterPrestationAgenda(prestation, btn){
+  if(CONFIG.prestations.includes(prestation)){toast('Déjà dans la liste');return;}
+  CONFIG.prestations.push(prestation);
+  await saveAll();
+  btn.parentElement.innerHTML=`${prestation} <span style="color:#00c896;font-size:11px">✅</span>`;
+  toast('✓ Prestation ajoutée !');
 }
 
 document.addEventListener('keydown',e=>{
