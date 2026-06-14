@@ -614,6 +614,18 @@ td{padding:11px 14px;vertical-align:middle}
   <div id="importBanqueResult"></div>
 </div>
 
+    <div class="view" id="view-equipe">
+  <div class="page-header">
+    <div><div class="page-title">🎭 Équipe</div><div class="page-sub">CA et répartition par collaborateur</div></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button onclick="equipeDashD(-1)" style="background:white;border:1.5px solid var(--line);border-radius:var(--r-sm);width:34px;height:34px;cursor:pointer;font-size:16px">‹</button>
+      <div id="equipeMoisLabel" style="font-family:'DM Mono',monospace;font-size:13px;min-width:110px;text-align:center"></div>
+      <button onclick="equipeDashD(1)" style="background:white;border:1.5px solid var(--line);border-radius:var(--r-sm);width:34px;height:34px;cursor:pointer;font-size:16px">›</button>
+    </div>
+  </div>
+  <div id="equipeContent"></div>
+</div>
+
     <div class="view" id="view-settings">
       <div class="page-header"><div class="page-title">⚙️ Paramètres</div></div>
       <div id="settingsContent"></div>
@@ -1116,6 +1128,7 @@ const NAV=[
   {id:'import-banque',icon:'🏦',label:'Import banque',plans:['avance','complet']},
   {id:'caisse',icon:'🧳',label:'Caisse',plans:['simple','avance','complet']},
   {id:'clients',icon:'👥',label:'Clientes',plans:['simple','avance','complet']},
+  {id:'equipe',icon:'🎭',label:'Équipe',plans:['avance','complet']},
   {id:'banque',icon:'🏦',label:'Banque',plans:['avance','complet']},
   {id:'charges',icon:'📋',label:'Charges',plans:['simple','avance','complet']},
   {id:'recap',icon:'📊',label:'Récap',plans:['avance','complet']},
@@ -1151,6 +1164,7 @@ function goView(id){
   if(id==='recap') renderRecap();
   if(id==='clients') renderClients();
   if(id==='settings') renderSettings();
+  if(id==='equipe') renderEquipe();
   if(id==='import-banque') document.getElementById('importBanqueResult').innerHTML='';
   if(id==='agenda'){
   const saved=localStorage.getItem('solia_agenda');
@@ -2448,6 +2462,141 @@ async function delCollab(i){
   await saveAll();
   renderSettings();
   toast('Collaborateur supprimé');
+}
+
+// ══════════════════════════════════════
+// EQUIPE
+// ══════════════════════════════════════
+let equipeM=NOW.getMonth(), equipeY=NOW.getFullYear();
+
+function equipeDashD(d){
+  equipeM+=d;
+  if(equipeM>11){equipeM=0;equipeY++;}
+  if(equipeM<0){equipeM=11;equipeY--;}
+  renderEquipe();
+}
+
+function renderEquipe(){
+  const mois=`${equipeY}-${String(equipeM+1).padStart(2,'0')}`;
+  document.getElementById('equipeMoisLabel').textContent=MOIS[equipeM]+' '+equipeY;
+
+  const collabs=CONFIG.praticiennes||[];
+  if(!collabs.length){
+    document.getElementById('equipeContent').innerHTML=`
+      <div class="empty">
+        <div class="empty-icon">👥</div>
+        <div class="empty-title">Aucun collaborateur</div>
+        <div class="empty-sub">Ajoutez votre équipe dans les paramètres</div>
+      </div>`;
+    return;
+  }
+
+  let html='';
+  for(const collab of collabs){
+    const rows=DB.caisse.filter(t=>inM(t.date,mois)&&t.montant>0&&t.praticien===collab.id);
+    if(!rows.length){
+      html+=`<div class="card" style="margin-bottom:16px">
+        <div class="card-header"><span class="card-title">${collab.nom} <span style="font-size:11px;color:var(--mut);font-weight:400">${collab.statut||'auto'} · ${collab.taux||40}%</span></span></div>
+        <div style="padding:16px;color:var(--mut);font-size:13px">Aucune prestation ce mois</div>
+      </div>`;
+      continue;
+    }
+
+    const caTotal=rows.reduce((s,t)=>s+t.montant,0);
+    const partSociete=Math.round(caTotal*(collab.taux||40)/100*100)/100;
+    const regles=collab.regles||{};
+
+    // Calcul par mode selon les règles
+    const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
+    const parMode={};
+    modes.forEach(m=>{
+      parMode[m]=rows.filter(t=>t.reglement===m).reduce((s,t)=>s+t.montant,0);
+    });
+
+    // Déjà encaissé par société = modes configurés "societe"
+    const dejaEncSociete=modes
+      .filter(m=>regles[m]!=='collab')
+      .reduce((s,m)=>s+(parMode[m]||0),0);
+
+    // ESP/modes collab due à société
+    const espDueSociete=Math.max(0,partSociete-dejaEncSociete);
+    const espAutoGarde=modes
+      .filter(m=>regles[m]==='collab')
+      .reduce((s,m)=>s+(parMode[m]||0),0);
+
+    html+=`<div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <span class="card-title">${collab.nom} <span style="font-size:11px;color:var(--mut);font-weight:400">${collab.statut||'auto'} · ${collab.taux||40}% société</span></span>
+        <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:500;color:var(--mint)">${fa(caTotal)}</span>
+      </div>
+      <div style="padding:16px">
+        <!-- KPIs -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+          <div style="background:var(--fog);border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:4px">CA total</div>
+            <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--ink)">${fa(caTotal)}</div>
+          </div>
+          <div style="background:var(--fog);border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:4px">Part société</div>
+            <div style="font-family:'Playfair Display',serif;font-size:18px;color:#c47a4a">${fa(partSociete)}</div>
+          </div>
+          <div style="background:var(--fog);border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:4px">Déjà encaissé</div>
+            <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--mint)">${fa(dejaEncSociete)}</div>
+          </div>
+          <div style="background:${espDueSociete>0?'#fef3c7':'var(--mint-pale)'};border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:4px">À déposer</div>
+            <div style="font-family:'Playfair Display',serif;font-size:18px;color:${espDueSociete>0?'#92400e':'var(--mint)'};font-weight:700">${fa(espDueSociete)}</div>
+          </div>
+        </div>
+
+        <!-- Détail par mode -->
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:8px">Détail par mode</div>
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr style="background:var(--fog)">
+            <th style="padding:8px 12px;text-align:left;font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em">Mode</th>
+            <th style="padding:8px 12px;text-align:right;font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em">Montant</th>
+            <th style="padding:8px 12px;text-align:center;font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em">Règle</th>
+          </tr></thead>
+          <tbody>
+            ${modes.filter(m=>parMode[m]>0).map(m=>`
+              <tr style="border-bottom:1px solid var(--fog)">
+                <td style="padding:8px 12px">${bdg(m)}</td>
+                <td style="padding:8px 12px;text-align:right;font-family:'Playfair Display',serif;font-size:15px;color:var(--mint)">${fa(parMode[m])}</td>
+                <td style="padding:8px 12px;text-align:center">
+                  <span style="font-size:11px;padding:3px 10px;border-radius:99px;background:${regles[m]==='collab'?'#fee2e2':'var(--mint-pale)'};color:${regles[m]==='collab'?'var(--red)':'#065f46'};font-weight:600">
+                    ${regles[m]==='collab'?'Collaborateur':'Société'}
+                  </span>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+
+        <!-- Prestations -->
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:14px 0 8px">Prestations (${rows.length})</div>
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr style="background:var(--fog)">
+            <th style="padding:8px 12px;text-align:left;font-size:10px;color:var(--mut)">Date</th>
+            <th style="padding:8px 12px;text-align:left;font-size:10px;color:var(--mut)">Cliente</th>
+            <th style="padding:8px 12px;text-align:left;font-size:10px;color:var(--mut)">Prestation</th>
+            <th style="padding:8px 12px;text-align:center;font-size:10px;color:var(--mut)">Mode</th>
+            <th style="padding:8px 12px;text-align:right;font-size:10px;color:var(--mut)">Montant</th>
+          </tr></thead>
+          <tbody>
+            ${rows.sort((a,b)=>b.date.localeCompare(a.date)).map(t=>`
+              <tr style="border-bottom:1px solid var(--fog)">
+                <td style="padding:8px 12px" class="td-mut">${dlbl(t.date)}</td>
+                <td style="padding:8px 12px;font-weight:600;font-size:12px">${t.nom||'—'}</td>
+                <td style="padding:8px 12px" class="td-mut">${t.prestation||'—'}</td>
+                <td style="padding:8px 12px;text-align:center">${bdg(t.reglement)}</td>
+                <td style="padding:8px 12px;text-align:right" class="td-green">${fa(t.montant)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+  document.getElementById('equipeContent').innerHTML=html;
 }
 
 document.addEventListener('keydown',e=>{
