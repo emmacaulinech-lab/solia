@@ -576,10 +576,10 @@ td{padding:11px 14px;vertical-align:middle}
         <div class="card-header"><span class="card-title">📅 Importer mon planning du jour</span></div>
         <div style="padding:20px">
           <div style="font-size:13px;color:#555;margin-bottom:16px">Prenez une photo ou screenshot de votre agenda (Planity, Wavy, Google Calendar, agenda papier...) — l'IA extrait automatiquement vos rendez-vous.</div>
-          <label style="display:inline-flex;align-items:center;gap:8px;background:#c47a4a;color:white;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">
-            📸 Choisir une image
-            <input type="file" accept="image/*" onchange="importAgenda(event)" style="display:none">
-          </label>
+          <button onclick="document.getElementById('agendaFileInput').click()" style="display:inline-flex;align-items:center;gap:8px;background:#c47a4a;color:white;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;border:none">
+  📸 Choisir une image
+</button>
+<input type="file" id="agendaFileInput" accept="image/*" onchange="importAgenda(event)" style="display:none">
           <div style="font-size:12px;color:#888;margin-top:10px">JPG, PNG, HEIC acceptés · Votre clé API doit être configurée dans les paramètres</div>
         </div>
       </div>
