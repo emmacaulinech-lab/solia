@@ -729,11 +729,11 @@ async function doLogout(){ await auth.signOut(); }
 // ══════════════════════════════════════
 let obStep=0;
 const OB_STEPS=[
-  {eyebrow:'Étape 1 sur 5',title:'Votre salon',sub:'Comment s\'appelle votre établissement ?'},
-  {eyebrow:'Étape 2 sur 5',title:'Votre équipe',sub:'Ajoutez vos praticiennes (vous y compris).'},
+  {eyebrow:'Étape 1 sur 5',title:'Votre établissement',sub:'Parlez-nous de votre activité.'},
+  {eyebrow:'Étape 2 sur 5',title:'Votre équipe',sub:'Ajoutez vos collaborateurs.'},
   {eyebrow:'Étape 3 sur 5',title:'Vos prestations',sub:'Sélectionnez celles que vous proposez.'},
   {eyebrow:'Étape 4 sur 5',title:'Paramètres financiers',sub:'Ces valeurs peuvent être modifiées plus tard.'},
-  {eyebrow:'Étape 5 sur 5',title:'Tout est prêt !',sub:'Votre espace Solia est configuré et prêt à l\'emploi.'},
+  {eyebrow:'Étape 5 sur 5',title:'Tout est prêt !',sub:'Votre espace Solia est configuré.'},
 ];
 
 function renderObProgress(){
@@ -742,6 +742,15 @@ function renderObProgress(){
 }
 
 const obPraticiennes=[{nom:'',taux:100}];
+
+const ACTIVITES={
+  lash:{label:'👁️ Lash & Brow',prestations:['Pose complète Volume Russe','Remplissage 2 semaines','Remplissage 3 semaines','Remplissage 4 semaines','Retouche','Rehaussement cils','Lashlift coréen','Browlift','Lash Lift','Lash Up']},
+  onglerie:{label:'💅 Onglerie',prestations:['Pose gel complète','Remplissage gel','Pose résine','Manucure simple','Semi-permanent','Nail art','Dépose','Renforcement']},
+  esthetique:{label:'💆 Esthétique',prestations:['Soin visage','Épilation visage','Épilation corps','Massage relaxant','Massage modelant','Peeling','Soin corps','Épilation au fil']},
+  coiffure:{label:'💇 Coiffure',prestations:['Coupe femme','Coupe homme','Couleur','Balayage','Mèches','Lissage','Brushing','Chignon','Permanente']},
+  maquillage:{label:'💄 Maquillage',prestations:['Maquillage événement','Maquillage mariée','Cours maquillage','Maquillage naturel','Maquillage scène']},
+  multi:{label:'✂️ Multi-services',prestations:['Prestation 1','Prestation 2','Prestation 3']},
+};
 
 function renderObStep(){
   renderObProgress();
@@ -756,12 +765,19 @@ function renderObStep(){
 
   if(obStep===0){
     body.innerHTML=`
-      <div class="field"><label>Nom du salon</label>
-        <input type="text" id="ob-salon" value="${CONFIG.salonNom||''}" placeholder="ex: Beauty Studio Paris">
+      <div class="field"><label>Nom de l'établissement</label>
+        <input type="text" id="ob-salon" value="${CONFIG.salonNom||''}" placeholder="ex: Beauty Studio, Salon Éclat...">
       </div>
       <div class="field"><label>Votre prénom</label>
-        <input type="text" id="ob-prenom" value="${CONFIG.proprietaire||''}" placeholder="ex: Emma">
+        <input type="text" id="ob-prenom" value="${CONFIG.proprietaire||''}" placeholder="ex: Emma, Lucas...">
+      </div>
+      <div class="field"><label>Votre activité principale</label>
+        <select id="ob-activite">
+          <option value="">— Choisir —</option>
+          ${Object.entries(ACTIVITES).map(([k,v])=>`<option value="${k}" ${CONFIG.activite===k?'selected':''}>${v.label}</option>`).join('')}
+        </select>
       </div>`;
+  }
   }
   else if(obStep===1){
     const maxPrats=CONFIG.plan==='simple'?1:CONFIG.plan==='avance'?3:99;
@@ -772,14 +788,17 @@ function renderObStep(){
     renderObPrats();
   }
   else if(obStep===2){
-    const prests=['Pose complète','Remplissage 2 semaines','Remplissage 3 semaines','Remplissage 4 semaines','Retouche','Rehaussement cils','Browlift','Lashlift coréen','Acompte','Autre'];
+    const activite=ACTIVITES[CONFIG.activite||'lash'];
+    const prests=activite?activite.prestations:[];
+    if(!CONFIG.prestations.length) CONFIG.prestations=[...prests];
     body.innerHTML=`
+      <div style="font-size:12px;color:#c47a4a;margin-bottom:12px;font-weight:600">${ACTIVITES[CONFIG.activite||'lash']?.label||''}</div>
       <div class="chip-group">
         ${prests.map(p=>`<div class="chip ${CONFIG.prestations.includes(p)?'selected':''}" onclick="obTogglePrest(this,'${p}')">${p}</div>`).join('')}
       </div>
-      <div class="field" style="margin-top:8px"><label>Ajouter une prestation</label>
+      <div class="field" style="margin-top:12px"><label>Ajouter une prestation</label>
         <div style="display:flex;gap:8px">
-          <input type="text" id="ob-newprest" placeholder="Nouvelle prestation..." style="flex:1">
+          <input type="text" id="ob-newprest" placeholder="Autre prestation...">
           <button class="btn btn-outline btn-sm" onclick="obAddPrest()">+</button>
         </div>
       </div>`;
@@ -851,9 +870,12 @@ function obSaveStep(){
   if(obStep===0){
     const salon=document.getElementById('ob-salon')?.value?.trim();
     const prenom=document.getElementById('ob-prenom')?.value?.trim();
-    if(!salon||!prenom){toast('⚠ Remplis tous les champs');return false;}
+    const activite=document.getElementById('ob-activite')?.value;
+    if(!salon||!prenom||!activite){toast('⚠ Remplis tous les champs');return false;}
     CONFIG.salonNom=salon;
     CONFIG.proprietaire=prenom;
+    CONFIG.activite=activite;
+    CONFIG.prestations=[]; // reset pour l'étape 3
   }
   else if(obStep===1){
     CONFIG.praticiennes=obPraticiennes.filter(p=>p.nom.trim());
