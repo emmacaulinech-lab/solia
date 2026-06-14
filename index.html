@@ -1350,7 +1350,7 @@ function renderSettings(){
           ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map((m,i)=>`
             <div style="display:flex;align-items:center;gap:6px;background:#f9f6f4;border:1.5px solid #ddd;border-radius:20px;padding:6px 12px">
               <span style="font-size:13px;font-weight:600;color:#1a0f0a">${m}</span>
-              <button onclick="delMode(${i})" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px;line-height:1">✕</button>
+              <button onclick="event.stopPropagation();delMode(${i})" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px;line-height:1;padding:0 2px">✕</button>
             </div>`).join('')}
         </div>
         <div style="display:flex;gap:8px">
@@ -1411,7 +1411,8 @@ async function addMode(){
 }
 
 async function delMode(i){
-  if(!CONFIG.modes) return;
+  if(!CONFIG.modes) CONFIG.modes=['ESP','VIR','CHQ','PLANITY'];
+  if(!confirm('Supprimer ce mode ?')) return;
   CONFIG.modes.splice(i,1);
   await saveAll();
   renderSettings();
