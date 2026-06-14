@@ -3192,11 +3192,13 @@ function ouvrirRapprochementCaisse(banqueId){
     <div class="field"><label>Type de rapprochement</label>
       <select id="rap-type" onchange="updateRapprochementList('${banqueId}')">
         <option value="">— Choisir le type —</option>
-        <option value="ESP">💵 Dépôt espèces</option>
-        <option value="CHQ">📝 Dépôt chèques</option>
-        <option value="VIR">🏦 Virement reçu</option>
-        ${(CONFIG.modes||[]).filter(m=>!['ESP','CHQ','VIR'].includes(m)).map(m=>`<option value="${m}">📱 ${m}</option>`).join('')}
-        <option value="AUTRE">➕ Autre / Manuel</option>
+        ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>{
+  const modesTypes=CONFIG.modesTypes||{};
+  const type=modesTypes[m]||(['ESP','CHQ'].includes(m)?'physique':'virement');
+  const icon=type==='physique'?'💵':'🏦';
+  return`<option value="${m}">${icon} ${m}</option>`;
+}).join('')}
+<option value="AUTRE">➕ Autre / Manuel</option>
       </select>
     </div>
     <div id="rap-list"></div>
