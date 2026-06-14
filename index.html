@@ -3215,11 +3215,13 @@ function updateRapprochementList(banqueId){
   }
 
   // Filtrer les prestations selon le mode
-  const prestations=DB.caisse.filter(t=>
-    t.montant>0&&
-    t.reglement===type&&
-    !t.depose
-  ).sort((a,b)=>b.date.localeCompare(a.date));
+  // Pour ESP et CHQ on filtre sur depose, pour les autres sur rapprocheBanque
+  const prestations=DB.caisse.filter(t=>{
+    if(t.montant<=0) return false;
+    if(t.reglement!==type) return false;
+    if(['ESP','CHQ'].includes(type)) return !t.depose;
+    return !t.rapprocheBanque;
+  }).sort((a,b)=>b.date.localeCompare(a.date));
 
   if(!prestations.length){
     el.innerHTML=`<div style="font-size:12px;color:var(--mut);padding:10px;background:var(--fog);border-radius:8px">
@@ -3264,7 +3266,11 @@ async function validerRapprochementCaisse(banqueId){
   const ids=[];
   for(const cb of checks){
     const prestation=DB.caisse.find(x=>x.id===cb.value);
-    if(prestation){prestation.depose=true;ids.push(cb.value);}
+    if(prestation){
+      if(['ESP','CHQ'].includes(prestation.reglement)) prestation.depose=true;
+      else prestation.rapprocheBanque=true;
+      ids.push(cb.value);
+    }
   }
   b.caisseIds=ids;
   await saveAll();
