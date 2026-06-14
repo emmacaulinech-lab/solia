@@ -1495,18 +1495,26 @@ async function delMode(i){
 
 async function deleteAccount(){
   if(!confirm('Supprimer définitivement votre compte et toutes vos données ?')) return;
-  if(!confirm('Cette action est irréversible. Confirmer ?')) return;
+  
+  const pwd=prompt('Confirmez votre mot de passe pour supprimer le compte :');
+  if(!pwd) return;
+  
   try{
+    // Ré-authentifier avant suppression
+    const credential=firebase.auth.EmailAuthProvider.credential(currentUser.email, pwd);
+    await currentUser.reauthenticateWithCredential(credential);
+    
     // Supprimer les données Firestore
     await userRef.collection('data').doc('main').delete();
-    // Supprimer le compte Firebase Auth
+    
+    // Supprimer le compte Auth
     await currentUser.delete();
-    toast('Compte supprimé');
+    
+    toast('✓ Compte supprimé');
     showLanding();
   }catch(e){
-    if(e.code==='auth/requires-recent-login'){
-      toast('⚠ Reconnectez-vous avant de supprimer votre compte');
-      await auth.signOut();
+    if(e.code==='auth/wrong-password'){
+      toast('⚠ Mot de passe incorrect');
     } else {
       toast('⚠ Erreur : '+e.message);
     }
