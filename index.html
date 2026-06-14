@@ -2578,6 +2578,41 @@ function renderEquipe(){
     return;
   }
 
+  // Section Emma (propriétaire)
+  const proprietaireNom=CONFIG.proprietaire||'Moi';
+const rowsEmma=DB.caisse.filter(t=>inM(t.date,mois)&&t.montant>0&&(!t.praticien||t.praticien===''));
+const caEmma=rowsEmma.reduce((s,t)=>s+t.montant,0);
+if(caEmma>0){
+    html+=`<div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <span class="card-title">✦ ${proprietaireNom} <span style="font-size:11px;color:var(--mut);font-weight:400">Propriétaire · 100%</span></span>
+        <span style="font-family:'Playfair Display',serif;font-size:18px;font-weight:500;color:var(--mint)">${fa(caEmma)}</span>
+      </div>
+      <div style="padding:0">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr style="background:var(--fog)">
+            <th style="padding:8px 12px;text-align:left;font-size:10px;color:var(--mut)">Date</th>
+            <th style="padding:8px 12px;text-align:left;font-size:10px;color:var(--mut)">Cliente</th>
+            <th style="padding:8px 12px;text-align:left;font-size:10px;color:var(--mut)">Prestation</th>
+            <th style="padding:8px 12px;text-align:center;font-size:10px;color:var(--mut)">Mode</th>
+            <th style="padding:8px 12px;text-align:right;font-size:10px;color:var(--mut)">Montant</th>
+          </tr></thead>
+          <tbody>
+            ${rowsEmma.sort((a,b)=>b.date.localeCompare(a.date)).map(t=>`
+              <tr style="border-bottom:1px solid var(--fog)">
+                <td style="padding:8px 12px" class="td-mut">${dlbl(t.date)}</td>
+                <td style="padding:8px 12px;font-weight:600;font-size:12px">${t.nom||'—'}</td>
+                <td style="padding:8px 12px" class="td-mut">${t.prestation||'—'}</td>
+                <td style="padding:8px 12px;text-align:center">${bdg(t.reglement)}</td>
+                <td style="padding:8px 12px;text-align:right" class="td-green">${fa(t.montant)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
+
   let html='';
   for(const collab of collabs){
     const rows=DB.caisse.filter(t=>inM(t.date,mois)&&t.montant>0&&t.praticien===collab.id);
