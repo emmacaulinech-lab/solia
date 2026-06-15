@@ -847,11 +847,12 @@ async function doLogout(){ await auth.signOut(); }
 // ══════════════════════════════════════
 let obStep=0;
 const OB_STEPS=[
-  {eyebrow:'Étape 1 sur 5',title:'Votre établissement',sub:'Parlez-nous de votre activité.'},
-  {eyebrow:'Étape 2 sur 5',title:'Votre équipe',sub:'Ajoutez vos collaborateurs.'},
-  {eyebrow:'Étape 3 sur 5',title:'Vos prestations',sub:'Sélectionnez celles que vous proposez.'},
-  {eyebrow:'Étape 4 sur 5',title:'Paramètres financiers',sub:'Ces valeurs peuvent être modifiées plus tard.'},
-  {eyebrow:'Étape 5 sur 5',title:'Tout est prêt !',sub:'Votre espace Solia est configuré.'},
+  {eyebrow:'Étape 1 sur 6',title:'Votre établissement',sub:'Parlez-nous de votre activité.'},
+  {eyebrow:'Étape 2 sur 6',title:'Votre équipe',sub:'Ajoutez vos collaborateurs.'},
+  {eyebrow:'Étape 3 sur 6',title:'Vos prestations',sub:'Sélectionnez celles que vous proposez.'},
+  {eyebrow:'Étape 4 sur 6',title:'Paramètres financiers',sub:'Ces valeurs peuvent être modifiées plus tard.'},
+  {eyebrow:'Étape 5 sur 6',title:'Franchise',sub:'Êtes-vous sous contrat de franchise ?'},
+  {eyebrow:'Étape 6 sur 6',title:'Tout est prêt !',sub:'Votre espace Solia est configuré.'},
 ];
 
 function renderObProgress(){
@@ -945,12 +946,32 @@ function renderObStep(){
   }
   else if(obStep===4){
     body.innerHTML=`
+      <div class="field"><label>Êtes-vous franchisé(e) ?</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+          <div onclick="setFranchise(true)" id="franchise-oui" class="plan-opt ${CONFIG.franchise?'selected':''}" style="text-align:center;padding:16px">
+            <div style="font-size:24px;margin-bottom:8px">🏪</div>
+            <div style="font-weight:700">Oui</div>
+            <div style="font-size:11px;color:var(--mut)">Je suis sous contrat franchise</div>
+          </div>
+          <div onclick="setFranchise(false)" id="franchise-non" class="plan-opt ${!CONFIG.franchise?'selected':''}" style="text-align:center;padding:16px">
+            <div style="font-size:24px;margin-bottom:8px">🙅</div>
+            <div style="font-weight:700">Non</div>
+            <div style="font-size:11px;color:var(--mut)">Je suis indépendant(e)</div>
+          </div>
+        </div>
+      </div>
+      <div id="franchise-config"></div>`;
+    if(CONFIG.franchise) renderFranchiseConfig();
+  }
+  else if(obStep===5){
+    body.innerHTML=`
       <div style="text-align:center;padding:20px 0">
         <div style="font-size:48px;margin-bottom:16px">🎉</div>
-        <div style="font-size:15px;font-weight:600;color:var(--ink);margin-bottom:8px">Bienvenue, ${CONFIG.proprietaire || 'sur Solia'} !</div>
-        <div style="font-size:13px;color:var(--mut);line-height:1.6">
+        <div style="font-size:15px;font-weight:600;color:#1a0f0a;margin-bottom:8px">Bienvenue, ${CONFIG.proprietaire||'sur Solia'} !</div>
+        <div style="font-size:13px;color:#555;line-height:1.6">
           <strong>${CONFIG.salonNom}</strong> est prêt.<br>
           Formule <strong>${CONFIG.plan}</strong> activée.
+          ${CONFIG.franchise?`<br>Franchise configurée ✅`:''}
         </div>
       </div>`;
   }
@@ -1137,12 +1158,18 @@ function obSaveStep(){
       }
     });
   }
+  else if(obStep===4){
+    if(CONFIG.franchise){
+      saveFranchiseConfig();
+      if(!CONFIG.franchiseNom){toast('⚠ Saisis le nom du franchiseur');return false;}
+    }
+  }
   return true;
 }
 
 async function obNext(){
   if(!obSaveStep()) return;
-  if(obStep===4){
+  if(obStep===5){
     await saveAll();
     showApp();
     return;
@@ -1381,6 +1408,7 @@ const vir=DB.caisse.filter(t=>modesAttente.includes(t.reglement)&&!t.paye&&t.mon
   const tvaNette=Math.max(0,tvaCollectee-tvaDeductible);
   
   const res=ca+charges-(isAuto?urssaf:0);
+  const redevance=calculerRedevance(mois);
   document.getElementById('dashResultat').innerHTML=`
     <div class="card" style="margin-top:16px">
       <div class="card-header"><span class="card-title">📊 Résultat du mois</span></div>
@@ -1408,6 +1436,10 @@ const vir=DB.caisse.filter(t=>modesAttente.includes(t.reglement)&&!t.paye&&t.mon
       </div>`:''}
       ${!isAuto&&tvaCollectee?`<div style="font-size:12px;color:#1d4ed8;background:#dbeafe;margin:0 16px 16px;border-radius:8px;padding:10px 14px">
         💡 TVA collectée : ${fa(tvaCollectee)} · TVA déductible : ${fa(tvaDeductible)} · TVA nette à reverser : ${fa(tvaNette)}
+      </div>`:''}
+      ${CONFIG.franchise?`<div style="font-size:12px;color:#7e22ce;background:#f3e8ff;margin:0 16px 16px;border-radius:8px;padding:10px 14px">
+        🏪 Redevance ${CONFIG.franchiseNom||'franchise'} estimée : ${fa(redevance)}
+        ${CONFIG.franchiseType==='pct'?`(${CONFIG.franchiseTaux||10}% sur CA soumis)`:'(fixe mensuel)'}
       </div>`:''}
     </div>`;
     
@@ -1622,6 +1654,23 @@ function renderSettings(){
         </div>
         <button class="btn btn-primary" onclick="saveSettings()">Sauvegarder</button>
       </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <span class="card-title">🏪 Franchise</span>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <span style="font-size:12px;color:var(--mut)">${CONFIG.franchise?'Activée':'Désactivée'}</span>
+          <div onclick="toggleFranchise()" style="width:40px;height:22px;border-radius:99px;background:${CONFIG.franchise?'#c47a4a':'#ddd'};cursor:pointer;position:relative;transition:background .2s">
+            <div style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:2px;${CONFIG.franchise?'right:2px':'left:2px'};transition:all .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>
+          </div>
+        </label>
+      </div>
+      ${CONFIG.franchise?`
+      <div style="padding:16px">
+        <div id="franchise-config-settings">${renderFranchiseConfigHTML()}</div>
+        <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="saveFranchiseSettings()">Sauvegarder</button>
+      </div>`:'<div style="padding:14px 16px;font-size:12px;color:var(--mut)">Activez si vous êtes sous contrat de franchise.</div>'}
     </div>
 
     <div class="card" style="margin-bottom:16px">
@@ -3998,6 +4047,96 @@ async function toggleSousLocation(){
   buildSidebar();
   renderSettings();
   toast(CONFIG.sousLocationActive?'✓ Sous-location activée':'Sous-location désactivée');
+}
+
+function setFranchise(val){
+  CONFIG.franchise=val;
+  document.getElementById('franchise-oui')?.classList.toggle('selected',val);
+  document.getElementById('franchise-non')?.classList.toggle('selected',!val);
+  const el=document.getElementById('franchise-config');
+  if(el) el.innerHTML=val?renderFranchiseConfigHTML():'';
+}
+
+function renderFranchiseConfigHTML(){
+  const prestations=CONFIG.prestations||[];
+  return`
+    <div class="field"><label>Nom du franchiseur</label>
+      <input type="text" id="fr-nom" value="${CONFIG.franchiseNom||''}" placeholder="ex: LIMAGE CILS">
+    </div>
+    <div class="field"><label>Type de redevance</label>
+      <div style="display:flex;border-radius:8px;overflow:hidden;border:1.5px solid #ddd">
+        <button id="fr-type-pct" onclick="setFranchiseType('pct')" style="flex:1;padding:9px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:${!CONFIG.franchiseType||CONFIG.franchiseType==='pct'?'#c47a4a':'#f9f6f4'};color:${!CONFIG.franchiseType||CONFIG.franchiseType==='pct'?'white':'#888'}">% du CA</button>
+        <button id="fr-type-fixe" onclick="setFranchiseType('fixe')" style="flex:1;padding:9px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:${CONFIG.franchiseType==='fixe'?'#c47a4a':'#f9f6f4'};color:${CONFIG.franchiseType==='fixe'?'white':'#888'}">Montant fixe</button>
+      </div>
+    </div>
+    <div id="fr-taux-section">
+      ${!CONFIG.franchiseType||CONFIG.franchiseType==='pct'?`
+        <div class="field"><label>Taux de redevance (%)</label>
+          <input type="number" id="fr-taux" value="${CONFIG.franchiseTaux||10}" placeholder="10" step="0.1">
+        </div>
+        <div style="font-size:11px;font-weight:600;color:#444;margin-bottom:8px">Sur quelles recettes ?</div>
+        <div style="font-size:11px;color:#888;margin-bottom:10px">Cochez uniquement les prestations soumises à redevance.</div>
+        <div style="display:flex;flex-direction:column;gap:6px" id="fr-prestations">
+          ${prestations.map(p=>`
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f9f6f4;border-radius:8px;border:1px solid #eee">
+              <input type="checkbox" id="frp-${p.replace(/\s/g,'_')}" ${(CONFIG.franchisePrestations||prestations).includes(p)?'checked':''} style="accent-color:#c47a4a;width:15px;height:15px">
+              <label for="frp-${p.replace(/\s/g,'_')}" style="font-size:13px;cursor:pointer">${p}</label>
+            </div>`).join('')}
+        </div>`:`
+        <div class="field"><label>Montant fixe mensuel (€)</label>
+          <input type="number" id="fr-fixe" value="${CONFIG.franchiseFixe||0}" placeholder="200" step="0.01">
+        </div>`}
+    </div>`;
+}
+
+function renderFranchiseConfig(){
+  const el=document.getElementById('franchise-config');
+  if(el) el.innerHTML=renderFranchiseConfigHTML();
+}
+
+function setFranchiseType(type){
+  CONFIG.franchiseType=type;
+  document.getElementById('fr-type-pct').style.background=type==='pct'?'#c47a4a':'#f9f6f4';
+  document.getElementById('fr-type-pct').style.color=type==='pct'?'white':'#888';
+  document.getElementById('fr-type-fixe').style.background=type==='fixe'?'#c47a4a':'#f9f6f4';
+  document.getElementById('fr-type-fixe').style.color=type==='fixe'?'white':'#888';
+  renderFranchiseConfig();
+}
+
+function saveFranchiseConfig(){
+  CONFIG.franchiseNom=document.getElementById('fr-nom')?.value?.trim()||'';
+  CONFIG.franchiseType=CONFIG.franchiseType||'pct';
+  if(CONFIG.franchiseType==='pct'){
+    CONFIG.franchiseTaux=parseFloat(document.getElementById('fr-taux')?.value)||10;
+    CONFIG.franchisePrestations=CONFIG.prestations.filter(p=>
+      document.getElementById(`frp-${p.replace(/\s/g,'_')}`)?.checked
+    );
+  } else {
+    CONFIG.franchiseFixe=parseFloat(document.getElementById('fr-fixe')?.value)||0;
+  }
+}
+
+async function toggleFranchise(){
+  CONFIG.franchise=!CONFIG.franchise;
+  await saveAll();
+  renderSettings();
+  toast(CONFIG.franchise?'✓ Franchise activée':'Franchise désactivée');
+}
+
+async function saveFranchiseSettings(){
+  saveFranchiseConfig();
+  await saveAll();
+  renderSettings();
+  toast('✓ Franchise mise à jour');
+}
+
+function calculerRedevance(mois){
+  if(!CONFIG.franchise) return 0;
+  if(CONFIG.franchiseType==='fixe') return CONFIG.franchiseFixe||0;
+  const cM=DB.caisse.filter(t=>inM(t.date,mois)&&t.montant>0);
+  const prestsSoumises=CONFIG.franchisePrestations||[];
+  const caSoumis=cM.filter(t=>prestsSoumises.includes(t.prestation)).reduce((s,t)=>s+t.montant,0);
+  return Math.round(caSoumis*(CONFIG.franchiseTaux||10)/100*100)/100;
 }
   
 document.addEventListener('keydown',e=>{
