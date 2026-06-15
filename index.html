@@ -917,6 +917,9 @@ function showApp(){
   buildSidebar();
   renderAll();
   goView('dashboard');
+  // Appliquer logo et palette au chargement
+  if(CONFIG.logo) appliquerLogo();
+  if(CONFIG.palette) appliquerPalette(CONFIG.palette);
 }
 
 // ══════════════════════════════════════
@@ -1781,6 +1784,38 @@ function renderSettings(){
           <div class="field"><label>Solde initial (€)</label><input type="number" id="set-solde" value="${CONFIG.soldeInit}" onchange="CONFIG.soldeInit=parseFloat(this.value)||0"></div>
         </div>
         <button class="btn btn-primary" onclick="saveSettings()">Sauvegarder</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">🎨 Logo & Identité visuelle</span></div>
+      <div style="padding:16px">
+        ${CONFIG.logo?`
+        <div style="margin-bottom:16px;text-align:center">
+          <img src="${CONFIG.logo}" style="max-height:80px;max-width:200px;object-fit:contain;border-radius:8px;border:1px solid #eee;padding:8px;background:#f9f6f4">
+        </div>`:''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          <label style="display:inline-flex;align-items:center;gap:6px;background:#c47a4a;color:white;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">
+            📤 ${CONFIG.logo?'Changer le logo':'Importer un logo'}
+            <input type="file" accept="image/*" onchange="importerLogo(event)" style="display:none">
+          </label>
+          ${CONFIG.logo?`
+          <button class="btn btn-outline btn-sm" onclick="analyserCouleursLogo()">🎨 Adapter les couleurs</button>
+          <button class="btn btn-danger btn-sm" onclick="supprimerLogo()">✕ Supprimer</button>`:''}
+        </div>
+        ${CONFIG.palette?`
+        <div style="margin-top:12px">
+          <div style="font-size:11px;font-weight:600;color:#444;margin-bottom:8px">Palette actuelle :</div>
+          <div style="display:flex;gap:8px">
+            ${Object.entries(CONFIG.palette).map(([k,v])=>`
+              <div style="text-align:center">
+                <div style="width:36px;height:36px;border-radius:8px;background:${v};border:1px solid #ddd;margin:0 auto 4px"></div>
+                <div style="font-size:9px;color:#888">${k}</div>
+              </div>`).join('')}
+          </div>
+          <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="reinitialiserPalette()">↺ Réinitialiser les couleurs</button>
+        </div>`:''}
+        <div style="font-size:11px;color:#888;margin-top:8px">Le logo apparaîtra dans votre interface et celle de vos collaborateurs.</div>
       </div>
     </div>
 
@@ -4565,6 +4600,7 @@ function afficherCollabApp(){
   if(modeSel) modeSel.innerHTML=(collabConfig.modes||['ESP','VIR','CHQ']).map(m=>`<option>${m}</option>`).join('');
 
   loadCollabData();
+  if(collabConfig.logo) appliquerLogoCollab(collabConfig.logo);
 }
 
 async function loadCollabData(){
@@ -4852,6 +4888,168 @@ async function sauvegarderAgenda(rdvs){
   });
 
   renderAgendaResult();
+}
+
+// ══════════════════════════════════════
+// LOGO & IDENTITE VISUELLE
+// ══════════════════════════════════════
+async function importerLogo(event){
+  const file=event.target.files[0];
+  if(!file) return;
+  const base64=await new Promise((res,rej)=>{
+    const reader=new FileReader();
+    reader.onload=()=>res(reader.result);
+    reader.onerror=rej;
+    reader.readAsDataURL(file);
+  });
+  CONFIG.logo=base64;
+  await saveAll();
+  appliquerLogo();
+  renderSettings();
+  toast('✓ Logo importé !');
+  event.target.value='';
+}
+
+function appliquerLogo(){
+  // Sidebar propriétaire
+  const sidebarLogo=document.querySelector('.sidebar-logo-text');
+  if(sidebarLogo&&CONFIG.logo){
+    sidebarLogo.innerHTML=`<img src="${CONFIG.logo}" style="max-height:36px;max-width:160px;object-fit:contain">`;
+  } else if(sidebarLogo){
+    sidebarLogo.innerHTML='sol<span>ia</span>';
+  }
+
+  // Header collaborateur
+  const collabLogo=document.querySelector('#collabApp .sidebar-logo-text, #collabApp div[style*="Cormorant"]');
+  if(collabLogo&&CONFIG.logo){
+    collabLogo.innerHTML=`<img src="${CONFIG.logo}" style="max-height:32px;max-width:140px;object-fit:contain">`;
+  }
+
+  // Page login collaborateur
+  const loginLogo=document.querySelector('#collabLoginPage div[style*="Cormorant"]');
+  if(loginLogo&&CONFIG.logo){
+    loginLogo.innerHTML=`<img src="${CONFIG.logo}" style="max-height:48px;max-width:160px;object-fit:contain">`;
+  }
+}
+
+async function supprimerLogo(){
+  if(!confirm('Supprimer le logo ?')) return;
+  delete CONFIG.logo;
+  delete CONFIG.palette;
+  await saveAll();
+  appliquerLogo();
+  reinitialiserPalette();
+  renderSettings();
+  toast('Logo supprimé');
+}
+
+async function analyserCouleursLogo(){
+  const apiKey=localStorage.getItem('solia_apikey');
+  if(!apiKey){toast('⚠ Configure ta clé API dans les paramètres');return;}
+  if(!CONFIG.logo){toast('⚠ Importe d\'abord un logo');return;}
+
+  toast('⏳ Analyse des couleurs en cours...');
+
+  try{
+    const base64=CONFIG.logo.split(',')[1];
+    const mediaType=CONFIG.logo.split(';')[0].split(':')[1];
+
+    const response=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:500,
+        messages:[{
+          role:'user',
+          content:[
+            {type:'image',source:{type:'base64',media_type:mediaType,data:base64}},
+            {type:'text',text:`Analyse ce logo et extrais une palette de couleurs harmonieuse pour une application web professionnelle de comptabilité beauté.
+Réponds UNIQUEMENT en JSON valide sans backticks :
+{
+  "accent": "#hexcode couleur principale du logo",
+  "accent2": "#hexcode version plus claire de l'accent",
+  "ink": "#hexcode couleur foncée pour le texte (proche du noir)",
+  "bg": "#hexcode couleur de fond très claire",
+  "mint": "#hexcode couleur de validation/succès harmonieuse"
+}
+Choisis des couleurs qui s'harmonisent avec le logo et conviennent à une app professionnelle.`}
+          ]
+        }]
+      })
+    });
+
+    const data=await response.json();
+    const text=data.content.map(i=>i.text||'').join('');
+    const match=text.match(/\{[\s\S]*\}/);
+    if(!match) throw new Error('Pas de palette trouvée');
+    const palette=JSON.parse(match[0]);
+
+    CONFIG.palette=palette;
+    await saveAll();
+    appliquerPalette(palette);
+    renderSettings();
+    toast('✓ Couleurs adaptées au logo !');
+
+  }catch(e){
+    toast('⚠ Erreur : '+e.message);
+    console.error(e);
+  }
+}
+
+function appliquerPalette(palette){
+  if(!palette) return;
+  const root=document.documentElement;
+  if(palette.accent) root.style.setProperty('--violet',palette.accent);
+  if(palette.accent2) root.style.setProperty('--violet2',palette.accent2);
+  if(palette.ink) root.style.setProperty('--ink',palette.ink);
+  if(palette.bg) root.style.setProperty('--fog',palette.bg);
+  if(palette.mint) root.style.setProperty('--mint',palette.mint);
+  // Mettre à jour aussi les couleurs terracotta de la landing
+  if(palette.accent){
+    document.querySelectorAll('[style*="#c47a4a"]').forEach(el=>{
+      el.style.cssText=el.style.cssText.replace(/#c47a4a/g,palette.accent);
+    });
+  }
+}
+
+async function reinitialiserPalette(){
+  delete CONFIG.palette;
+  await saveAll();
+  // Réinitialiser les variables CSS
+  const root=document.documentElement;
+  root.style.setProperty('--violet','#c47a4a');
+  root.style.setProperty('--violet2','#d4895a');
+  root.style.setProperty('--ink','#0f0f14');
+  root.style.setProperty('--fog','#f4f4f8');
+  root.style.setProperty('--mint','#00c896');
+  renderSettings();
+  toast('✓ Couleurs réinitialisées');
+}
+
+function appliquerLogoCollab(logo){
+  // Remplacer le logo dans le header collaborateur
+  const headers=document.querySelectorAll('#collabApp div');
+  for(const h of headers){
+    if(h.textContent.includes('S O L I A')&&h.style.fontFamily?.includes('Cormorant')){
+      h.innerHTML=`<img src="${logo}" style="max-height:32px;max-width:140px;object-fit:contain">`;
+      break;
+    }
+  }
+  // Page login collaborateur
+  const loginHeaders=document.querySelectorAll('#collabLoginPage div');
+  for(const h of loginHeaders){
+    if(h.textContent.includes('S O L I A')&&h.style.fontFamily?.includes('Cormorant')){
+      h.innerHTML=`<img src="${logo}" style="max-height:48px;max-width:160px;object-fit:contain">`;
+      break;
+    }
+  }
+  if(collabConfig.palette) appliquerPalette(collabConfig.palette);
 }
   
 document.addEventListener('keydown',e=>{
