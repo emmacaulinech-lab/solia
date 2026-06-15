@@ -673,7 +673,7 @@ td{padding:11px 14px;vertical-align:middle}
 </div>
 
 <!-- ══════════════ INTERFACE COLLABORATEUR ══════════════ -->
-<div class="auth-page" id="collabLoginPage">
+<div class="auth-page" id="collabLoginPage" style="display:none">
   <div class="auth-card">
     <div class="auth-logo">sol<span>ia</span></div>
     <div class="auth-subtitle">Accès collaborateur</div>
@@ -4250,7 +4250,9 @@ let collabData=[];
 function showCollabLogin(){
   document.getElementById('landing').classList.remove('show');
   document.getElementById('authPage').classList.remove('show');
-  document.getElementById('collabLoginPage').classList.add('show');
+  document.getElementById('onboardPage').classList.remove('show');
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('collabLoginPage').style.display='flex';
 }
 
 async function doCollabLogin(){
