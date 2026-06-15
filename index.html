@@ -526,6 +526,10 @@ td{padding:11px 14px;vertical-align:middle}
         </select>
       </div>
       <div class="card" id="caisseTable"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+  <button class="btn btn-primary" onclick="openModal('caisse')">+ Ajouter</button>
+  ${CONFIG.plan==='complet'?`<button class="btn btn-outline btn-sm" onclick="goView('agenda')">📸 Import agenda</button>`:'<button class="btn btn-ghost btn-sm" onclick="toast(\'⬆️ Fonctionnalité Complet\')">📸 Import agenda 🔒</button>'}
+</div>
     </div>
 
     <div class="view" id="view-banque">
@@ -538,6 +542,9 @@ td{padding:11px 14px;vertical-align:middle}
         <select class="fi" id="bm" onchange="renderBanque()"><option value="">Tous les mois</option></select>
       </div>
       <div class="card" id="banqueTable"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+  ${['avance','complet'].includes(CONFIG.plan)?`<button class="btn btn-outline btn-sm" onclick="goView('import-banque')">📥 Import relevé</button><button class="btn btn-outline btn-sm" onclick="goView('factures')">🧾 Factures</button>`:`<button class="btn btn-ghost btn-sm" onclick="toast('⬆️ Fonctionnalité Avancé')">📥 Import relevé 🔒</button>`}
+</div>
     </div>
 
     <div class="view" id="view-charges">
@@ -1149,13 +1156,10 @@ function obPrev(){if(obStep>0){obStep--;renderObStep();}}
 // ══════════════════════════════════════
 const NAV=[
   {id:'dashboard',icon:'🏠',label:'Dashboard',plans:['simple','avance','complet']},
-  {id:'agenda',icon:'📸',label:'Import agenda',plans:['complet']},
-  {id:'import-banque',icon:'🏦',label:'Import banque',plans:['avance','complet']},
   {id:'caisse',icon:'🧳',label:'Caisse',plans:['simple','avance','complet']},
   {id:'clients',icon:'👥',label:'Clientes',plans:['simple','avance','complet']},
   {id:'equipe',icon:'🎭',label:'Équipe',plans:['avance','complet']},
   {id:'banque',icon:'🏦',label:'Banque',plans:['avance','complet']},
-  {id:'factures',icon:'🧾',label:'Factures',plans:['avance','complet']},
   {id:'export',icon:'📤',label:'Dossier comptable',plans:['avance','complet']},
   {id:'charges',icon:'📋',label:'Charges',plans:['simple','avance','complet']},
   {id:'recap',icon:'📊',label:'Récap',plans:['avance','complet']},
