@@ -658,6 +658,13 @@ td{padding:11px 14px;vertical-align:middle}
   <div id="sousLocationContent"></div>
 </div>
 
+<div class="view" id="view-validation">
+  <div class="page-header">
+    <div><div class="page-title">✅ À valider</div><div class="page-sub">Saisies en attente de vos collaborateurs</div></div>
+  </div>
+  <div id="validationContent"></div>
+</div>
+    
     <div class="view" id="view-settings">
       <div class="page-header"><div class="page-title">⚙️ Paramètres</div></div>
       <div id="settingsContent"></div>
@@ -665,6 +672,66 @@ td{padding:11px 14px;vertical-align:middle}
   </main>
 </div>
 
+<!-- ══════════════ INTERFACE COLLABORATEUR ══════════════ -->
+<div class="auth-page" id="collabLoginPage">
+  <div class="auth-card">
+    <div class="auth-logo">sol<span>ia</span></div>
+    <div class="auth-subtitle">Accès collaborateur</div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="collabEmail" placeholder="votre@email.com">
+    </div>
+    <div class="field">
+      <label>Mot de passe</label>
+      <input type="password" id="collabPwd" placeholder="••••••••">
+    </div>
+    <div class="auth-error" id="collabErr"></div>
+    <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doCollabLogin()">Accéder</button>
+  </div>
+</div>
+
+<div class="app" id="collabApp" style="display:none">
+  <div style="background:#1a0f0a;padding:16px 24px;display:flex;justify-content:space-between;align-items:center">
+    <div style="font-family:'Cormorant Garant',serif;font-size:18px;font-weight:300;letter-spacing:.12em;color:white">S O L <span style="color:#c47a4a">I A</span></div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:12px;color:rgba(255,255,255,.5)" id="collabNomLabel"></span>
+      <button class="btn btn-ghost btn-sm" onclick="auth.signOut()">Déconnexion</button>
+    </div>
+  </div>
+  <div style="max-width:600px;margin:0 auto;padding:24px">
+    <div style="font-family:'Cormorant Garant',serif;font-size:22px;font-weight:300;color:#1a0f0a;margin-bottom:4px" id="collabSalonLabel"></div>
+    <div style="font-size:12px;color:#888;margin-bottom:24px" id="collabDateLabel"></div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <span class="card-title">+ Nouvelle prestation</span>
+      </div>
+      <div style="padding:16px">
+        <div class="field"><label>Nom cliente</label>
+          <input type="text" id="cl-nom" placeholder="Prénom Nom" style="color:#1a0f0a">
+        </div>
+        <div class="g2">
+          <div class="field"><label>Prestation</label>
+            <select id="cl-prest" style="color:#1a0f0a"></select>
+          </div>
+          <div class="field"><label>Montant (€)</label>
+            <input type="number" id="cl-mnt" placeholder="0" step="0.01" style="color:#1a0f0a">
+          </div>
+        </div>
+        <div class="field"><label>Mode de règlement</label>
+          <select id="cl-mode" style="color:#1a0f0a"></select>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="saveCollabPrestation()">+ Enregistrer</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">📋 Mes saisies du jour</span></div>
+      <div id="collabPrestations"></div>
+    </div>
+  </div>
+</div>
+  
 <!-- ══════════════ MODALS ══════════════ -->
 <div class="modal-bg" id="mainModal">
   <div class="modal">
@@ -691,6 +758,9 @@ const firebaseConfig={
   messagingSenderId:"1002958837729",
   appId:"1:1002958837729:web:e0ac0d10cb28f3b2f764a0"
 };
+  // Détecter accès collaborateur
+const URL_PARAMS=new URLSearchParams(window.location.search);
+const COLLAB_CODE=URL_PARAMS.get('code');
 firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth();
 const db=firebase.firestore();
@@ -747,7 +817,10 @@ auth.onAuthStateChanged(async user=>{
     currentUser=user;
     userRef=db.collection('users').doc(user.uid);
     await loadAll();
-    if(!CONFIG.salonNom){
+    if(COLLAB_CODE){
+      // Vérifier si ce code correspond à un collaborateur
+      await showCollabInterface();
+    } else if(!CONFIG.salonNom){
       showOnboarding();
     } else {
       showApp();
@@ -755,7 +828,11 @@ auth.onAuthStateChanged(async user=>{
   } else {
     currentUser=null;
     userRef=null;
-    showLanding();
+    if(COLLAB_CODE){
+      showCollabLogin();
+    } else {
+      showLanding();
+    }
   }
 });
 
@@ -1187,6 +1264,7 @@ const NAV=[
   {id:'caisse',icon:'🧳',label:'Caisse',plans:['simple','avance','complet']},
   {id:'banque',icon:'🏦',label:'Banque',plans:['avance','complet']},
   {id:'equipe',icon:'🎭',label:'Équipe',plans:['avance','complet']},
+  {id:'validation',icon:'✅',label:'À valider',plans:['avance','complet']},
   {id:'recap',icon:'📊',label:'Récap',plans:['avance','complet']},
   {id:'clients',icon:'👥',label:'Clientes',plans:['simple','avance','complet']},
   {id:'sous-location',icon:'🏠',label:'Sous-location',plans:['complet'],condition:()=>CONFIG.sousLocationActive},
@@ -1229,6 +1307,7 @@ function goView(id){
   if(id==='equipe') renderEquipe();
   if(id==='factures') renderFactures();
   if(id==='export') renderExport();
+  if(id==='validation') renderValidation();
   if(id==='sous-location') renderSousLocation();
   if(id==='import-banque') document.getElementById('importBanqueResult').innerHTML='';
   if(id==='agenda'){
@@ -1298,6 +1377,7 @@ function getPratNom(id){
 
 function renderAll(){
   popSelects();
+  checkPendingBadge();
 }
 
 function popSelects(){
@@ -2689,6 +2769,14 @@ function buildFormCollab(p=null){
           <button id="regle-${m}-soc" onclick="setRegle('${m}','societe')" style="padding:6px 12px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${!p?.regles||p?.regles[m]==='societe'?'#c47a4a':'#f9f6f4'};color:${!p?.regles||p?.regles[m]==='societe'?'white':'#888'};transition:all .15s">Société</button>
           <button id="regle-${m}-col" onclick="setRegle('${m}','collab')" style="padding:6px 12px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${p?.regles&&p?.regles[m]==='collab'?'#1a0f0a':'#f9f6f4'};color:${p?.regles&&p?.regles[m]==='collab'?'white':'#888'};transition:all .15s">Collaborateur</button>
         </div>
+        <div class="field" style="margin-top:8px"><label>Lien d'accès collaborateur</label>
+      <div style="display:flex;gap:8px;align-items:center;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px;padding:8px 12px">
+        <span style="font-size:11px;color:#888;flex:1;font-family:'DM Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="collab-link">
+          ${p?.code?`${window.location.origin}${window.location.pathname}?code=${p.code}`:'Généré à la sauvegarde'}
+        </span>
+        ${p?.code?`<button onclick="copyCollabLink('${p.code}')" style="background:none;border:none;cursor:pointer;color:#c47a4a;font-size:12px;font-weight:600">📋 Copier</button>`:''}
+      </div>
+    </div>
       </div>`).join('')}`;
 }
 
@@ -2711,7 +2799,9 @@ async function saveCollab(editIdx=null){
   const regles={};
   modes.forEach(m=>regles[m]=tempRegles[m]||'societe');
 
-  const collab={id:editIdx!=null?(CONFIG.praticiennes[editIdx].id||genId()):genId(),nom,statut,taux,regles};
+  const existingCode=editIdx!=null?CONFIG.praticiennes[editIdx].code:null;
+  const code=existingCode||Math.random().toString(36).slice(2,8).toUpperCase();
+  const collab={id:editIdx!=null?(CONFIG.praticiennes[editIdx].id||genId()):genId(),nom,statut,taux,regles,code};
 
   if(!CONFIG.praticiennes) CONFIG.praticiennes=[];
   if(editIdx!=null) CONFIG.praticiennes[editIdx]=collab;
@@ -4137,6 +4227,306 @@ function calculerRedevance(mois){
   const prestsSoumises=CONFIG.franchisePrestations||[];
   const caSoumis=cM.filter(t=>prestsSoumises.includes(t.prestation)).reduce((s,t)=>s+t.montant,0);
   return Math.round(caSoumis*(CONFIG.franchiseTaux||10)/100*100)/100;
+}
+
+function copyCollabLink(code){
+  const link=`${window.location.origin}${window.location.pathname}?code=${code}`;
+  navigator.clipboard.writeText(link).then(()=>toast('✓ Lien copié !'));
+}
+
+// ══════════════════════════════════════
+// INTERFACE COLLABORATEUR
+// ══════════════════════════════════════
+let collabOwnerRef=null;
+let collabConfig={};
+let collabData=[];
+
+function showCollabLogin(){
+  document.getElementById('landing').classList.remove('show');
+  document.getElementById('authPage').classList.remove('show');
+  document.getElementById('collabLoginPage').classList.add('show');
+}
+
+async function doCollabLogin(){
+  const email=document.getElementById('collabEmail').value.trim();
+  const pwd=document.getElementById('collabPwd').value;
+  const err=document.getElementById('collabErr');
+  err.textContent='';
+  try{
+    await auth.signInWithEmailAndPassword(email,pwd);
+  }catch(e){
+    err.textContent='Email ou mot de passe incorrect.';
+  }
+}
+
+async function showCollabInterface(){
+  // Chercher quel utilisateur a ce code
+  try{
+    const snap=await db.collection('users').get();
+    for(const doc of snap.docs){
+      const data=await doc.ref.collection('data').doc('main').get();
+      if(data.exists){
+        const config=JSON.parse(data.data().config||'{}');
+        const collab=(config.praticiennes||[]).find(p=>p.code===COLLAB_CODE);
+        if(collab){
+          collabOwnerRef=doc.ref;
+          collabConfig=config;
+          // Afficher l'interface collaborateur
+          document.getElementById('landing').classList.remove('show');
+          document.getElementById('authPage').classList.remove('show');
+          document.getElementById('onboardPage').classList.remove('show');
+          document.getElementById('app').classList.remove('show');
+          document.getElementById('collabLoginPage').classList.remove('show');
+          document.getElementById('collabApp').style.display='block';
+          document.getElementById('collabNomLabel').textContent=collab.nom;
+          document.getElementById('collabSalonLabel').textContent=collabConfig.salonNom||'Mon salon';
+          document.getElementById('collabDateLabel').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+          // Remplir les selects
+          const prestSel=document.getElementById('cl-prest');
+          if(prestSel) prestSel.innerHTML=(collabConfig.prestations||[]).map(p=>`<option>${p}</option>`).join('');
+          const modeSel=document.getElementById('cl-mode');
+          if(modeSel) modeSel.innerHTML=(collabConfig.modes||['ESP','VIR','CHQ']).map(m=>`<option>${m}</option>`).join('');
+
+          // Charger les saisies du jour
+          await loadCollabPrestations(collab);
+          return;
+        }
+      }
+    }
+    // Code non trouvé
+    toast('⚠ Code collaborateur invalide');
+    showLanding();
+  }catch(e){
+    console.error(e);
+    showLanding();
+  }
+}
+
+let currentCollab=null;
+
+async function loadCollabPrestations(collab){
+  currentCollab=collab;
+  const today=new Date().toISOString().split('T')[0];
+  try{
+    const snap=await collabOwnerRef.collection('pending').doc(COLLAB_CODE).collection('prestations')
+      .where('date','==',today).get();
+    collabData=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderCollabPrestations();
+  }catch(e){console.error(e);}
+}
+
+function renderCollabPrestations(){
+  const el=document.getElementById('collabPrestations');
+  if(!collabData.length){
+    el.innerHTML='<div style="padding:20px;text-align:center;color:#888;font-size:13px">Aucune saisie aujourd\'hui</div>';
+    return;
+  }
+  el.innerHTML=`<table width="100%" style="border-collapse:collapse">
+    <thead><tr style="background:#f9f6f4">
+      <th style="padding:8px 12px;text-align:left;font-size:10px;color:#888;text-transform:uppercase">Cliente</th>
+      <th style="padding:8px 12px;text-align:left;font-size:10px;color:#888;text-transform:uppercase">Prestation</th>
+      <th style="padding:8px 12px;text-align:left;font-size:10px;color:#888;text-transform:uppercase">Mode</th>
+      <th style="padding:8px 12px;text-align:right;font-size:10px;color:#888;text-transform:uppercase">Montant</th>
+      <th style="padding:8px 12px;font-size:10px;color:#888"></th>
+    </tr></thead>
+    <tbody>
+      ${collabData.map(t=>`<tr style="border-bottom:1px solid #f0e8e0">
+        <td style="padding:8px 12px;font-weight:600;font-size:13px">${t.nom}</td>
+        <td style="padding:8px 12px;font-size:12px;color:#888">${t.prestation}</td>
+        <td style="padding:8px 12px">${t.reglement}</td>
+        <td style="padding:8px 12px;text-align:right;font-family:'Playfair Display',serif;color:#00c896">${fa(t.montant)}</td>
+        <td style="padding:8px 12px"><button onclick="delCollabPrestation('${t.id}')" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px">✕</button></td>
+      </tr>`).join('')}
+      <tr style="background:#f9f6f4">
+        <td colspan="3" style="padding:8px 12px;font-weight:700;font-size:12px">Total du jour</td>
+        <td style="padding:8px 12px;text-align:right;font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:#00c896">${fa(collabData.reduce((s,t)=>s+t.montant,0))}</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>`;
+}
+
+async function saveCollabPrestation(){
+  const nom=document.getElementById('cl-nom')?.value?.trim();
+  const prest=document.getElementById('cl-prest')?.value;
+  const mnt=parseFloat(document.getElementById('cl-mnt')?.value)||0;
+  const mode=document.getElementById('cl-mode')?.value||'ESP';
+
+  if(!nom||!mnt){toast('⚠ Remplis tous les champs');return;}
+
+  const today=new Date().toISOString().split('T')[0];
+  const entry={
+    id:genId(),
+    date:today,
+    nom,
+    prestation:prest||'',
+    montant:mnt,
+    reglement:mode,
+    praticien:currentCollab?.id||'',
+    praticienNom:currentCollab?.nom||'',
+    statut:'pending',
+    createdAt:new Date().toISOString()
+  };
+
+  try{
+    await collabOwnerRef.collection('pending').doc(COLLAB_CODE)
+      .collection('prestations').doc(entry.id).set(entry);
+    collabData.push(entry);
+    document.getElementById('cl-nom').value='';
+    document.getElementById('cl-mnt').value='';
+    renderCollabPrestations();
+    toast('✓ Prestation enregistrée !');
+  }catch(e){
+    toast('⚠ Erreur : '+e.message);
+  }
+}
+
+async function delCollabPrestation(id){
+  try{
+    await collabOwnerRef.collection('pending').doc(COLLAB_CODE)
+      .collection('prestations').doc(id).delete();
+    collabData=collabData.filter(t=>t.id!==id);
+    renderCollabPrestations();
+    toast('Supprimé');
+  }catch(e){toast('⚠ Erreur');}
+}
+
+// ══════════════════════════════════════
+// VALIDATION COLLABORATEUR
+// ══════════════════════════════════════
+async function renderValidation(){
+  const el=document.getElementById('validationContent');
+  el.innerHTML=`<div style="text-align:center;padding:40px"><div class="spinner" style="margin:0 auto"></div></div>`;
+
+  const collabs=CONFIG.praticiennes||[];
+  if(!collabs.length){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Aucun collaborateur</div><div class="empty-sub">Ajoutez des collaborateurs dans les paramètres</div></div>`;
+    return;
+  }
+
+  let html='';
+  let totalPending=0;
+
+  for(const collab of collabs){
+    if(!collab.code) continue;
+    try{
+      const snap=await userRef.collection('pending').doc(collab.code).collection('prestations')
+        .where('statut','==','pending').get();
+      const prestations=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(!prestations.length) continue;
+      totalPending+=prestations.length;
+
+      html+=`<div class="card" style="margin-bottom:16px">
+        <div class="card-header">
+          <span class="card-title">👤 ${collab.nom} — ${prestations.length} saisie${prestations.length>1?'s':''} en attente</span>
+          <button class="btn btn-primary btn-sm" onclick="validerToutesSaisies('${collab.code}','${collab.id}')">✅ Tout valider</button>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Date</th><th>Cliente</th><th>Prestation</th><th>Mode</th>
+            <th style="text-align:right">Montant</th><th></th>
+          </tr></thead>
+          <tbody>
+            ${prestations.map(t=>`<tr>
+              <td class="td-mut">${dlbl(t.date)}</td>
+              <td style="font-weight:600">${t.nom}</td>
+              <td class="td-mut">${t.prestation||'—'}</td>
+              <td>${bdg(t.reglement)}</td>
+              <td class="td-green" style="text-align:right">${fa(t.montant)}</td>
+              <td style="white-space:nowrap">
+                <button class="btn btn-primary btn-sm" onclick="validerSaisie('${collab.code}','${collab.id}','${t.id}')">✅</button>
+                <button class="btn btn-danger btn-sm" onclick="refuserSaisie('${collab.code}','${t.id}')">✕</button>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    }catch(e){console.error(e);}
+  }
+
+  if(!totalPending){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Aucune saisie en attente</div><div class="empty-sub">Toutes les saisies ont été validées</div></div>`;
+    return;
+  }
+
+  document.getElementById('validationContent').innerHTML=html;
+}
+
+async function validerSaisie(code, collabId, prestId){
+  try{
+    const doc=await userRef.collection('pending').doc(code).collection('prestations').doc(prestId).get();
+    if(!doc.exists) return;
+    const t=doc.data();
+    DB.caisse.push({
+      id:genId(),
+      date:t.date,
+      nom:t.nom,
+      prestation:t.prestation,
+      praticien:collabId,
+      montant:t.montant,
+      reglement:t.reglement,
+      paye:['CHQ','PLANITY'].includes(t.reglement)?true:t.reglement==='VIR'?false:true,
+      rapprocheBanque:false
+    });
+    await saveAll();
+    await userRef.collection('pending').doc(code).collection('prestations').doc(prestId).update({statut:'validee'});
+    renderValidation();
+    toast('✓ Prestation validée et ajoutée en caisse !');
+  }catch(e){toast('⚠ Erreur : '+e.message);}
+}
+
+async function validerToutesSaisies(code, collabId){
+  if(!confirm('Valider toutes les saisies de ce collaborateur ?')) return;
+  try{
+    const snap=await userRef.collection('pending').doc(code).collection('prestations')
+      .where('statut','==','pending').get();
+    for(const doc of snap.docs){
+      const t=doc.data();
+      DB.caisse.push({
+        id:genId(),
+        date:t.date,
+        nom:t.nom,
+        prestation:t.prestation,
+        praticien:collabId,
+        montant:t.montant,
+        reglement:t.reglement,
+        paye:['CHQ','PLANITY'].includes(t.reglement)?true:t.reglement==='VIR'?false:true,
+        rapprocheBanque:false
+      });
+      await doc.ref.update({statut:'validee'});
+    }
+    await saveAll();
+    renderValidation();
+    toast(`✓ ${snap.docs.length} prestations validées !`);
+  }catch(e){toast('⚠ Erreur : '+e.message);}
+}
+
+async function refuserSaisie(code, prestId){
+  if(!confirm('Supprimer cette saisie ?')) return;
+  try{
+    await userRef.collection('pending').doc(code).collection('prestations').doc(prestId).delete();
+    renderValidation();
+    toast('Saisie supprimée');
+  }catch(e){toast('⚠ Erreur');}
+}
+
+async function checkPendingBadge(){
+  if(!userRef) return;
+  const collabs=CONFIG.praticiennes||[];
+  let total=0;
+  for(const collab of collabs){
+    if(!collab.code) continue;
+    try{
+      const snap=await userRef.collection('pending').doc(collab.code).collection('prestations')
+        .where('statut','==','pending').get();
+      total+=snap.docs.length;
+    }catch(e){}
+  }
+  const navEl=document.getElementById('nav-validation');
+  if(navEl&&total>0){
+    navEl.innerHTML=`<span class="nav-icon">✅</span>À valider <span style="background:#c47a4a;color:white;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto">${total}</span>`;
+  }
 }
   
 document.addEventListener('keydown',e=>{
