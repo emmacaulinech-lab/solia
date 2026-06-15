@@ -516,7 +516,6 @@ td{padding:11px 14px;vertical-align:middle}
     <div class="view" id="view-caisse">
       <div class="page-header">
         <div><div class="page-title">🧳 Caisse</div><div class="page-sub">Encaissements & prestations</div></div>
-        <button class="btn btn-primary" onclick="openModal('caisse')">+ Ajouter</button>
       </div>
       <div class="filters">
         <input class="fi" id="cs" placeholder="🔍 Rechercher..." oninput="renderCaisse()" style="min-width:180px">
@@ -526,25 +525,19 @@ td{padding:11px 14px;vertical-align:middle}
         </select>
       </div>
       <div class="card" id="caisseTable"></div>
-      <div style="display:flex;gap:8px;margin-top:8px">
-  <button class="btn btn-primary" onclick="openModal('caisse')">+ Ajouter</button>
-  ${CONFIG.plan==='complet'?`<button class="btn btn-outline btn-sm" onclick="goView('agenda')">📸 Import agenda</button>`:'<button class="btn btn-ghost btn-sm" onclick="toast(\'⬆️ Fonctionnalité Complet\')">📸 Import agenda 🔒</button>'}
-</div>
+      <div id="caisse-actions" style="display:flex;gap:8px;margin-bottom:12px"></div>
     </div>
 
     <div class="view" id="view-banque">
       <div class="page-header">
-        <div><div class="page-title">🏦 Banque</div><div class="page-sub">Mouvements & solde</div></div>
-        <button class="btn btn-primary" onclick="openModal('banque')">+ Ajouter</button>
-      </div>
+  <div><div class="page-title">🏦 Banque</div><div class="page-sub">Mouvements & solde</div></div>
+</div>
+<div id="banque-actions" style="display:flex;gap:8px;margin-bottom:12px"></div>
       <div class="filters">
         <input class="fi" id="bs" placeholder="🔍 Rechercher..." oninput="renderBanque()" style="min-width:180px">
         <select class="fi" id="bm" onchange="renderBanque()"><option value="">Tous les mois</option></select>
       </div>
       <div class="card" id="banqueTable"></div>
-      <div style="display:flex;gap:8px;margin-top:8px">
-  ${['avance','complet'].includes(CONFIG.plan)?`<button class="btn btn-outline btn-sm" onclick="goView('import-banque')">📥 Import relevé</button><button class="btn btn-outline btn-sm" onclick="goView('factures')">🧾 Factures</button>`:`<button class="btn btn-ghost btn-sm" onclick="toast('⬆️ Fonctionnalité Avancé')">📥 Import relevé 🔒</button>`}
-</div>
     </div>
 
     <div class="view" id="view-charges">
@@ -1412,6 +1405,12 @@ const vir=DB.caisse.filter(t=>modesAttente.includes(t.reglement)&&!t.paye&&t.mon
 // CAISSE
 // ══════════════════════════════════════
 function renderCaisse(){
+  const actionsEl=document.getElementById('caisse-actions');
+  if(actionsEl) actionsEl.innerHTML=`
+    <button class="btn btn-primary" onclick="openModal('caisse')">+ Ajouter</button>
+    ${CONFIG.plan==='complet'
+      ?`<button class="btn btn-outline btn-sm" onclick="goView('agenda')">📸 Import agenda</button>`
+      :`<button class="btn btn-ghost btn-sm" onclick="toast('⬆️ Fonctionnalité Complet')">📸 Import agenda 🔒</button>`}`;
   const s=(document.getElementById('cs')?.value||'').toLowerCase();
   const fm_=document.getElementById('cm')?.value||'';
   const fmo=document.getElementById('cmo')?.value||'';
@@ -1462,6 +1461,13 @@ async function togPaye(id){
 // BANQUE
 // ══════════════════════════════════════
 function renderBanque(){
+  const banqueActionsEl=document.getElementById('banque-actions');
+  if(banqueActionsEl) banqueActionsEl.innerHTML=`
+    <button class="btn btn-primary" onclick="openModal('banque')">+ Ajouter</button>
+    ${['avance','complet'].includes(CONFIG.plan)
+      ?`<button class="btn btn-outline btn-sm" onclick="goView('import-banque')">📥 Import relevé</button>
+        <button class="btn btn-outline btn-sm" onclick="goView('factures')">🧾 Factures</button>`
+      :`<button class="btn btn-ghost btn-sm" onclick="toast('⬆️ Fonctionnalité Avancé')">📥 Import relevé 🔒</button>`}`;
   const s=(document.getElementById('bs')?.value||'').toLowerCase();
   const fm_=document.getElementById('bm')?.value||'';
   let rows=[...DB.banque].sort((a,b)=>b.date.localeCompare(a.date));
