@@ -2754,6 +2754,9 @@ function buildFormCollab(p=null){
     <div class="field"><label>Prénom</label>
       <input type="text" id="fc-nom" value="${p?.nom||''}" placeholder="Prénom">
     </div>
+    <div class="field"><label>Email collaborateur</label>
+      <input type="email" id="fc-email" value="${p?.email||''}" placeholder="marie@exemple.com" ${p?.code?'disabled':''}>
+    </div>
     <div class="g2">
       <div class="field"><label>Statut</label>
         <select id="fc-statut">
@@ -2783,7 +2786,16 @@ function buildFormCollab(p=null){
         </span>
         ${p?.code?`<button onclick="copyCollabLink('${p.code}')" style="background:none;border:none;cursor:pointer;color:#c47a4a;font-size:12px;font-weight:600">📋 Copier</button>`:''}
       </div>
+      ${!p?.code?'':`
+    <div class="field" style="margin-top:8px"><label>Mot de passe temporaire</label>
+      <div style="display:flex;gap:8px;align-items:center;background:#fff8e1;border:1.5px solid #f0c040;border-radius:8px;padding:8px 12px">
+        <span style="font-size:13px;font-weight:700;color:#92400e;font-family:'DM Mono',monospace" id="collab-pwd-display">${p?.tempPwd||'—'}</span>
+        <button onclick="copyCollabPwd('${p?.tempPwd||''}')" style="background:none;border:none;cursor:pointer;color:#c47a4a;font-size:12px;font-weight:600">📋 Copier</button>
+      </div>
+      <div style="font-size:11px;color:#888;margin-top:4px">À envoyer à ${p?.nom} avec le lien d'accès</div>
+    </div>`}
     </div>`;
+  
 }
 
 let tempRegles={};
@@ -2806,7 +2818,10 @@ async function saveCollab(editIdx=null){
   modes.forEach(m=>regles[m]=tempRegles[m]||'societe');
   const existingCode=editIdx!=null?CONFIG.praticiennes[editIdx].code:null;
   const code=existingCode||Math.random().toString(36).slice(2,8).toUpperCase();
-  const collab={id:editIdx!=null?(CONFIG.praticiennes[editIdx].id||genId()):genId(),nom,statut,taux,regles,code};
+  const existingEmail=editIdx!=null?CONFIG.praticiennes[editIdx].email:null;
+  const email=document.getElementById('fc-email')?.value?.trim()||existingEmail||'';
+  const tempPwd=editIdx!=null&&CONFIG.praticiennes[editIdx].tempPwd?CONFIG.praticiennes[editIdx].tempPwd:Math.random().toString(36).slice(2,10);
+  const collab={id:editIdx!=null?(CONFIG.praticiennes[editIdx].id||genId()):genId(),nom,statut,taux,regles,code,email,tempPwd};
 
   if(!CONFIG.praticiennes) CONFIG.praticiennes=[];
   if(editIdx!=null) CONFIG.praticiennes[editIdx]=collab;
@@ -2818,6 +2833,19 @@ async function saveCollab(editIdx=null){
     collabNom:nom,
     salonNom:CONFIG.salonNom||''
   });
+
+  // Créer le compte Firebase si nouveau collaborateur
+  if(!existingCode&&email){
+    try{
+      await auth.createUserWithEmailAndPassword(email,tempPwd);
+      // Reconnecter la propriétaire
+      await auth.signInWithEmailAndPassword(currentUser.email, prompt('Ressaisissez votre mot de passe pour continuer :'));
+    }catch(e){
+      if(e.code!=='auth/email-already-in-use'){
+        toast('⚠ Erreur création compte : '+e.message);
+      }
+    }
+  }
 
   tempRegles={};
   await saveAll();
@@ -4575,6 +4603,11 @@ async function doCollabSignup(){
       err.textContent='Erreur : '+e.message;
     }
   }
+  
+}
+
+function copyCollabPwd(pwd){
+  navigator.clipboard.writeText(pwd).then(()=>toast('✓ Mot de passe copié !'));
 }
   
 document.addEventListener('keydown',e=>{
