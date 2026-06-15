@@ -4680,7 +4680,7 @@ async function renderCollabRecap(){
     const modes=collabConfig.modes||['ESP','VIR','CHQ'];
 
     el.innerHTML=`
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
         <div style="background:#f9f6f4;border-radius:10px;padding:14px;text-align:center">
           <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">CA ce mois</div>
           <div style="font-family:'Playfair Display',serif;font-size:22px;color:#00c896">${fa(caMois)}</div>
@@ -4688,6 +4688,10 @@ async function renderCollabRecap(){
         <div style="background:#f9f6f4;border-radius:10px;padding:14px;text-align:center">
           <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Part société (${currentCollab.taux||40}%)</div>
           <div style="font-family:'Playfair Display',serif;font-size:22px;color:#c47a4a">${fa(partSociete)}</div>
+        </div>
+        <div style="background:#e8fdf5;border-radius:10px;padding:14px;text-align:center;border:1.5px solid #00c896">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#065f46;margin-bottom:6px">Ma part (${100-(currentCollab.taux||40)}%)</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;color:#00c896;font-weight:700">${fa(caMois-partSociete)}</div>
         </div>
       </div>
       <div style="font-size:11px;font-weight:600;color:#444;margin-bottom:8px">Par mode de règlement :</div>
