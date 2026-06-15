@@ -637,6 +637,19 @@ td{padding:11px 14px;vertical-align:middle}
   <div id="facturesContent"></div>
 </div>
 
+  <div class="view" id="view-export">
+  <div class="page-header">
+    <div><div class="page-title">📤 Dossier comptable</div><div class="page-sub">Export mensuel pour votre comptable</div></div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:20px">
+    <button onclick="exportDashD(-1)" style="background:white;border:1.5px solid var(--line);border-radius:var(--r-sm);width:34px;height:34px;cursor:pointer;font-size:16px">‹</button>
+    <div id="exportMoisLabel" style="font-family:'DM Mono',monospace;font-size:13px;min-width:110px;text-align:center"></div>
+    <button onclick="exportDashD(1)" style="background:white;border:1.5px solid var(--line);border-radius:var(--r-sm);width:34px;height:34px;cursor:pointer;font-size:16px">›</button>
+    <button class="btn btn-primary" onclick="genererDossierComptable()" style="margin-left:auto">📤 Générer le dossier</button>
+  </div>
+  <div id="exportContent"></div>
+</div>
+
     <div class="view" id="view-settings">
       <div class="page-header"><div class="page-title">⚙️ Paramètres</div></div>
       <div id="settingsContent"></div>
@@ -1143,6 +1156,7 @@ const NAV=[
   {id:'equipe',icon:'🎭',label:'Équipe',plans:['avance','complet']},
   {id:'banque',icon:'🏦',label:'Banque',plans:['avance','complet']},
   {id:'factures',icon:'🧾',label:'Factures',plans:['avance','complet']},
+  {id:'export',icon:'📤',label:'Dossier comptable',plans:['avance','complet']},
   {id:'charges',icon:'📋',label:'Charges',plans:['simple','avance','complet']},
   {id:'recap',icon:'📊',label:'Récap',plans:['avance','complet']},
   {id:'settings',icon:'⚙️',label:'Paramètres',plans:['simple','avance','complet']},
@@ -1179,6 +1193,7 @@ function goView(id){
   if(id==='settings') renderSettings();
   if(id==='equipe') renderEquipe();
   if(id==='factures') renderFactures();
+  if(id==='export') renderExport();
   if(id==='import-banque') document.getElementById('importBanqueResult').innerHTML='';
   if(id==='agenda'){
   const saved=localStorage.getItem('solia_agenda');
@@ -3298,6 +3313,313 @@ async function setModeType(mode, type){
   CONFIG.modesTypes[mode]=type;
   await saveAll();
   renderSettings();
+}
+
+// ══════════════════════════════════════
+// EXPORT DOSSIER COMPTABLE
+// ══════════════════════════════════════
+let exportM=NOW.getMonth(), exportY=NOW.getFullYear();
+
+function exportDashD(d){
+  exportM+=d;
+  if(exportM>11){exportM=0;exportY++;}
+  if(exportM<0){exportM=11;exportY--;}
+  renderExport();
+}
+
+function renderExport(){
+  const mois=`${exportY}-${String(exportM+1).padStart(2,'0')}`;
+  document.getElementById('exportMoisLabel').textContent=MOIS[exportM]+' '+exportY;
+
+  const cM=DB.caisse.filter(t=>inM(t.date,mois)&&t.montant>0);
+  const ca=cM.reduce((s,t)=>s+t.montant,0);
+  const charges=[...DB.fixes,...DB.variables].filter(f=>f.mois===mois);
+  const totalCharges=charges.reduce((s,f)=>s+(f.montant||0),0);
+  const isAuto=CONFIG.formeJuridique==='auto';
+  const urssaf=isAuto?Math.round(ca*(CONFIG.urssaf||21.2)/100*100)/100:0;
+  const facturesMois=DB_FACTURES.filter(f=>inM(f.date,mois));
+  const totalTVAFactures=facturesMois.reduce((s,f)=>s+f.tva,0);
+  const mouvements=DB.banque.filter(b=>inM(b.date,mois)).sort((a,b)=>a.date.localeCompare(b.date));
+  const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
+
+  // Stats rapprochement
+  const totalOps=mouvements.length;
+  const rapprochees=mouvements.filter(b=>b.factureId||b.caisseIds?.length).length;
+
+  let html=`
+    <!-- Résumé -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">📊 Résumé ${mf(mois)}</span></div>
+      <div style="padding:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+        <div style="text-align:center">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">CA Total</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--mint)">${fa(ca)}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">Charges</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--red)">${fm(totalCharges)}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">${isAuto?'URSSAF':'TVA factures'}</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;color:#92400e">${fa(isAuto?urssaf:totalTVAFactures)}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">Rapprochement</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;color:${rapprochees===totalOps?'var(--mint)':'#92400e'}">${rapprochees}/${totalOps}</div>
+          <div style="font-size:10px;color:var(--mut);margin-top:3px">${rapprochees===totalOps?'✅ Complet':'⚠️ Incomplet'}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prestations caisse -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <span class="card-title">🧳 Caisse — ${cM.length} prestation${cM.length>1?'s':''}</span>
+        <span style="font-family:'Playfair Display',serif;font-size:16px;color:var(--mint)">${fa(ca)}</span>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Date</th><th>Cliente</th><th>Prestation</th>
+          <th>Mode</th><th>Rapprochée</th><th style="text-align:right">Montant</th>
+        </tr></thead>
+        <tbody>
+          ${cM.sort((a,b)=>a.date.localeCompare(b.date)).map(t=>`<tr>
+            <td class="td-mut">${dlbl(t.date)}</td>
+            <td style="font-weight:600">${t.nom||'—'}</td>
+            <td class="td-mut">${t.prestation||'—'}</td>
+            <td>${bdg(t.reglement)}</td>
+            <td style="text-align:center">${t.depose||t.rapprocheBanque?'✅':'⚠️'}</td>
+            <td class="td-green" style="text-align:right">${fa(t.montant)}</td>
+          </tr>`).join('')}
+          <tr class="tr-sum"><td colspan="5">Total</td><td class="td-green" style="text-align:right">${fa(ca)}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Factures -->
+    ${facturesMois.length?`<div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <span class="card-title">🧾 Factures — ${facturesMois.length} facture${facturesMois.length>1?'s':''}</span>
+        <span style="font-size:12px;color:var(--mut)">TVA déductible : ${fa(totalTVAFactures)}</span>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Date</th><th>Fournisseur</th><th>N°</th>
+          <th style="text-align:right">HT</th><th style="text-align:right">TVA</th>
+          <th style="text-align:right">TTC</th><th>Rapprochée</th>
+        </tr></thead>
+        <tbody>
+          ${facturesMois.sort((a,b)=>a.date.localeCompare(b.date)).map(f=>`<tr>
+            <td class="td-mut">${dlbl(f.date)}</td>
+            <td style="font-weight:600">${f.fournisseur}</td>
+            <td class="td-mut">${f.numeroFacture}</td>
+            <td class="td-mono" style="text-align:right">${fa(f.montantHT)}</td>
+            <td style="text-align:right;color:#92400e;font-family:'DM Mono',monospace">${fa(f.tva)}</td>
+            <td class="td-red" style="text-align:right">${fa(f.montantTTC)}</td>
+            <td style="text-align:center">${f.rapprochee?'✅':'⚠️'}</td>
+          </tr>`).join('')}
+          <tr class="tr-sum">
+            <td colspan="3">Total</td>
+            <td class="td-mono" style="text-align:right">${fa(facturesMois.reduce((s,f)=>s+f.montantHT,0))}</td>
+            <td style="text-align:right;color:#92400e;font-family:'DM Mono',monospace">${fa(totalTVAFactures)}</td>
+            <td class="td-red" style="text-align:right">${fa(facturesMois.reduce((s,f)=>s+f.montantTTC,0))}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`:''}
+
+    <!-- Mouvements banque -->
+    ${mouvements.length?`<div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <span class="card-title">🏦 Banque — ${mouvements.length} mouvement${mouvements.length>1?'s':''}</span>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Date</th><th>Libellé</th><th>Catégorie</th>
+          <th style="text-align:right">TVA</th><th style="text-align:right">Montant</th><th>Justificatif</th>
+        </tr></thead>
+        <tbody>
+          ${mouvements.map(b=>`<tr>
+            <td class="td-mut">${dlbl(b.date)}</td>
+            <td style="font-weight:500">${b.nom}</td>
+            <td class="td-mut">${b.categorie||'—'}</td>
+            <td style="text-align:right;color:#92400e;font-family:'DM Mono',monospace">${b.tva?fa(b.tva):'—'}</td>
+            <td class="${b.montant>=0?'td-green':'td-red'}" style="text-align:right">${fm(b.montant,b.montant>0)}</td>
+            <td style="text-align:center">${b.factureId||b.caisseIds?.length?'✅':'⚠️'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`:''}
+
+    ${rapprochees<totalOps?`<div style="background:#fef3c7;border:1px solid #f0c040;border-radius:12px;padding:14px 16px;font-size:13px;color:#92400e">
+      ⚠️ ${totalOps-rapprochees} opération${totalOps-rapprochees>1?'s':''} bancaire${totalOps-rapprochees>1?'s':''} sans justificatif — rapprochez-les avant d'envoyer à votre comptable.
+    </div>`:'<div style="background:var(--mint-pale);border:1px solid var(--mint);border-radius:12px;padding:14px 16px;font-size:13px;color:#065f46">✅ Dossier complet — toutes les opérations sont rapprochées !</div>'}`;
+
+  document.getElementById('exportContent').innerHTML=html;
+}
+
+async function genererDossierComptable(){
+  const mois=`${exportY}-${String(exportM+1).padStart(2,'0')}`;
+  const cM=DB.caisse.filter(t=>inM(t.date,mois)&&t.montant>0);
+  const ca=cM.reduce((s,t)=>s+t.montant,0);
+  const charges=[...DB.fixes,...DB.variables].filter(f=>f.mois===mois);
+  const totalCharges=charges.reduce((s,f)=>s+(f.montant||0),0);
+  const facturesMois=DB_FACTURES.filter(f=>inM(f.date,mois));
+  const totalTVA=facturesMois.reduce((s,f)=>s+f.tva,0);
+  const isAuto=CONFIG.formeJuridique==='auto';
+  const urssaf=isAuto?Math.round(ca*(CONFIG.urssaf||21.2)/100*100)/100:0;
+  const mouvements=DB.banque.filter(b=>inM(b.date,mois));
+  const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
+
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Dossier comptable ${mf(mois)} — ${CONFIG.salonNom||'Mon salon'}</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'Helvetica Neue',sans-serif;font-size:12px;color:#1a0f0a;padding:40px}
+      h1{font-size:24px;color:#c47a4a;margin-bottom:4px;font-weight:300;letter-spacing:.04em}
+      h2{font-size:14px;color:#c47a4a;margin:28px 0 10px;border-bottom:1px solid #e8d8c8;padding-bottom:6px;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+      .meta{font-size:11px;color:#888;margin-bottom:32px}
+      .resume{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+      .kpi{background:#f9f6f4;padding:16px;text-align:center;border:1px solid #e8d8c8}
+      .kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:6px}
+      .kpi-value{font-size:22px;font-weight:300;color:#1a0f0a}
+      .kpi-value.green{color:#00c896}
+      .kpi-value.red{color:#ef4444}
+      .kpi-value.amber{color:#92400e}
+      table{width:100%;border-collapse:collapse;margin-bottom:8px}
+      th{background:#1a0f0a;color:white;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+      td{padding:7px 10px;border-bottom:1px solid #f0e8e0;font-size:11px}
+      tr.total td{background:#f9f6f4;font-weight:700;border-top:2px solid #e8d8c8}
+      .green{color:#00c896}
+      .red{color:#ef4444}
+      .amber{color:#92400e}
+      .badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600}
+      .section{margin-bottom:32px;page-break-inside:avoid}
+      .factures-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:16px}
+      .facture-img{border:1px solid #e8d8c8;padding:8px;background:#f9f6f4}
+      .facture-img img{max-width:100%;height:auto}
+      .facture-meta{font-size:10px;color:#888;margin-top:4px;text-align:center}
+      .alert{background:#fef3c7;border:1px solid #f0c040;padding:10px 14px;font-size:12px;color:#92400e;margin-top:16px}
+      .success{background:#d1fae5;border:1px solid #6ee7b7;padding:10px 14px;font-size:12px;color:#065f46;margin-top:16px}
+      @media print{body{padding:20px}.no-print{display:none}}
+    </style>
+  </head><body>
+    <h1>${CONFIG.salonNom||'Mon salon'}</h1>
+    <div class="meta">
+      Dossier comptable · ${mf(mois)} · 
+      Généré le ${new Date().toLocaleDateString('fr-FR')} · 
+      ${CONFIG.formeJuridique?.toUpperCase()||'—'} · 
+      ${CONFIG.proprietaire||''}
+    </div>
+
+    <!-- Résumé -->
+    <div class="resume">
+      <div class="kpi"><div class="kpi-label">CA Total</div><div class="kpi-value green">${fa(ca)}</div></div>
+      <div class="kpi"><div class="kpi-label">Charges</div><div class="kpi-value red">${fm(totalCharges)}</div></div>
+      <div class="kpi"><div class="kpi-label">${isAuto?'URSSAF estimée':'TVA déductible'}</div><div class="kpi-value amber">${fa(isAuto?urssaf:totalTVA)}</div></div>
+      <div class="kpi"><div class="kpi-label">Résultat net</div><div class="kpi-value ${ca+totalCharges>=0?'green':'red'}">${fm(ca+totalCharges,true)}</div></div>
+    </div>
+
+    <!-- CA par mode -->
+    <div class="section">
+      <h2>Chiffre d'affaires par mode de règlement</h2>
+      <table>
+        <thead><tr><th>Mode</th><th style="text-align:right">Montant</th><th style="text-align:right">%</th></tr></thead>
+        <tbody>
+          ${modes.map(m=>{
+            const v=cM.filter(t=>t.reglement===m).reduce((s,t)=>s+t.montant,0);
+            return v>0?`<tr><td>${m}</td><td class="green" style="text-align:right">${fa(v)}</td><td style="text-align:right;color:#888">${ca?Math.round(v/ca*100):0}%</td></tr>`:'';
+          }).join('')}
+          <tr class="total"><td>TOTAL</td><td class="green" style="text-align:right">${fa(ca)}</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Caisse -->
+    <div class="section">
+      <h2>Détail des prestations (${cM.length})</h2>
+      <table>
+        <thead><tr><th>Date</th><th>Cliente</th><th>Prestation</th><th>Mode</th><th style="text-align:right">Montant</th></tr></thead>
+        <tbody>
+          ${cM.sort((a,b)=>a.date.localeCompare(b.date)).map(t=>`
+            <tr><td>${dlbl(t.date)}</td><td style="font-weight:600">${t.nom||'—'}</td><td>${t.prestation||'—'}</td><td>${t.reglement}</td><td class="green" style="text-align:right">${fa(t.montant)}</td></tr>`).join('')}
+          <tr class="total"><td colspan="4">TOTAL</td><td class="green" style="text-align:right">${fa(ca)}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Charges -->
+    ${charges.length?`<div class="section">
+      <h2>Charges du mois</h2>
+      <table>
+        <thead><tr><th>Nom</th><th style="text-align:right">Montant</th></tr></thead>
+        <tbody>
+          ${charges.map(f=>`<tr><td style="font-weight:600">${f.nom}</td><td class="red" style="text-align:right">${fm(f.montant)}</td></tr>`).join('')}
+          <tr class="total"><td>TOTAL</td><td class="red" style="text-align:right">${fm(totalCharges)}</td></tr>
+        </tbody>
+      </table>
+    </div>`:''}
+
+    <!-- Factures -->
+    ${facturesMois.length?`<div class="section">
+      <h2>Factures fournisseurs (${facturesMois.length})</h2>
+      <table>
+        <thead><tr><th>Date</th><th>Fournisseur</th><th>N° Facture</th><th style="text-align:right">HT</th><th style="text-align:right">TVA</th><th style="text-align:right">TTC</th></tr></thead>
+        <tbody>
+          ${facturesMois.map(f=>`<tr>
+            <td>${dlbl(f.date)}</td>
+            <td style="font-weight:600">${f.fournisseur}</td>
+            <td>${f.numeroFacture}</td>
+            <td style="text-align:right">${fa(f.montantHT)}</td>
+            <td class="amber" style="text-align:right">${fa(f.tva)}</td>
+            <td class="red" style="text-align:right">${fa(f.montantTTC)}</td>
+          </tr>`).join('')}
+          <tr class="total">
+            <td colspan="3">TOTAL</td>
+            <td style="text-align:right">${fa(facturesMois.reduce((s,f)=>s+f.montantHT,0))}</td>
+            <td class="amber" style="text-align:right">${fa(totalTVA)}</td>
+            <td class="red" style="text-align:right">${fa(facturesMois.reduce((s,f)=>s+f.montantTTC,0))}</td>
+          </tr>
+        </tbody>
+      </table>
+      <!-- Images des factures -->
+      <div class="factures-grid">
+        ${facturesMois.filter(f=>!f.isPDF).map(f=>`
+          <div>
+            <div class="facture-img"><img src="data:${f.mediaType};base64,${f.fichier}"></div>
+            <div class="facture-meta">${f.fournisseur} — ${dlbl(f.date)} — ${fa(f.montantTTC)}</div>
+          </div>`).join('')}
+      </div>
+    </div>`:''}
+
+    <!-- Banque -->
+    ${mouvements.length?`<div class="section">
+      <h2>Mouvements bancaires (${mouvements.length})</h2>
+      <table>
+        <thead><tr><th>Date</th><th>Libellé</th><th>Catégorie</th><th style="text-align:right">TVA</th><th style="text-align:right">Montant</th></tr></thead>
+        <tbody>
+          ${mouvements.map(b=>`<tr>
+            <td>${dlbl(b.date)}</td>
+            <td style="font-weight:500">${b.nom}</td>
+            <td>${b.categorie||'—'}</td>
+            <td class="amber" style="text-align:right">${b.tva?fa(b.tva):'—'}</td>
+            <td class="${b.montant>=0?'green':'red'}" style="text-align:right">${fm(b.montant,b.montant>0)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`:''}
+
+    ${isAuto?`<div class="alert">💡 URSSAF estimée : ${fa(urssaf)} à provisionner (${CONFIG.urssaf||21.2}% × ${fa(ca)})</div>`:''}
+
+    <div style="margin-top:40px;font-size:10px;color:#aaa;text-align:center;border-top:1px solid #e8d8c8;padding-top:16px">
+      Généré par Solia · ${new Date().toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
+    </div>
+
+    <script>window.onload=()=>window.print()<\/script>
+  </body></html>`);
+  w.document.close();
 }
 
 document.addEventListener('keydown',e=>{
