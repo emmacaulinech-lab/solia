@@ -673,10 +673,74 @@ td{padding:11px 14px;vertical-align:middle}
 </div>
 
 <!-- ══════════════ INTERFACE COLLABORATEUR ══════════════ -->
-<div class="auth-page" id="collabLoginPage" style="display:none">
-  <div class="auth-card">
-    <div class="auth-logo">sol<span>ia</span></div>
-    <div class="auth-subtitle">Accès collaborateur</div>
+<div id="collabApp" style="display:none;min-height:100vh;background:#f9f6f4">
+  <div style="background:#1a0f0a;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100">
+    <div style="font-family:'Cormorant Garant',serif;font-size:18px;font-weight:300;letter-spacing:.12em;color:white">S O L <span style="color:#c47a4a">I A</span></div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:12px;color:rgba(255,255,255,.5)" id="collabNomLabel"></span>
+      <button onclick="auth.signOut()" style="background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-family:'Inter',sans-serif">Déconnexion</button>
+    </div>
+  </div>
+
+  <div style="max-width:640px;margin:0 auto;padding:24px 16px">
+    <div style="font-family:'Cormorant Garant',serif;font-size:24px;font-weight:300;color:#1a0f0a;margin-bottom:4px" id="collabSalonLabel"></div>
+    <div style="font-size:12px;color:#888;margin-bottom:24px" id="collabDateLabel"></div>
+
+    <!-- Planning du jour -->
+    <div class="card" style="margin-bottom:16px" id="collabAgendaCard">
+      <div class="card-header"><span class="card-title">📅 Mon planning du jour</span></div>
+      <div id="collabAgenda" style="padding:12px">
+        <div style="font-size:13px;color:#888;text-align:center;padding:16px">Aucun planning importé pour aujourd'hui</div>
+      </div>
+    </div>
+
+    <!-- Nouvelle prestation -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">💰 Encaisser une cliente</span></div>
+      <div style="padding:16px">
+        <div class="field">
+          <label>Nom cliente</label>
+          <input type="text" id="cl-nom" placeholder="Prénom Nom">
+        </div>
+        <div class="g2">
+          <div class="field">
+            <label>Prestation</label>
+            <select id="cl-prest"></select>
+          </div>
+          <div class="field">
+            <label>Montant (€)</label>
+            <input type="number" id="cl-mnt" placeholder="0" step="0.01">
+          </div>
+        </div>
+        <div class="field">
+          <label>Mode de règlement</label>
+          <select id="cl-mode"></select>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="saveCollabPrestation()">+ Enregistrer</button>
+      </div>
+    </div>
+
+    <!-- Saisies du jour -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">📋 Mes saisies du jour</span></div>
+      <div id="collabPrestations"></div>
+    </div>
+
+    <!-- Récap du mois -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">📊 Mon récap</span></div>
+      <div id="collabRecap" style="padding:16px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Page connexion collaborateur -->
+<div id="collabLoginPage" style="display:none;min-height:100vh;background:#1a0f0a;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:0;padding:48px 40px;width:420px;max-width:100%;border:1px solid rgba(210,160,120,.2)">
+    <div style="font-family:'Cormorant Garant',serif;font-size:26px;font-weight:300;letter-spacing:.18em;text-transform:uppercase;color:#1a0f0a;margin-bottom:4px">S O L <span style="color:#c47a4a">I A</span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:8px;letter-spacing:.06em;text-transform:uppercase" id="collabSalonLoginLabel"></div>
+    <div style="font-size:13px;color:#444;margin-bottom:28px">Accès collaborateur</div>
+
     <div class="field">
       <label>Email</label>
       <input type="email" id="collabEmail" placeholder="votre@email.com">
@@ -685,55 +749,16 @@ td{padding:11px 14px;vertical-align:middle}
       <label>Mot de passe</label>
       <input type="password" id="collabPwd" placeholder="••••••••">
     </div>
-    <div class="auth-error" id="collabErr"></div>
-    <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doCollabLogin()">Accéder</button>
-    <div class="auth-divider">Première connexion ?</div>
-<div class="field">
-  <label>Créer mon accès — mot de passe</label>
-  <input type="password" id="collabNewPwd" placeholder="Choisir un mot de passe">
-</div>
-<button class="btn btn-outline btn-full" onclick="doCollabSignup()">Créer mon accès</button>
-  </div>
-</div>
+    <div style="color:#ef4444;font-size:12px;margin-bottom:8px" id="collabErr"></div>
+    <button class="btn btn-primary btn-full" onclick="doCollabLogin()" style="margin-bottom:12px">Se connecter</button>
 
-<div class="app" id="collabApp" style="display:none">
-  <div style="background:#1a0f0a;padding:16px 24px;display:flex;justify-content:space-between;align-items:center">
-    <div style="font-family:'Cormorant Garant',serif;font-size:18px;font-weight:300;letter-spacing:.12em;color:white">S O L <span style="color:#c47a4a">I A</span></div>
-    <div style="display:flex;align-items:center;gap:12px">
-      <span style="font-size:12px;color:rgba(255,255,255,.5)" id="collabNomLabel"></span>
-      <button class="btn btn-ghost btn-sm" onclick="auth.signOut()">Déconnexion</button>
-    </div>
-  </div>
-  <div style="max-width:600px;margin:0 auto;padding:24px">
-    <div style="font-family:'Cormorant Garant',serif;font-size:22px;font-weight:300;color:#1a0f0a;margin-bottom:4px" id="collabSalonLabel"></div>
-    <div style="font-size:12px;color:#888;margin-bottom:24px" id="collabDateLabel"></div>
-
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-header">
-        <span class="card-title">+ Nouvelle prestation</span>
+    <div style="border-top:1px solid #eee;padding-top:16px;margin-top:4px">
+      <div style="font-size:12px;color:#888;margin-bottom:12px">Première connexion ? Créez votre accès :</div>
+      <div class="field">
+        <label>Choisir un mot de passe</label>
+        <input type="password" id="collabNewPwd" placeholder="6 caractères minimum">
       </div>
-      <div style="padding:16px">
-        <div class="field"><label>Nom cliente</label>
-          <input type="text" id="cl-nom" placeholder="Prénom Nom" style="color:#1a0f0a">
-        </div>
-        <div class="g2">
-          <div class="field"><label>Prestation</label>
-            <select id="cl-prest" style="color:#1a0f0a"></select>
-          </div>
-          <div class="field"><label>Montant (€)</label>
-            <input type="number" id="cl-mnt" placeholder="0" step="0.01" style="color:#1a0f0a">
-          </div>
-        </div>
-        <div class="field"><label>Mode de règlement</label>
-          <select id="cl-mode" style="color:#1a0f0a"></select>
-        </div>
-        <button class="btn btn-primary btn-full" onclick="saveCollabPrestation()">+ Enregistrer</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><span class="card-title">📋 Mes saisies du jour</span></div>
-      <div id="collabPrestations"></div>
+      <button class="btn btn-outline btn-full" onclick="doCollabSignup()">Créer mon accès</button>
     </div>
   </div>
 </div>
@@ -822,20 +847,27 @@ auth.onAuthStateChanged(async user=>{
   if(user){
     currentUser=user;
     userRef=db.collection('users').doc(user.uid);
-    await loadAll();
     if(COLLAB_CODE){
-      // Vérifier si ce code correspond à un collaborateur
       await showCollabInterface();
-    } else if(!CONFIG.salonNom){
-      showOnboarding();
     } else {
-      showApp();
+      await loadAll();
+      if(!CONFIG.salonNom){
+        showOnboarding();
+      } else {
+        showApp();
+      }
     }
   } else {
     currentUser=null;
     userRef=null;
     if(COLLAB_CODE){
-      showCollabLogin();
+      // Chercher le nom du salon pour l'afficher sur la page de connexion
+      try{
+        const indexSnap=await db.collection('collab_index').doc(COLLAB_CODE).get();
+        showCollabLogin(indexSnap.exists?indexSnap.data().salonNom||'':'');
+      }catch(e){
+        showCollabLogin('');
+      }
     } else {
       showLanding();
     }
@@ -4285,181 +4317,6 @@ function copyCollabLink(code){
   navigator.clipboard.writeText(link).then(()=>toast('✓ Lien copié !'));
 }
 
-// ══════════════════════════════════════
-// INTERFACE COLLABORATEUR
-// ══════════════════════════════════════
-let collabOwnerRef=null;
-let collabConfig={};
-let collabData=[];
-
-function showCollabLogin(){
-  document.getElementById('landing').classList.remove('show');
-  document.getElementById('authPage').classList.remove('show');
-  document.getElementById('onboardPage').classList.remove('show');
-  document.getElementById('app').classList.remove('show');
-  document.getElementById('collabLoginPage').style.display='flex';
-}
-
-async function doCollabLogin(){
-  const email=document.getElementById('collabEmail').value.trim();
-  const pwd=document.getElementById('collabPwd').value;
-  const err=document.getElementById('collabErr');
-  err.textContent='';
-  try{
-    await auth.signInWithEmailAndPassword(email,pwd);
-  }catch(e){
-    err.textContent='Email ou mot de passe incorrect.';
-  }
-}
-
-async function showCollabInterface(){
-  try{
-    // Chercher dans les données de l'utilisateur connecté
-    // Si c'est la propriétaire qui se connecte avec son propre compte
-    const snap=await userRef.collection('data').doc('main').get();
-    if(snap.exists){
-      const config=JSON.parse(snap.data().config||'{}');
-      const collab=(config.praticiennes||[]).find(p=>p.code===COLLAB_CODE);
-      if(collab){
-        // C'est la propriétaire — afficher quand même l'interface collab pour test
-        collabOwnerRef=userRef;
-        collabConfig=config;
-        afficherInterfaceCollab(collab);
-        return;
-      }
-    }
-
-    // Sinon chercher via une collection publique index
-    const indexSnap=await db.collection('collab_index').doc(COLLAB_CODE).get();
-    if(indexSnap.exists){
-      const{ownerUid}=indexSnap.data();
-      collabOwnerRef=db.collection('users').doc(ownerUid);
-      const ownerData=await collabOwnerRef.collection('data').doc('main').get();
-      const config=JSON.parse(ownerData.data().config||'{}');
-      const collab=(config.praticiennes||[]).find(p=>p.code===COLLAB_CODE);
-      if(collab){
-        collabConfig=config;
-        afficherInterfaceCollab(collab);
-        return;
-      }
-    }
-
-    toast('⚠ Code collaborateur invalide');
-    showLanding();
-  }catch(e){
-    console.error(e);
-    toast('⚠ Erreur : '+e.message);
-    showLanding();
-  }
-}
-
-function afficherInterfaceCollab(collab){
-  document.getElementById('landing').classList.remove('show');
-  document.getElementById('authPage').classList.remove('show');
-  document.getElementById('onboardPage').classList.remove('show');
-  document.getElementById('app').classList.remove('show');
-  document.getElementById('collabLoginPage').style.display='none';
-  document.getElementById('collabApp').style.display='block';
-  document.getElementById('collabNomLabel').textContent=collab.nom;
-  document.getElementById('collabSalonLabel').textContent=collabConfig.salonNom||'Mon salon';
-  document.getElementById('collabDateLabel').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-
-  const prestSel=document.getElementById('cl-prest');
-  if(prestSel) prestSel.innerHTML=(collabConfig.prestations||[]).map(p=>`<option>${p}</option>`).join('');
-  const modeSel=document.getElementById('cl-mode');
-  if(modeSel) modeSel.innerHTML=(collabConfig.modes||['ESP','VIR','CHQ']).map(m=>`<option>${m}</option>`).join('');
-
-  loadCollabPrestations(collab);
-}
-
-let currentCollab=null;
-
-async function loadCollabPrestations(collab){
-  currentCollab=collab;
-  const today=new Date().toISOString().split('T')[0];
-  try{
-    const snap=await collabOwnerRef.collection('pending').doc(COLLAB_CODE).collection('prestations')
-      .where('date','==',today).get();
-    collabData=snap.docs.map(d=>({id:d.id,...d.data()}));
-    renderCollabPrestations();
-  }catch(e){console.error(e);}
-}
-
-function renderCollabPrestations(){
-  const el=document.getElementById('collabPrestations');
-  if(!collabData.length){
-    el.innerHTML='<div style="padding:20px;text-align:center;color:#888;font-size:13px">Aucune saisie aujourd\'hui</div>';
-    return;
-  }
-  el.innerHTML=`<table width="100%" style="border-collapse:collapse">
-    <thead><tr style="background:#f9f6f4">
-      <th style="padding:8px 12px;text-align:left;font-size:10px;color:#888;text-transform:uppercase">Cliente</th>
-      <th style="padding:8px 12px;text-align:left;font-size:10px;color:#888;text-transform:uppercase">Prestation</th>
-      <th style="padding:8px 12px;text-align:left;font-size:10px;color:#888;text-transform:uppercase">Mode</th>
-      <th style="padding:8px 12px;text-align:right;font-size:10px;color:#888;text-transform:uppercase">Montant</th>
-      <th style="padding:8px 12px;font-size:10px;color:#888"></th>
-    </tr></thead>
-    <tbody>
-      ${collabData.map(t=>`<tr style="border-bottom:1px solid #f0e8e0">
-        <td style="padding:8px 12px;font-weight:600;font-size:13px">${t.nom}</td>
-        <td style="padding:8px 12px;font-size:12px;color:#888">${t.prestation}</td>
-        <td style="padding:8px 12px">${t.reglement}</td>
-        <td style="padding:8px 12px;text-align:right;font-family:'Playfair Display',serif;color:#00c896">${fa(t.montant)}</td>
-        <td style="padding:8px 12px"><button onclick="delCollabPrestation('${t.id}')" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px">✕</button></td>
-      </tr>`).join('')}
-      <tr style="background:#f9f6f4">
-        <td colspan="3" style="padding:8px 12px;font-weight:700;font-size:12px">Total du jour</td>
-        <td style="padding:8px 12px;text-align:right;font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:#00c896">${fa(collabData.reduce((s,t)=>s+t.montant,0))}</td>
-        <td></td>
-      </tr>
-    </tbody>
-  </table>`;
-}
-
-async function saveCollabPrestation(){
-  const nom=document.getElementById('cl-nom')?.value?.trim();
-  const prest=document.getElementById('cl-prest')?.value;
-  const mnt=parseFloat(document.getElementById('cl-mnt')?.value)||0;
-  const mode=document.getElementById('cl-mode')?.value||'ESP';
-
-  if(!nom||!mnt){toast('⚠ Remplis tous les champs');return;}
-
-  const today=new Date().toISOString().split('T')[0];
-  const entry={
-    id:genId(),
-    date:today,
-    nom,
-    prestation:prest||'',
-    montant:mnt,
-    reglement:mode,
-    praticien:currentCollab?.id||'',
-    praticienNom:currentCollab?.nom||'',
-    statut:'pending',
-    createdAt:new Date().toISOString()
-  };
-
-  try{
-    await collabOwnerRef.collection('pending').doc(COLLAB_CODE)
-      .collection('prestations').doc(entry.id).set(entry);
-    collabData.push(entry);
-    document.getElementById('cl-nom').value='';
-    document.getElementById('cl-mnt').value='';
-    renderCollabPrestations();
-    toast('✓ Prestation enregistrée !');
-  }catch(e){
-    toast('⚠ Erreur : '+e.message);
-  }
-}
-
-async function delCollabPrestation(id){
-  try{
-    await collabOwnerRef.collection('pending').doc(COLLAB_CODE)
-      .collection('prestations').doc(id).delete();
-    collabData=collabData.filter(t=>t.id!==id);
-    renderCollabPrestations();
-    toast('Supprimé');
-  }catch(e){toast('⚠ Erreur');}
-}
 
 // ══════════════════════════════════════
 // VALIDATION COLLABORATEUR
@@ -4598,6 +4455,36 @@ async function checkPendingBadge(){
   }
 }
 
+// ══════════════════════════════════════
+// INTERFACE COLLABORATEUR
+// ══════════════════════════════════════
+let collabOwnerRef=null;
+let collabConfig={};
+let collabData=[];
+let currentCollab=null;
+
+function showCollabLogin(salonNom){
+  document.querySelectorAll('.landing,.auth-page,.onboard-page,.app').forEach(el=>{
+    el.classList.remove('show');
+    el.style.display='none';
+  });
+  document.getElementById('collabLoginPage').style.display='flex';
+  if(salonNom) document.getElementById('collabSalonLoginLabel').textContent=salonNom;
+}
+
+async function doCollabLogin(){
+  const email=document.getElementById('collabEmail').value.trim();
+  const pwd=document.getElementById('collabPwd').value;
+  const err=document.getElementById('collabErr');
+  err.textContent='';
+  if(!email||!pwd){err.textContent='Remplis tous les champs';return;}
+  try{
+    await auth.signInWithEmailAndPassword(email,pwd);
+  }catch(e){
+    err.textContent='Email ou mot de passe incorrect.';
+  }
+}
+
 async function doCollabSignup(){
   const email=document.getElementById('collabEmail').value.trim();
   const pwd=document.getElementById('collabNewPwd')?.value;
@@ -4607,19 +4494,226 @@ async function doCollabSignup(){
   if(pwd.length<6){err.textContent='Mot de passe trop court (6 caractères min)';return;}
   try{
     await auth.createUserWithEmailAndPassword(email,pwd);
-    toast('✓ Compte créé !');
   }catch(e){
-    if(e.code==='auth/email-already-in-use'){
-      err.textContent='Email déjà utilisé — connecte-toi';
-    } else {
-      err.textContent='Erreur : '+e.message;
-    }
+    if(e.code==='auth/email-already-in-use') err.textContent='Email déjà utilisé — connecte-toi';
+    else err.textContent='Erreur : '+e.message;
   }
-  
 }
 
-function copyCollabPwd(pwd){
-  navigator.clipboard.writeText(pwd).then(()=>toast('✓ Mot de passe copié !'));
+async function showCollabInterface(){
+  try{
+    // Chercher le propriétaire via l'index
+    const indexSnap=await db.collection('collab_index').doc(COLLAB_CODE).get();
+    if(!indexSnap.exists){
+      toast('⚠ Lien invalide');
+      showLanding();
+      return;
+    }
+    const{ownerUid}=indexSnap.data();
+    collabOwnerRef=db.collection('users').doc(ownerUid);
+    const ownerData=await collabOwnerRef.collection('data').doc('main').get();
+    const config=JSON.parse(ownerData.data().config||'{}');
+    const collab=(config.praticiennes||[]).find(p=>p.code===COLLAB_CODE);
+
+    if(!collab){
+      toast('⚠ Collaborateur introuvable');
+      showLanding();
+      return;
+    }
+
+    collabConfig=config;
+    currentCollab=collab;
+    afficherCollabApp();
+  }catch(e){
+    console.error(e);
+    // Si permission denied → pas encore connecté
+    const indexSnap=await db.collection('collab_index').doc(COLLAB_CODE).get().catch(()=>null);
+    if(indexSnap?.exists){
+      showCollabLogin(indexSnap.data().salonNom||'');
+    } else {
+      showCollabLogin('');
+    }
+  }
+}
+
+function afficherCollabApp(){
+  document.querySelectorAll('.landing,.auth-page,.onboard-page,.app').forEach(el=>{
+    el.classList.remove('show');
+    el.style.display='none';
+  });
+  document.getElementById('collabLoginPage').style.display='none';
+  document.getElementById('collabApp').style.display='block';
+
+  document.getElementById('collabNomLabel').textContent=currentCollab.nom;
+  document.getElementById('collabSalonLabel').textContent=collabConfig.salonNom||'Mon salon';
+  document.getElementById('collabDateLabel').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // Remplir les selects
+  const prestSel=document.getElementById('cl-prest');
+  if(prestSel) prestSel.innerHTML=(collabConfig.prestations||[]).map(p=>`<option>${p}</option>`).join('');
+  const modeSel=document.getElementById('cl-mode');
+  if(modeSel) modeSel.innerHTML=(collabConfig.modes||['ESP','VIR','CHQ']).map(m=>`<option>${m}</option>`).join('');
+
+  loadCollabData();
+}
+
+async function loadCollabData(){
+  const today=new Date().toISOString().split('T')[0];
+  try{
+    // Charger les saisies du jour
+    const snap=await collabOwnerRef.collection('pending')
+      .doc(COLLAB_CODE).collection('prestations')
+      .where('date','==',today).get();
+    collabData=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderCollabPrestations();
+    renderCollabRecap();
+    renderCollabAgenda();
+  }catch(e){console.error(e);}
+}
+
+function renderCollabAgenda(){
+  const el=document.getElementById('collabAgenda');
+  if(!el) return;
+  // Chercher le planning du jour importé par la propriétaire
+  const today=new Date().toISOString().split('T')[0];
+  const rdvs=(collabConfig.agendaData||[]).filter(r=>
+    r.praticien===currentCollab.nom||r.praticienId===currentCollab.id
+  );
+  if(!rdvs.length){
+    el.innerHTML='<div style="font-size:13px;color:#888;text-align:center;padding:12px">Aucun RDV importé pour aujourd\'hui</div>';
+    return;
+  }
+  el.innerHTML=rdvs.sort((a,b)=>a.heure_debut?.localeCompare(b.heure_debut)).map(r=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:10px;border-bottom:1px solid #f0e8e0">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#888;min-width:80px">${r.heure_debut||''} → ${r.heure_fin||''}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:13px">${r.nom}</div>
+        <div style="font-size:11px;color:#888">${r.prestation||'—'}</div>
+      </div>
+      <button onclick="prefillFromRdv('${r.nom.replace(/'/g,"\\'")}','${(r.prestation||'').replace(/'/g,"\\'")}')'" 
+        style="background:#c47a4a;color:white;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer">
+        Encaisser
+      </button>
+    </div>`).join('');
+}
+
+function prefillFromRdv(nom, prestation){
+  const nomEl=document.getElementById('cl-nom');
+  const prestEl=document.getElementById('cl-prest');
+  if(nomEl) nomEl.value=nom;
+  if(prestEl){
+    for(const opt of prestEl.options){
+      if(opt.value===prestation){prestEl.value=prestation;break;}
+    }
+  }
+  document.getElementById('cl-mnt')?.focus();
+}
+
+function renderCollabPrestations(){
+  const el=document.getElementById('collabPrestations');
+  if(!collabData.length){
+    el.innerHTML='<div style="padding:20px;text-align:center;color:#888;font-size:13px">Aucune saisie aujourd\'hui</div>';
+    return;
+  }
+  const total=collabData.reduce((s,t)=>s+t.montant,0);
+  el.innerHTML=`<table width="100%" style="border-collapse:collapse">
+    <thead><tr style="background:#f9f6f4">
+      <th style="padding:8px 12px;text-align:left;font-size:10px;color:#888;text-transform:uppercase">Cliente</th>
+      <th style="padding:8px 12px;text-align:left;font-size:10px;color:#888;text-transform:uppercase">Prestation</th>
+      <th style="padding:8px 12px;text-align:left;font-size:10px;color:#888;text-transform:uppercase">Mode</th>
+      <th style="padding:8px 12px;text-align:right;font-size:10px;color:#888;text-transform:uppercase">Montant</th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+      ${collabData.map(t=>`<tr style="border-bottom:1px solid #f0e8e0">
+        <td style="padding:8px 12px;font-weight:600;font-size:13px">${t.nom}</td>
+        <td style="padding:8px 12px;font-size:12px;color:#888">${t.prestation||'—'}</td>
+        <td style="padding:8px 12px;font-size:12px">${t.reglement}</td>
+        <td style="padding:8px 12px;text-align:right;font-family:'Playfair Display',serif;color:#00c896;font-size:15px">${fa(t.montant)}</td>
+        <td style="padding:8px 12px"><button onclick="delCollabPrestation('${t.id}')" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:16px">✕</button></td>
+      </tr>`).join('')}
+      <tr style="background:#f9f6f4">
+        <td colspan="3" style="padding:10px 12px;font-weight:700;font-size:13px">Total du jour</td>
+        <td style="padding:10px 12px;text-align:right;font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#00c896">${fa(total)}</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>`;
+}
+
+async function renderCollabRecap(){
+  const el=document.getElementById('collabRecap');
+  const mois=new Date().toISOString().slice(0,7);
+  try{
+    const snap=await collabOwnerRef.collection('pending')
+      .doc(COLLAB_CODE).collection('prestations')
+      .where('date','>=',mois+'-01').get();
+    const all=snap.docs.map(d=>d.data());
+    const caMois=all.reduce((s,t)=>s+t.montant,0);
+    const partSociete=Math.round(caMois*(currentCollab.taux||40)/100*100)/100;
+    const modes=collabConfig.modes||['ESP','VIR','CHQ'];
+
+    el.innerHTML=`
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div style="background:#f9f6f4;border-radius:10px;padding:14px;text-align:center">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">CA ce mois</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;color:#00c896">${fa(caMois)}</div>
+        </div>
+        <div style="background:#f9f6f4;border-radius:10px;padding:14px;text-align:center">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Part société (${currentCollab.taux||40}%)</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;color:#c47a4a">${fa(partSociete)}</div>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:#444;margin-bottom:8px">Par mode de règlement :</div>
+      ${modes.map(m=>{
+        const v=all.filter(t=>t.reglement===m).reduce((s,t)=>s+t.montant,0);
+        return v>0?`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0e8e0;font-size:13px">
+          <span>${m}</span>
+          <span style="font-family:'Playfair Display',serif;color:#00c896">${fa(v)}</span>
+        </div>`:'';
+      }).join('')}`;
+  }catch(e){
+    el.innerHTML='<div style="color:#888;font-size:13px">Impossible de charger le récap</div>';
+  }
+}
+
+async function saveCollabPrestation(){
+  const nom=document.getElementById('cl-nom')?.value?.trim();
+  const prest=document.getElementById('cl-prest')?.value;
+  const mnt=parseFloat(document.getElementById('cl-mnt')?.value)||0;
+  const mode=document.getElementById('cl-mode')?.value||'ESP';
+  if(!nom||!mnt){toast('⚠ Remplis tous les champs');return;}
+
+  const today=new Date().toISOString().split('T')[0];
+  const entry={
+    id:genId(),date:today,nom,
+    prestation:prest||'',montant:mnt,reglement:mode,
+    praticien:currentCollab?.id||'',
+    praticienNom:currentCollab?.nom||'',
+    statut:'pending',
+    createdAt:new Date().toISOString()
+  };
+  try{
+    await collabOwnerRef.collection('pending').doc(COLLAB_CODE)
+      .collection('prestations').doc(entry.id).set(entry);
+    collabData.push(entry);
+    document.getElementById('cl-nom').value='';
+    document.getElementById('cl-mnt').value='';
+    renderCollabPrestations();
+    renderCollabRecap();
+    toast('✓ Prestation enregistrée !');
+  }catch(e){toast('⚠ Erreur : '+e.message);}
+}
+
+async function delCollabPrestation(id){
+  try{
+    await collabOwnerRef.collection('pending').doc(COLLAB_CODE)
+      .collection('prestations').doc(id).delete();
+    collabData=collabData.filter(t=>t.id!==id);
+    renderCollabPrestations();
+    renderCollabRecap();
+    toast('Supprimé');
+  }catch(e){toast('⚠ Erreur');}
 }
   
 document.addEventListener('keydown',e=>{
