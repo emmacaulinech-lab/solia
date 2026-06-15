@@ -2260,17 +2260,23 @@ Réponds UNIQUEMENT en JSON valide sans backticks ni markdown :
     const match=text.match(/\[[\s\S]*\]/);
     if(!match) throw new Error('Aucun RDV détecté');
     agendaRdvs=JSON.parse(match[0]);
-localStorage.setItem('solia_agenda',JSON.stringify({date:new Date().toISOString().split('T')[0],rdvs:agendaRdvs}));
 
-// Sauvegarder dans Firebase pour les collaborateurs
-const today=new Date().toISOString().split('T')[0];
-await userRef.collection('agenda').doc(today).set({
-  rdvs:agendaRdvs,
-  date:today,
-  updatedAt:new Date().toISOString()
-});
+// Détecter les praticiens uniques
+const praticiensDetectes=[...new Set(agendaRdvs.map(r=>r.praticien).filter(Boolean))];
+const collabs=CONFIG.praticiennes||[];
+const mapping=CONFIG.agendaMapping||{};
 
-renderAgendaResult();
+// Vérifier si tous les praticiens sont déjà mappés
+const nonMappes=praticiensDetectes.filter(p=>!mapping[p]);
+
+if(nonMappes.length>0){
+  // Afficher le modal d'association
+  ouvrirModalMapping(nonMappes,collabs,mapping,agendaRdvs);
+} else {
+  // Appliquer le mapping existant
+  agendaRdvs=agendaRdvs.map(r=>({...r,praticien:mapping[r.praticien]||r.praticien}));
+  await sauvegarderAgenda(agendaRdvs);
+}
   }catch(e){
     el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--red)">⚠️ Erreur : ${e.message}</div>`;
     console.error(e);
@@ -4585,10 +4591,13 @@ async function renderCollabAgenda(){
       el.innerHTML='<div style="font-size:13px;color:#888;text-align:center;padding:12px">Aucun planning importé pour aujourd\'hui</div>';
       return;
     }
-    const rdvs=(snap.data().rdvs||[]).filter(r=>
-      r.praticien===currentCollab.nom||
-      r.praticien?.toLowerCase()===currentCollab.nom?.toLowerCase()
-    );
+    const rdvs=(snap.data().rdvs||[]).filter(r=>{
+  if(!r.praticien) return false;
+  const prat=r.praticien.toLowerCase().trim();
+  const nom=currentCollab.nom.toLowerCase().trim();
+  // Correspondance exacte ou partielle (début du nom)
+  return prat===nom||prat.includes(nom.slice(0,4))||nom.includes(prat.slice(0,4));
+});
     if(!rdvs.length){
       el.innerHTML='<div style="font-size:13px;color:#888;text-align:center;padding:12px">Aucun RDV pour vous aujourd\'hui</div>';
       return;
@@ -4771,6 +4780,71 @@ async function validerChangementMdp(){
       err.textContent='Erreur : '+e.message;
     }
   }
+}
+
+function ouvrirModalMapping(nonMappes, collabs, mapping, rdvs){
+  const proprietaire=CONFIG.proprietaire||'Moi';
+  document.getElementById('mTitle').textContent='👥 Associer les praticiens';
+  document.getElementById('mBody').innerHTML=`
+    <div style="font-size:13px;color:#555;margin-bottom:16px">
+      Nous avons détecté ces noms dans le planning. Associez-les à vos collaborateurs pour qu'ils apparaissent dans leur interface.
+    </div>
+    ${nonMappes.map(p=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #eee">
+        <div style="font-weight:600;font-size:13px;min-width:100px;color:#c47a4a">"${p}"</div>
+        <span style="color:#888">→</span>
+        <select id="map-${p.replace(/\s/g,'_')}" style="flex:1;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;color:#1a0f0a">
+          <option value="${proprietaire}">${proprietaire} (vous)</option>
+          ${collabs.map(c=>`<option value="${c.nom}" ${mapping[p]===c.nom?'selected':''}>${c.nom}</option>`).join('')}
+          <option value="__ignore__">— Ignorer</option>
+        </select>
+      </div>`).join('')}
+    <div style="background:#fef3c7;border-radius:8px;padding:10px 14px;margin-top:12px;font-size:12px;color:#92400e">
+      💡 Cette association sera mémorisée pour les prochaines importations.
+    </div>`;
+
+  document.querySelector('#mainModal .modal-footer').innerHTML=`
+    <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>
+    <button class="btn btn-primary" onclick="validerMapping(${JSON.stringify(nonMappes).replace(/"/g,"'")})">✓ Valider</button>`;
+  document.getElementById('mainModal').classList.add('open');
+
+  // Stocker les rdvs en attente
+  window._pendingRdvs=rdvs;
+  window._pendingMappes=nonMappes;
+}
+
+async function validerMapping(nonMappes){
+  if(!CONFIG.agendaMapping) CONFIG.agendaMapping={};
+  
+  for(const p of nonMappes){
+    const sel=document.getElementById(`map-${p.replace(/\s/g,'_')}`);
+    if(sel) CONFIG.agendaMapping[p]=sel.value;
+  }
+
+  await saveAll();
+  closeMo('mainModal');
+
+  // Appliquer le mapping
+  const mapping=CONFIG.agendaMapping;
+  agendaRdvs=(window._pendingRdvs||agendaRdvs).map(r=>({
+    ...r,
+    praticien:mapping[r.praticien]==='__ignore__'?r.praticien:(mapping[r.praticien]||r.praticien)
+  })).filter(r=>CONFIG.agendaMapping[r.praticien]!=='__ignore__');
+
+  await sauvegarderAgenda(agendaRdvs);
+  toast('✓ Association mémorisée !');
+}
+
+async function sauvegarderAgenda(rdvs){
+  const today=new Date().toISOString().split('T')[0];
+  localStorage.setItem('solia_agenda',JSON.stringify({date:today,rdvs}));
+  
+  await userRef.collection('agenda').doc(today).set({
+    rdvs,date:today,
+    updatedAt:new Date().toISOString()
+  });
+
+  renderAgendaResult();
 }
   
 document.addEventListener('keydown',e=>{
