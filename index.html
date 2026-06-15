@@ -687,6 +687,12 @@ td{padding:11px 14px;vertical-align:middle}
     </div>
     <div class="auth-error" id="collabErr"></div>
     <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doCollabLogin()">Accéder</button>
+    <div class="auth-divider">Première connexion ?</div>
+<div class="field">
+  <label>Créer mon accès — mot de passe</label>
+  <input type="password" id="collabNewPwd" placeholder="Choisir un mot de passe">
+</div>
+<button class="btn btn-outline btn-full" onclick="doCollabSignup()">Créer mon accès</button>
   </div>
 </div>
 
@@ -2769,15 +2775,15 @@ function buildFormCollab(p=null){
           <button id="regle-${m}-soc" onclick="setRegle('${m}','societe')" style="padding:6px 12px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${!p?.regles||p?.regles[m]==='societe'?'#c47a4a':'#f9f6f4'};color:${!p?.regles||p?.regles[m]==='societe'?'white':'#888'};transition:all .15s">Société</button>
           <button id="regle-${m}-col" onclick="setRegle('${m}','collab')" style="padding:6px 12px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${p?.regles&&p?.regles[m]==='collab'?'#1a0f0a':'#f9f6f4'};color:${p?.regles&&p?.regles[m]==='collab'?'white':'#888'};transition:all .15s">Collaborateur</button>
         </div>
-        <div class="field" style="margin-top:8px"><label>Lien d'accès collaborateur</label>
+      </div>`).join('')}
+    <div class="field" style="margin-top:12px"><label>Lien d'accès collaborateur</label>
       <div style="display:flex;gap:8px;align-items:center;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px;padding:8px 12px">
-        <span style="font-size:11px;color:#888;flex:1;font-family:'DM Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="collab-link">
+        <span style="font-size:11px;color:#888;flex:1;font-family:'DM Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
           ${p?.code?`${window.location.origin}${window.location.pathname}?code=${p.code}`:'Généré à la sauvegarde'}
         </span>
         ${p?.code?`<button onclick="copyCollabLink('${p.code}')" style="background:none;border:none;cursor:pointer;color:#c47a4a;font-size:12px;font-weight:600">📋 Copier</button>`:''}
       </div>
-    </div>
-      </div>`).join('')}`;
+    </div>`;
 }
 
 let tempRegles={};
@@ -4526,6 +4532,25 @@ async function checkPendingBadge(){
   const navEl=document.getElementById('nav-validation');
   if(navEl&&total>0){
     navEl.innerHTML=`<span class="nav-icon">✅</span>À valider <span style="background:#c47a4a;color:white;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto">${total}</span>`;
+  }
+}
+
+async function doCollabSignup(){
+  const email=document.getElementById('collabEmail').value.trim();
+  const pwd=document.getElementById('collabNewPwd')?.value;
+  const err=document.getElementById('collabErr');
+  err.textContent='';
+  if(!email||!pwd){err.textContent='Remplis email et mot de passe';return;}
+  if(pwd.length<6){err.textContent='Mot de passe trop court (6 caractères min)';return;}
+  try{
+    await auth.createUserWithEmailAndPassword(email,pwd);
+    toast('✓ Compte créé !');
+  }catch(e){
+    if(e.code==='auth/email-already-in-use'){
+      err.textContent='Email déjà utilisé — connecte-toi';
+    } else {
+      err.textContent='Erreur : '+e.message;
+    }
   }
 }
   
