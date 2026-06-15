@@ -650,6 +650,14 @@ td{padding:11px 14px;vertical-align:middle}
   <div id="exportContent"></div>
 </div>
 
+  <div class="view" id="view-sous-location">
+  <div class="page-header">
+    <div><div class="page-title">🏠 Sous-location</div><div class="page-sub">Gestion de vos sous-locataires</div></div>
+    <button class="btn btn-primary" onclick="openAddSousLocataire()">+ Ajouter</button>
+  </div>
+  <div id="sousLocationContent"></div>
+</div>
+
     <div class="view" id="view-settings">
       <div class="page-header"><div class="page-title">⚙️ Paramètres</div></div>
       <div id="settingsContent"></div>
@@ -1150,12 +1158,13 @@ function obPrev(){if(obStep>0){obStep--;renderObStep();}}
 const NAV=[
   {id:'dashboard',icon:'🏠',label:'Dashboard',plans:['simple','avance','complet']},
   {id:'caisse',icon:'🧳',label:'Caisse',plans:['simple','avance','complet']},
-  {id:'clients',icon:'👥',label:'Clientes',plans:['simple','avance','complet']},
-  {id:'equipe',icon:'🎭',label:'Équipe',plans:['avance','complet']},
   {id:'banque',icon:'🏦',label:'Banque',plans:['avance','complet']},
+  {id:'equipe',icon:'🎭',label:'Équipe',plans:['avance','complet']},
+  {id:'recap',icon:'📊',label:'Récap',plans:['avance','complet']},
+  {id:'clients',icon:'👥',label:'Clientes',plans:['simple','avance','complet']},
+  {id:'sous-location',icon:'🏠',label:'Sous-location',plans:['complet'],condition:()=>CONFIG.sousLocationActive},
   {id:'export',icon:'📤',label:'Dossier comptable',plans:['avance','complet']},
   {id:'charges',icon:'📋',label:'Charges',plans:['simple','avance','complet']},
-  {id:'recap',icon:'📊',label:'Récap',plans:['avance','complet']},
   {id:'settings',icon:'⚙️',label:'Paramètres',plans:['simple','avance','complet']},
 ];
 
@@ -1169,7 +1178,9 @@ function buildSidebar(){
 
   const nav=document.getElementById('sidebarNav');
   nav.innerHTML=NAV.map(n=>{
-    const locked=!n.plans.includes(plan);
+   const locked=!n.plans.includes(plan);
+const hidden=n.condition&&!n.condition();
+if(hidden) return '';
     return`<button class="nav-item${locked?' locked':''}" id="nav-${n.id}" onclick="${locked?`showUpgrade('${n.id}')`:``}goView('${n.id}')">
       <span class="nav-icon">${n.icon}</span>${n.label}${locked?' 🔒':''}
     </button>`;
@@ -1191,6 +1202,7 @@ function goView(id){
   if(id==='equipe') renderEquipe();
   if(id==='factures') renderFactures();
   if(id==='export') renderExport();
+  if(id==='sous-location') renderSousLocation();
   if(id==='import-banque') document.getElementById('importBanqueResult').innerHTML='';
   if(id==='agenda'){
   const saved=localStorage.getItem('solia_agenda');
@@ -1610,6 +1622,20 @@ function renderSettings(){
         </div>
         <button class="btn btn-primary" onclick="saveSettings()">Sauvegarder</button>
       </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">🏠 Sous-location</span>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <span style="font-size:12px;color:var(--mut)">Activer</span>
+          <div onclick="toggleSousLocation()" style="width:40px;height:22px;border-radius:99px;background:${CONFIG.sousLocationActive?'#c47a4a':'#ddd'};cursor:pointer;position:relative;transition:background .2s">
+            <div style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:2px;${CONFIG.sousLocationActive?'right:2px':'left:2px'};transition:all .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>
+          </div>
+        </label>
+      </div>
+      ${CONFIG.sousLocationActive?`<div style="padding:14px 16px;font-size:13px;color:var(--mut)">
+        Gérez vos sous-locataires depuis le menu <strong>🏠 Sous-location</strong>.
+      </div>`:'<div style="padding:14px 16px;font-size:12px;color:var(--mut)">Activez si vous sous-louez une partie de votre local.</div>'}
     </div>
 
     <div class="card" style="margin-bottom:16px">
@@ -3643,6 +3669,337 @@ async function genererDossierComptable(){
   w.document.close();
 }
 
+// ══════════════════════════════════════
+// SOUS-LOCATION
+// ══════════════════════════════════════
+function renderSousLocation(){
+  const el=document.getElementById('sousLocationContent');
+  const locataires=CONFIG.sousLocataires||[];
+
+  if(!locataires.length){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">🏠</div><div class="empty-title">Aucun sous-locataire</div><div class="empty-sub">Ajoutez vos sous-locataires pour générer leurs factures automatiquement</div></div>`;
+    return;
+  }
+
+  const moisCourant=new Date().toISOString().slice(0,7);
+
+  let html=locataires.map((l,i)=>{
+    // Factures générées pour ce locataire
+    const facturesL=DB_FACTURES.filter(f=>f.sousLocataireId===l.id);
+    const derniereMois=facturesL.length?facturesL.sort((a,b)=>b.date.localeCompare(a.date))[0].date.slice(0,7):null;
+    const dejaGenere=derniereMois===moisCourant;
+
+    return`<div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <div>
+          <span class="card-title">${l.nom}</span>
+          <span style="font-size:11px;color:var(--mut);margin-left:8px">${l.activite||''}</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-family:'Playfair Display',serif;font-size:18px;color:#c47a4a">${fa(l.loyer)}/mois</span>
+          <button class="btn btn-ghost btn-sm" onclick="openEditSousLocataire(${i})">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="delSousLocataire(${i})">✕</button>
+        </div>
+      </div>
+      <div style="padding:16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+          <div style="background:var(--fog);border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:4px">Loyer mensuel</div>
+            <div style="font-family:'Playfair Display',serif;font-size:18px;color:#c47a4a">${fa(l.loyer)}</div>
+          </div>
+          <div style="background:var(--fog);border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:4px">Factures générées</div>
+            <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--ink)">${facturesL.length}</div>
+          </div>
+          <div style="background:var(--fog);border-radius:10px;padding:12px;text-align:center">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:4px">Total encaissé</div>
+            <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--mint)">${fa(facturesL.reduce((s,f)=>s+f.montantTTC,0))}</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="genererFactureSousLocation(${i})" ${dejaGenere?'disabled style="opacity:.5"':''}>
+            📄 ${dejaGenere?'Facture déjà générée ce mois':'Générer facture du mois'}
+          </button>
+          ${facturesL.length?`<button class="btn btn-outline btn-sm" onclick="voirFacturesSousLocation(${i})">Voir les factures (${facturesL.length})</button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML=html;
+}
+
+function openAddSousLocataire(){
+  document.getElementById('mTitle').textContent='🏠 Nouveau sous-locataire';
+  document.getElementById('mBody').innerHTML=buildFormSousLocataire();
+  document.querySelector('#mainModal .modal-footer').innerHTML=`
+    <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>
+    <button class="btn btn-primary" onclick="saveSousLocataire()">Ajouter</button>`;
+  document.getElementById('mainModal').classList.add('open');
+}
+
+function openEditSousLocataire(i){
+  const l=CONFIG.sousLocataires[i];
+  document.getElementById('mTitle').textContent='✏️ Modifier sous-locataire';
+  document.getElementById('mBody').innerHTML=buildFormSousLocataire(l);
+  document.querySelector('#mainModal .modal-footer').innerHTML=`
+    <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>
+    <button class="btn btn-primary" onclick="saveSousLocataire(${i})">Enregistrer</button>`;
+  document.getElementById('mainModal').classList.add('open');
+}
+
+function buildFormSousLocataire(l=null){
+  return`
+    <div class="field"><label>Nom / Prénom</label>
+      <input type="text" id="sl-nom" value="${l?.nom||''}" placeholder="Marie Dupont">
+    </div>
+    <div class="field"><label>Activité</label>
+      <input type="text" id="sl-activite" value="${l?.activite||''}" placeholder="Coiffeuse, Esthéticienne...">
+    </div>
+    <div class="g2">
+      <div class="field"><label>Loyer mensuel HT (€)</label>
+        <input type="number" id="sl-loyer" value="${l?.loyer||''}" placeholder="500" step="0.01" oninput="updateSLTVA()">
+      </div>
+      <div class="field"><label>TVA (%)</label>
+        <select id="sl-tva">
+          <option value="0" ${!l?.tauxTva?'selected':''}>0% (sans TVA)</option>
+          <option value="20" ${l?.tauxTva===20?'selected':''}>20%</option>
+        </select>
+      </div>
+    </div>
+    <div style="background:var(--fog);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--mut)" id="sl-preview">
+      TTC : —
+    </div>
+    <div class="field" style="margin-top:12px"><label>Adresse (pour la facture)</label>
+      <input type="text" id="sl-adresse" value="${l?.adresse||''}" placeholder="12 rue de la Paix, 75001 Paris">
+    </div>
+    <div class="field"><label>Date de début</label>
+      <input type="date" id="sl-debut" value="${l?.debut||new Date().toISOString().split('T')[0]}">
+    </div>
+    <div class="field"><label>Mode de règlement habituel</label>
+      <select id="sl-mode">
+        ${(CONFIG.modes||['ESP','VIR','CHQ']).map(m=>`<option value="${m}" ${l?.mode===m?'selected':''}>${m}</option>`).join('')}
+      </select>
+    </div>`;
+}
+
+function updateSLTVA(){
+  const loyer=parseFloat(document.getElementById('sl-loyer')?.value)||0;
+  const tva=parseFloat(document.getElementById('sl-tva')?.value)||0;
+  const ttc=loyer*(1+tva/100);
+  const el=document.getElementById('sl-preview');
+  if(el) el.textContent=`TTC : ${fa(ttc)}${tva>0?` (dont TVA : ${fa(loyer*tva/100)})`:''}`;
+}
+
+async function saveSousLocataire(editIdx=null){
+  const nom=document.getElementById('sl-nom')?.value?.trim();
+  const activite=document.getElementById('sl-activite')?.value?.trim()||'';
+  const loyer=parseFloat(document.getElementById('sl-loyer')?.value)||0;
+  const tauxTva=parseFloat(document.getElementById('sl-tva')?.value)||0;
+  const adresse=document.getElementById('sl-adresse')?.value?.trim()||'';
+  const debut=document.getElementById('sl-debut')?.value||'';
+  const mode=document.getElementById('sl-mode')?.value||'VIR';
+
+  if(!nom||!loyer){toast('⚠ Remplis tous les champs');return;}
+
+  const locataire={
+    id:editIdx!=null?(CONFIG.sousLocataires[editIdx].id||genId()):genId(),
+    nom,activite,loyer,tauxTva,adresse,debut,mode
+  };
+
+  if(!CONFIG.sousLocataires) CONFIG.sousLocataires=[];
+  if(editIdx!=null) CONFIG.sousLocataires[editIdx]=locataire;
+  else CONFIG.sousLocataires.push(locataire);
+
+  await saveAll();
+  closeMo('mainModal');
+  renderSousLocation();
+  toast('✓ Sous-locataire enregistré');
+}
+
+async function delSousLocataire(i){
+  if(!confirm('Supprimer ce sous-locataire ?')) return;
+  CONFIG.sousLocataires.splice(i,1);
+  await saveAll();
+  renderSousLocation();
+  toast('Supprimé');
+}
+
+async function genererFactureSousLocation(i){
+  const l=CONFIG.sousLocataires[i];
+  const today=new Date().toISOString().split('T')[0];
+  const mois=today.slice(0,7);
+  const tva=l.loyer*(l.tauxTva||0)/100;
+  const ttc=l.loyer+tva;
+  const numFacture=`SL-${mois.replace('-','')}-${String(i+1).padStart(2,'0')}`;
+
+  // Créer la facture
+  const facture={
+    id:genId(),
+    fournisseur:CONFIG.salonNom||'Mon salon',
+    client:l.nom,
+    sousLocataireId:l.id,
+    date:today,
+    numeroFacture:numFacture,
+    montantHT:l.loyer,
+    tva,
+    montantTTC:ttc,
+    description:`Sous-location ${MOIS[new Date().getMonth()]} ${new Date().getFullYear()} — ${l.activite||''}`,
+    type:'sous-location',
+    rapprochee:false,
+    fichier:null,
+    mediaType:null,
+    isPDF:false,
+    createdAt:new Date().toISOString()
+  };
+
+  // Ajouter en caisse comme encaissement sous-location
+  DB.caisse.push({
+    id:genId(),
+    date:today,
+    nom:l.nom,
+    prestation:`Sous-location ${MOIS[new Date().getMonth()]}`,
+    praticien:'',
+    montant:ttc,
+    reglement:l.mode||'VIR',
+    paye:false,
+    rapprocheBanque:false,
+    sousLocation:true
+  });
+
+  DB_FACTURES.push(facture);
+  await saveFacture(facture);
+  await saveAll();
+  renderSousLocation();
+  toast(`✓ Facture ${numFacture} générée — ${fa(ttc)} ajouté en caisse`);
+
+  // Générer et ouvrir le PDF de la facture
+  setTimeout(()=>imprimerFactureSousLocation(facture,l),500);
+}
+
+function imprimerFactureSousLocation(facture, locataire){
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Facture ${facture.numeroFacture}</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'Helvetica Neue',sans-serif;font-size:12px;color:#1a0f0a;padding:60px}
+      .header{display:flex;justify-content:space-between;margin-bottom:48px}
+      .logo{font-size:28px;font-weight:300;color:#c47a4a;letter-spacing:.08em;text-transform:uppercase}
+      .facture-num{font-size:13px;color:#888;margin-top:6px}
+      .parties{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-bottom:40px}
+      .partie-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:8px}
+      .partie-nom{font-size:15px;font-weight:600;margin-bottom:4px}
+      .partie-detail{font-size:12px;color:#666;line-height:1.6}
+      table{width:100%;border-collapse:collapse;margin-bottom:32px}
+      th{background:#1a0f0a;color:white;padding:10px 14px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.08em}
+      td{padding:12px 14px;border-bottom:1px solid #f0e8e0;font-size:12px}
+      .total-section{display:flex;justify-content:flex-end;margin-bottom:40px}
+      .total-box{width:280px}
+      .total-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0e8e0;font-size:12px}
+      .total-row.final{font-size:15px;font-weight:700;color:#c47a4a;border-bottom:none;padding-top:12px}
+      .footer{text-align:center;font-size:10px;color:#aaa;border-top:1px solid #e8d8c8;padding-top:20px;margin-top:40px}
+      @media print{body{padding:30px}@page{margin:1cm}}
+    </style>
+  </head><body>
+    <div class="header">
+      <div>
+        <div class="logo">${CONFIG.salonNom||'Mon salon'}</div>
+        <div class="facture-num">FACTURE N° ${facture.numeroFacture}</div>
+        <div style="font-size:11px;color:#888;margin-top:4px">Date : ${new Date(facture.date+'T12:00:00').toLocaleDateString('fr-FR')}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:#888">Période de location</div>
+        <div style="font-size:13px;font-weight:600;margin-top:4px">${MOIS[new Date().getMonth()]} ${new Date().getFullYear()}</div>
+      </div>
+    </div>
+
+    <div class="parties">
+      <div>
+        <div class="partie-label">Émetteur</div>
+        <div class="partie-nom">${CONFIG.salonNom||'Mon salon'}</div>
+        <div class="partie-detail">
+          ${CONFIG.proprietaire||''}<br>
+          ${CONFIG.formeJuridique?.toUpperCase()||''}
+        </div>
+      </div>
+      <div>
+        <div class="partie-label">Locataire</div>
+        <div class="partie-nom">${locataire.nom}</div>
+        <div class="partie-detail">
+          ${locataire.activite||''}<br>
+          ${locataire.adresse||''}
+        </div>
+      </div>
+    </div>
+
+    <table>
+      <thead><tr><th>Description</th><th style="text-align:right">Quantité</th><th style="text-align:right">Prix unitaire HT</th><th style="text-align:right">Total HT</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>
+            <strong>Sous-location d'espace professionnel</strong><br>
+            <span style="color:#888;font-size:11px">${MOIS[new Date().getMonth()]} ${new Date().getFullYear()} · ${locataire.activite||''}</span>
+          </td>
+          <td style="text-align:right">1</td>
+          <td style="text-align:right">${fa(locataire.loyer)}</td>
+          <td style="text-align:right">${fa(locataire.loyer)}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="total-section">
+      <div class="total-box">
+        <div class="total-row"><span>Sous-total HT</span><span>${fa(locataire.loyer)}</span></div>
+        <div class="total-row"><span>TVA (${locataire.tauxTva||0}%)</span><span>${fa(facture.tva)}</span></div>
+        <div class="total-row final"><span>TOTAL TTC</span><span>${fa(facture.montantTTC)}</span></div>
+      </div>
+    </div>
+
+    <div style="background:#f9f6f4;border:1px solid #e8d8c8;border-radius:4px;padding:14px 16px;font-size:11px;color:#666;margin-bottom:32px">
+      <strong>Mode de règlement :</strong> ${locataire.mode||'VIR'}<br>
+      ${locataire.tauxTva===0?'<strong>TVA non applicable</strong> — Article 293B du CGI':''}
+    </div>
+
+    <div class="footer">
+      ${CONFIG.salonNom||'Mon salon'} · ${CONFIG.proprietaire||''} · Généré par Solia
+    </div>
+    <script>window.onload=()=>window.print()<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+function voirFacturesSousLocation(i){
+  const l=CONFIG.sousLocataires[i];
+  const factures=DB_FACTURES.filter(f=>f.sousLocataireId===l.id).sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('mTitle').textContent=`🏠 Factures — ${l.nom}`;
+  document.getElementById('mBody').innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${factures.map(f=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--fog);border-radius:10px">
+          <div>
+            <div style="font-weight:600;font-size:13px">${f.numeroFacture}</div>
+            <div style="font-size:11px;color:var(--mut)">${dlbl(f.date)} · ${f.description||''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-family:'Playfair Display',serif;font-size:16px;color:var(--mint)">${fa(f.montantTTC)}</span>
+            <button class="btn btn-outline btn-sm" onclick="imprimerFactureSousLocation(DB_FACTURES.find(x=>x.id==='${f.id}'),CONFIG.sousLocataires[${i}])">🖨️</button>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  document.querySelector('#mainModal .modal-footer').innerHTML=`<button class="btn btn-ghost" onclick="closeMo('mainModal')">Fermer</button>`;
+  document.getElementById('mainModal').classList.add('open');
+}
+
+async function toggleSousLocation(){
+  CONFIG.sousLocationActive=!CONFIG.sousLocationActive;
+  await saveAll();
+  buildSidebar();
+  renderSettings();
+  toast(CONFIG.sousLocationActive?'✓ Sous-location activée':'Sous-location désactivée');
+}
+  
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape') closeMo('mainModal');
 });
