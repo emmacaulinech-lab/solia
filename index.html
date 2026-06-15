@@ -2811,48 +2811,56 @@ async function saveCollab(editIdx=null){
   const nom=document.getElementById('fc-nom')?.value?.trim();
   const statut=document.getElementById('fc-statut')?.value||'auto';
   const taux=parseInt(document.getElementById('fc-taux')?.value)||40;
+  const email=document.getElementById('fc-email')?.value?.trim()||'';
   if(!nom){toast('⚠ Saisis un prénom');return;}
 
   const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
   const regles={};
   modes.forEach(m=>regles[m]=tempRegles[m]||'societe');
-  const existingCode=editIdx!=null?CONFIG.praticiennes[editIdx].code:null;
+  const existingCode=editIdx!=null?CONFIG.praticiennes[editIdx]?.code:null;
+  const existingEmail=editIdx!=null?CONFIG.praticiennes[editIdx]?.email:null;
+  const finalEmail=email||existingEmail||'';
   const code=existingCode||Math.random().toString(36).slice(2,8).toUpperCase();
-  const existingEmail=editIdx!=null?CONFIG.praticiennes[editIdx].email:null;
-  const email=document.getElementById('fc-email')?.value?.trim()||existingEmail||'';
-  const tempPwd=editIdx!=null&&CONFIG.praticiennes[editIdx].tempPwd?CONFIG.praticiennes[editIdx].tempPwd:Math.random().toString(36).slice(2,10);
-  const collab={id:editIdx!=null?(CONFIG.praticiennes[editIdx].id||genId()):genId(),nom,statut,taux,regles,code,email,tempPwd};
+  const tempPwd=editIdx!=null&&CONFIG.praticiennes[editIdx]?.tempPwd?CONFIG.praticiennes[editIdx].tempPwd:Math.random().toString(36).slice(2,10);
+
+  const collab={
+    id:editIdx!=null?(CONFIG.praticiennes[editIdx]?.id||genId()):genId(),
+    nom,statut,taux,regles,code,
+    email:finalEmail,
+    tempPwd
+  };
 
   if(!CONFIG.praticiennes) CONFIG.praticiennes=[];
   if(editIdx!=null) CONFIG.praticiennes[editIdx]=collab;
   else CONFIG.praticiennes.push(collab);
 
-  // Créer l'index public pour retrouver le propriétaire via le code
+  // Sauvegarder d'abord
+  await saveAll();
+
+  // Créer index
   await db.collection('collab_index').doc(code).set({
     ownerUid:currentUser.uid,
     collabNom:nom,
     salonNom:CONFIG.salonNom||''
   });
 
-  // Créer le compte Firebase si nouveau collaborateur
-  if(!existingCode&&email){
+  // Créer le compte Firebase APRÈS la sauvegarde
+  if(!existingCode&&finalEmail){
     try{
-      // Utiliser la fonction admin via une deuxième instance Firebase
-      const secondaryApp=firebase.initializeApp(firebaseConfig,'secondary');
+      const secondaryApp=firebase.initializeApp(firebaseConfig,'secondary'+Date.now());
       const secondaryAuth=secondaryApp.auth();
-      await secondaryAuth.createUserWithEmailAndPassword(email,tempPwd);
+      await secondaryAuth.createUserWithEmailAndPassword(finalEmail,tempPwd);
       await secondaryAuth.signOut();
-      secondaryApp.delete();
+      await secondaryApp.delete();
     }catch(e){
       if(e.code!=='auth/email-already-in-use'){
-        toast('⚠ Erreur création compte : '+e.message);
-        return;
+        console.error(e);
+        toast('⚠ Compte non créé : '+e.message);
       }
     }
   }
 
   tempRegles={};
-  await saveAll();
   closeMo('mainModal');
   renderSettings();
   toast('✓ Collaborateur enregistré');
