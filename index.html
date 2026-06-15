@@ -2876,21 +2876,6 @@ async function saveCollab(editIdx=null){
     salonNom:CONFIG.salonNom||''
   });
 
-  // Créer le compte Firebase APRÈS la sauvegarde
-  if(!existingCode&&finalEmail){
-    try{
-      const secondaryApp=firebase.initializeApp(firebaseConfig,'secondary'+Date.now());
-      const secondaryAuth=secondaryApp.auth();
-      await secondaryAuth.createUserWithEmailAndPassword(finalEmail,tempPwd);
-      await secondaryAuth.signOut();
-      await secondaryApp.delete();
-    }catch(e){
-      if(e.code!=='auth/email-already-in-use'){
-        console.error(e);
-        toast('⚠ Compte non créé : '+e.message);
-      }
-    }
-  }
 
   tempRegles={};
   closeMo('mainModal');
