@@ -687,7 +687,8 @@ td{padding:11px 14px;vertical-align:middle}
     <div style="font-family:'Cormorant Garant',serif;font-size:18px;font-weight:300;letter-spacing:.12em;color:white">S O L <span style="color:#c47a4a">I A</span></div>
     <div style="display:flex;align-items:center;gap:12px">
       <span style="font-size:12px;color:rgba(255,255,255,.5)" id="collabNomLabel"></span>
-      <button onclick="auth.signOut()" style="background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-family:'Inter',sans-serif">Déconnexion</button>
+      <button onclick="ouvrirChangementMdp()" style="background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-family:'Inter',sans-serif;margin-right:6px">🔑 Changer mdp</button>
+<button onclick="auth.signOut()" style="background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-family:'Inter',sans-serif">Déconnexion</button>
     </div>
   </div>
 
@@ -2260,6 +2261,15 @@ Réponds UNIQUEMENT en JSON valide sans backticks ni markdown :
     if(!match) throw new Error('Aucun RDV détecté');
     agendaRdvs=JSON.parse(match[0]);
 localStorage.setItem('solia_agenda',JSON.stringify({date:new Date().toISOString().split('T')[0],rdvs:agendaRdvs}));
+
+// Sauvegarder dans Firebase pour les collaborateurs
+const today=new Date().toISOString().split('T')[0];
+await userRef.collection('agenda').doc(today).set({
+  rdvs:agendaRdvs,
+  date:today,
+  updatedAt:new Date().toISOString()
+});
+
 renderAgendaResult();
   }catch(e){
     el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--red)">⚠️ Erreur : ${e.message}</div>`;
@@ -4565,30 +4575,40 @@ async function loadCollabData(){
   }catch(e){console.error(e);}
 }
 
-function renderCollabAgenda(){
+async function renderCollabAgenda(){
   const el=document.getElementById('collabAgenda');
   if(!el) return;
-  // Chercher le planning du jour importé par la propriétaire
   const today=new Date().toISOString().split('T')[0];
-  const rdvs=(collabConfig.agendaData||[]).filter(r=>
-    r.praticien===currentCollab.nom||r.praticienId===currentCollab.id
-  );
-  if(!rdvs.length){
-    el.innerHTML='<div style="font-size:13px;color:#888;text-align:center;padding:12px">Aucun RDV importé pour aujourd\'hui</div>';
-    return;
+  try{
+    const snap=await collabOwnerRef.collection('agenda').doc(today).get();
+    if(!snap.exists){
+      el.innerHTML='<div style="font-size:13px;color:#888;text-align:center;padding:12px">Aucun planning importé pour aujourd\'hui</div>';
+      return;
+    }
+    const rdvs=(snap.data().rdvs||[]).filter(r=>
+      r.praticien===currentCollab.nom||
+      r.praticien?.toLowerCase()===currentCollab.nom?.toLowerCase()
+    );
+    if(!rdvs.length){
+      el.innerHTML='<div style="font-size:13px;color:#888;text-align:center;padding:12px">Aucun RDV pour vous aujourd\'hui</div>';
+      return;
+    }
+    el.innerHTML=rdvs.sort((a,b)=>(a.heure_debut||'').localeCompare(b.heure_debut||'')).map(r=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:10px;border-bottom:1px solid #f0e8e0">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:#888;min-width:80px">${r.heure_debut||''} → ${r.heure_fin||''}</div>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:13px">${r.nom}</div>
+          <div style="font-size:11px;color:#888">${r.prestation||'—'}</div>
+        </div>
+        <button onclick="prefillFromRdv('${r.nom.replace(/'/g,"\\'")}','${(r.prestation||'').replace(/'/g,"\\'")}')'" 
+          style="background:#c47a4a;color:white;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer">
+          Encaisser
+        </button>
+      </div>`).join('');
+  }catch(e){
+    el.innerHTML='<div style="font-size:13px;color:#888;text-align:center;padding:12px">Impossible de charger le planning</div>';
+    console.error(e);
   }
-  el.innerHTML=rdvs.sort((a,b)=>a.heure_debut?.localeCompare(b.heure_debut)).map(r=>`
-    <div style="display:flex;align-items:center;gap:12px;padding:10px;border-bottom:1px solid #f0e8e0">
-      <div style="font-family:'DM Mono',monospace;font-size:11px;color:#888;min-width:80px">${r.heure_debut||''} → ${r.heure_fin||''}</div>
-      <div style="flex:1">
-        <div style="font-weight:600;font-size:13px">${r.nom}</div>
-        <div style="font-size:11px;color:#888">${r.prestation||'—'}</div>
-      </div>
-      <button onclick="prefillFromRdv('${r.nom.replace(/'/g,"\\'")}','${(r.prestation||'').replace(/'/g,"\\'")}')'" 
-        style="background:#c47a4a;color:white;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer">
-        Encaisser
-      </button>
-    </div>`).join('');
 }
 
 function prefillFromRdv(nom, prestation){
@@ -4708,6 +4728,49 @@ async function delCollabPrestation(id){
     renderCollabRecap();
     toast('Supprimé');
   }catch(e){toast('⚠ Erreur');}
+}
+
+function ouvrirChangementMdp(){
+  const overlay=document.createElement('div');
+  overlay.id='pwd-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML=`
+    <div style="background:white;border-radius:12px;padding:28px;width:360px;max-width:95vw">
+      <div style="font-family:'Cormorant Garant',serif;font-size:18px;font-weight:600;color:#1a0f0a;margin-bottom:16px">🔑 Changer mon mot de passe</div>
+      <div class="field">
+        <label>Nouveau mot de passe</label>
+        <input type="password" id="new-pwd1" placeholder="6 caractères minimum" style="color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px;width:100%;padding:10px 12px;font-family:'Inter',sans-serif">
+      </div>
+      <div class="field">
+        <label>Confirmer</label>
+        <input type="password" id="new-pwd2" placeholder="Répéter le mot de passe" style="color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px;width:100%;padding:10px 12px;font-family:'Inter',sans-serif">
+      </div>
+      <div style="color:#ef4444;font-size:12px;margin-bottom:12px" id="pwd-err"></div>
+      <div style="display:flex;gap:8px">
+        <button onclick="document.getElementById('pwd-overlay').remove()" style="flex:1;padding:10px;border:1.5px solid #ddd;border-radius:8px;background:white;cursor:pointer;font-family:'Inter',sans-serif;font-size:13px">Annuler</button>
+        <button onclick="validerChangementMdp()" style="flex:1;padding:10px;border:none;border-radius:8px;background:#c47a4a;color:white;cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;font-weight:600">Valider</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function validerChangementMdp(){
+  const pwd1=document.getElementById('new-pwd1')?.value;
+  const pwd2=document.getElementById('new-pwd2')?.value;
+  const err=document.getElementById('pwd-err');
+  if(!pwd1||pwd1.length<6){err.textContent='Mot de passe trop court';return;}
+  if(pwd1!==pwd2){err.textContent='Les mots de passe ne correspondent pas';return;}
+  try{
+    await currentUser.updatePassword(pwd1);
+    document.getElementById('pwd-overlay').remove();
+    toast('✓ Mot de passe modifié !');
+  }catch(e){
+    if(e.code==='auth/requires-recent-login'){
+      err.textContent='Reconnectez-vous avant de changer votre mot de passe';
+    } else {
+      err.textContent='Erreur : '+e.message;
+    }
+  }
 }
   
 document.addEventListener('keydown',e=>{
