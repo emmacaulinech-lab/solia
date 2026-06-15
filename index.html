@@ -2804,7 +2804,6 @@ async function saveCollab(editIdx=null){
   const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
   const regles={};
   modes.forEach(m=>regles[m]=tempRegles[m]||'societe');
-
   const existingCode=editIdx!=null?CONFIG.praticiennes[editIdx].code:null;
   const code=existingCode||Math.random().toString(36).slice(2,8).toUpperCase();
   const collab={id:editIdx!=null?(CONFIG.praticiennes[editIdx].id||genId()):genId(),nom,statut,taux,regles,code};
@@ -2813,13 +2812,19 @@ async function saveCollab(editIdx=null){
   if(editIdx!=null) CONFIG.praticiennes[editIdx]=collab;
   else CONFIG.praticiennes.push(collab);
 
+  // Créer l'index public pour retrouver le propriétaire via le code
+  await db.collection('collab_index').doc(code).set({
+    ownerUid:currentUser.uid,
+    collabNom:nom,
+    salonNom:CONFIG.salonNom||''
+  });
+
   tempRegles={};
   await saveAll();
   closeMo('mainModal');
   renderSettings();
   toast('✓ Collaborateur enregistré');
 }
-
 async function toggleRegleCollab(i, mode){
   const p=CONFIG.praticiennes[i];
   if(!p.regles) p.regles={};
@@ -4268,47 +4273,63 @@ async function doCollabLogin(){
 }
 
 async function showCollabInterface(){
-  // Chercher quel utilisateur a ce code
   try{
-    const snap=await db.collection('users').get();
-    for(const doc of snap.docs){
-      const data=await doc.ref.collection('data').doc('main').get();
-      if(data.exists){
-        const config=JSON.parse(data.data().config||'{}');
-        const collab=(config.praticiennes||[]).find(p=>p.code===COLLAB_CODE);
-        if(collab){
-          collabOwnerRef=doc.ref;
-          collabConfig=config;
-          // Afficher l'interface collaborateur
-          document.getElementById('landing').classList.remove('show');
-          document.getElementById('authPage').classList.remove('show');
-          document.getElementById('onboardPage').classList.remove('show');
-          document.getElementById('app').classList.remove('show');
-          document.getElementById('collabLoginPage').classList.remove('show');
-          document.getElementById('collabApp').style.display='block';
-          document.getElementById('collabNomLabel').textContent=collab.nom;
-          document.getElementById('collabSalonLabel').textContent=collabConfig.salonNom||'Mon salon';
-          document.getElementById('collabDateLabel').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-
-          // Remplir les selects
-          const prestSel=document.getElementById('cl-prest');
-          if(prestSel) prestSel.innerHTML=(collabConfig.prestations||[]).map(p=>`<option>${p}</option>`).join('');
-          const modeSel=document.getElementById('cl-mode');
-          if(modeSel) modeSel.innerHTML=(collabConfig.modes||['ESP','VIR','CHQ']).map(m=>`<option>${m}</option>`).join('');
-
-          // Charger les saisies du jour
-          await loadCollabPrestations(collab);
-          return;
-        }
+    // Chercher dans les données de l'utilisateur connecté
+    // Si c'est la propriétaire qui se connecte avec son propre compte
+    const snap=await userRef.collection('data').doc('main').get();
+    if(snap.exists){
+      const config=JSON.parse(snap.data().config||'{}');
+      const collab=(config.praticiennes||[]).find(p=>p.code===COLLAB_CODE);
+      if(collab){
+        // C'est la propriétaire — afficher quand même l'interface collab pour test
+        collabOwnerRef=userRef;
+        collabConfig=config;
+        afficherInterfaceCollab(collab);
+        return;
       }
     }
-    // Code non trouvé
+
+    // Sinon chercher via une collection publique index
+    const indexSnap=await db.collection('collab_index').doc(COLLAB_CODE).get();
+    if(indexSnap.exists){
+      const{ownerUid}=indexSnap.data();
+      collabOwnerRef=db.collection('users').doc(ownerUid);
+      const ownerData=await collabOwnerRef.collection('data').doc('main').get();
+      const config=JSON.parse(ownerData.data().config||'{}');
+      const collab=(config.praticiennes||[]).find(p=>p.code===COLLAB_CODE);
+      if(collab){
+        collabConfig=config;
+        afficherInterfaceCollab(collab);
+        return;
+      }
+    }
+
     toast('⚠ Code collaborateur invalide');
     showLanding();
   }catch(e){
     console.error(e);
+    toast('⚠ Erreur : '+e.message);
     showLanding();
   }
+}
+
+function afficherInterfaceCollab(collab){
+  document.getElementById('landing').classList.remove('show');
+  document.getElementById('authPage').classList.remove('show');
+  document.getElementById('onboardPage').classList.remove('show');
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('collabLoginPage').style.display='none';
+  document.getElementById('collabApp').style.display='block';
+  document.getElementById('collabNomLabel').textContent=collab.nom;
+  document.getElementById('collabSalonLabel').textContent=collabConfig.salonNom||'Mon salon';
+  document.getElementById('collabDateLabel').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  const prestSel=document.getElementById('cl-prest');
+  if(prestSel) prestSel.innerHTML=(collabConfig.prestations||[]).map(p=>`<option>${p}</option>`).join('');
+  const modeSel=document.getElementById('cl-mode');
+  if(modeSel) modeSel.innerHTML=(collabConfig.modes||['ESP','VIR','CHQ']).map(m=>`<option>${m}</option>`).join('');
+
+  loadCollabPrestations(collab);
 }
 
 let currentCollab=null;
