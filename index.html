@@ -2837,12 +2837,16 @@ async function saveCollab(editIdx=null){
   // Créer le compte Firebase si nouveau collaborateur
   if(!existingCode&&email){
     try{
-      await auth.createUserWithEmailAndPassword(email,tempPwd);
-      // Reconnecter la propriétaire
-      await auth.signInWithEmailAndPassword(currentUser.email, prompt('Ressaisissez votre mot de passe pour continuer :'));
+      // Utiliser la fonction admin via une deuxième instance Firebase
+      const secondaryApp=firebase.initializeApp(firebaseConfig,'secondary');
+      const secondaryAuth=secondaryApp.auth();
+      await secondaryAuth.createUserWithEmailAndPassword(email,tempPwd);
+      await secondaryAuth.signOut();
+      secondaryApp.delete();
     }catch(e){
       if(e.code!=='auth/email-already-in-use'){
         toast('⚠ Erreur création compte : '+e.message);
+        return;
       }
     }
   }
