@@ -26,6 +26,9 @@
   --red: #ef4444;
   --red-pale: #fee2e2;
   --mut: #8888a0;
+  --accent: #c47a4a;
+  --accent2: #d4895a;
+  --accent-pale: rgba(196,122,74,.1);
   --shadow-sm: 0 1px 4px rgba(15,15,20,.06);
   --shadow: 0 4px 20px rgba(15,15,20,.08);
   --shadow-lg: 0 12px 40px rgba(15,15,20,.14);
@@ -40,16 +43,16 @@ body{font-family:'Inter',sans-serif;background:var(--fog);color:var(--ink);font-
 .landing.show{display:flex}
 .land-nav{display:flex;justify-content:space-between;align-items:center;padding:28px 56px;border-bottom:1px solid rgba(210,160,120,.12)}
 .land-logo{font-family:'Cormorant Garant',serif;font-size:26px;font-weight:300;letter-spacing:.18em;text-transform:uppercase;color:#f5ede6}
-.land-logo span{color:#c47a4a}
+.land-logo span{color:var(--accent)}
 .land-nav-right{display:flex;gap:12px;align-items:center}
 .land-hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:100px 24px 80px;position:relative;overflow:hidden}
 .land-hero::before{content:'';position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(196,122,74,.12) 0%,transparent 68%);top:40%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
-.land-eyebrow{font-family:'Inter',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:.22em;color:#c47a4a;font-weight:500;margin-bottom:28px}
+.land-eyebrow{font-family:'Inter',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:.22em;color:var(--accent);font-weight:500;margin-bottom:28px}
 .land-h1{font-family:'Cormorant Garant',serif;font-size:clamp(48px,7vw,88px);font-weight:300;line-height:1.08;letter-spacing:-.01em;margin-bottom:28px;color:#f5ede6}
-.land-h1 em{color:#c47a4a;font-style:italic}
+.land-h1 em{color:var(--accent);font-style:italic}
 .land-h1 strong{font-weight:600;font-style:normal}
 .land-sub{font-family:'Inter',sans-serif;font-size:15px;color:rgba(245,237,230,.45);max-width:460px;line-height:1.75;margin-bottom:52px;font-weight:300}
-.land-divider{width:40px;height:1px;background:#c47a4a;margin:0 auto 52px;opacity:.6}
+.land-divider{width:40px;height:1px;background:var(--accent);margin:0 auto 52px;opacity:.6}
 .land-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
 
 /* ── PLANS ── */
@@ -60,26 +63,26 @@ body{font-family:'Inter',sans-serif;background:var(--fog);color:var(--ink);font-
 .plan-card{background:#1a0f0a;padding:36px 28px;position:relative;transition:background .2s}
 .plan-card:hover{background:#201208}
 .plan-card.featured{background:#211008}
-.plan-badge{position:absolute;top:20px;right:20px;background:#c47a4a;color:#1a0f0a;font-family:'Inter',sans-serif;font-size:9px;font-weight:700;padding:4px 10px;border-radius:0;text-transform:uppercase;letter-spacing:.12em}
+.plan-badge{position:absolute;top:20px;right:20px;background:var(--accent);color:#1a0f0a;font-family:'Inter',sans-serif;font-size:9px;font-weight:700;padding:4px 10px;border-radius:0;text-transform:uppercase;letter-spacing:.12em}
 .plan-name{font-family:'Cormorant Garant',serif;font-size:22px;font-weight:400;color:#f5ede6;margin-bottom:8px;letter-spacing:.04em}
-.plan-price{font-family:'Cormorant Garant',serif;font-size:48px;font-weight:300;color:#c47a4a;margin-bottom:4px;line-height:1}
+.plan-price{font-family:'Cormorant Garant',serif;font-size:48px;font-weight:300;color:var(--accent);margin-bottom:4px;line-height:1}
 .plan-price span{font-size:14px;color:rgba(245,237,230,.35);font-family:'Inter',sans-serif;font-weight:300}
 .plan-desc{font-family:'Inter',sans-serif;font-size:12px;color:rgba(245,237,230,.35);margin-bottom:28px;line-height:1.6;letter-spacing:.02em}
 .plan-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:32px}
 .plan-features li{font-family:'Inter',sans-serif;font-size:12px;color:rgba(245,237,230,.6);display:flex;align-items:center;gap:10px;letter-spacing:.02em}
-.plan-features li::before{content:'—';color:#c47a4a;font-weight:300;flex-shrink:0}
+.plan-features li::before{content:'—';color:var(--accent);font-weight:300;flex-shrink:0}
 .plan-features li.off{color:rgba(245,237,230,.2)}
 .plan-features li.off::before{content:'—';color:rgba(245,237,230,.15)}
 
 /* ── BUTTONS ── */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border-radius:var(--r-sm);border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;transition:all .15s;text-decoration:none;white-space:nowrap}
-.btn-primary{background:#c47a4a;color:#1a0f0a}
-.btn-primary:hover{background:#d4895a;transform:translateY(-1px);box-shadow:0 4px 20px rgba(196,122,74,.35)}
+.btn-primary{background:var(--accent);color:#1a0f0a}
+.btn-primary:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 4px 20px rgba(196,122,74,.35)}
 .btn-ghost{background:transparent;color:rgba(245,237,230,.6);border:1px solid rgba(245,237,230,.2)}
 .btn-ghost:hover{background:rgba(245,237,230,.05);color:#f5ede6}
 .btn-white{background:white;color:var(--ink)}
 .btn-white:hover{background:var(--fog)}
-.btn-outline{background:transparent;color:#c47a4a;border:1px solid #c47a4a}
+.btn-outline{background:transparent;color:var(--accent);border:1px solid var(--accent)}
 .btn-outline:hover{background:rgba(196,122,74,.1)}
 .btn-white{background:#f5ede6;color:#1a0f0a}
 .btn-white:hover{background:#ffe8d8}
@@ -96,18 +99,18 @@ body{font-family:'Inter',sans-serif;background:var(--fog);color:var(--ink);font-
 .auth-page.show{display:flex}
 .auth-card{background:#211008;border-radius:0;padding:48px 40px;width:420px;max-width:100%;border:1px solid rgba(210,160,120,.2)}
 .auth-logo{font-family:'Cormorant Garant',serif;font-size:26px;font-weight:300;letter-spacing:.18em;text-transform:uppercase;color:#f5ede6;margin-bottom:4px}
-.auth-logo span{color:#c47a4a}
+.auth-logo span{color:var(--accent)}
 .auth-subtitle{font-family:'Inter',sans-serif;font-size:12px;color:rgba(245,237,230,.35);margin-bottom:32px;letter-spacing:.06em;text-transform:uppercase}
 .auth-tabs{display:flex;background:rgba(245,237,230,.05);border-radius:0;padding:3px;margin-bottom:28px;gap:3px;border:1px solid rgba(210,160,120,.15)}
 .auth-tab{flex:1;padding:9px;border-radius:0;border:none;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:rgba(245,237,230,.35);transition:all .15s;text-transform:uppercase;letter-spacing:.08em}
-.auth-tab.active{background:#c47a4a;color:#1a0f0a}
+.auth-tab.active{background:var(--accent);color:#1a0f0a}
 .field{margin-bottom:16px}
 .field label{display:block;font-family:'Inter',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:rgba(245,237,230,.4);font-weight:500;margin-bottom:8px}
 .onboard-card .field label{color:#555}
 .onboard-card .field input{color:#1a0f0a;background:#f9f9f9;border:1.5px solid #ddd;border-radius:8px}
-.onboard-card .field input:focus{border-color:#c47a4a;background:white}
+.onboard-card .field input:focus{border-color:var(--accent);background:white}
 .field input,.field select{width:100%;padding:12px 14px;border:1px solid rgba(210,160,120,.2);border-radius:0;font-family:'Inter',sans-serif;font-size:13px;color:#f5ede6;background:rgba(245,237,230,.04);outline:none;transition:border-color .15s}
-.field input:focus,.field select:focus{border-color:#c47a4a;background:rgba(196,122,74,.06)}
+.field input:focus,.field select:focus{border-color:var(--accent);background:rgba(196,122,74,.06)}
 .field select option{background:#211008;color:#f5ede6}
 .auth-error{color:#e07050;font-family:'Inter',sans-serif;font-size:12px;margin-top:8px;text-align:center}
 .auth-divider{text-align:center;font-family:'Inter',sans-serif;font-size:12px;color:rgba(245,237,230,.3);margin:16px 0}
@@ -115,36 +118,36 @@ body{font-family:'Inter',sans-serif;background:var(--fog);color:var(--ink);font-
 /* ── PLAN SELECTOR ── */
 .plan-selector{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:16px}
 .plan-opt{border:1.5px solid var(--line);border-radius:var(--r);padding:14px 16px;cursor:pointer;transition:all .15s;background:var(--fog)}
-.plan-opt:hover{border-color:#c47a4a;background:rgba(196,122,74,.1)}
-.plan-opt.selected{border-color:#c47a4a;background:rgba(196,122,74,.1)}
+.plan-opt:hover{border-color:var(--accent);background:rgba(196,122,74,.1)}
+.plan-opt.selected{border-color:var(--accent);background:rgba(196,122,74,.1)}
 .plan-opt-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .plan-opt-name{font-weight:700;font-size:14px;color:var(--ink)}
-.plan-opt-price{font-family:'DM Mono',monospace;font-size:14px;color:#c47a4a;font-weight:500}
+.plan-opt-price{font-family:'DM Mono',monospace;font-size:14px;color:var(--accent);font-weight:500}
 .plan-opt-desc{font-size:12px;color:var(--mut)}
 
 /* ── ONBOARDING ── */
 .onboard-page{display:none;min-height:100vh;background:#1a0f0a;align-items:center;justify-content:center;padding:24px}
 .onboard-page.show{display:flex}
 .onboard-card{background:white;border-radius:20px;padding:40px 36px;width:500px;max-width:100%;box-shadow:var(--shadow-lg);border:1px solid var(--line)}
-.onboard-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#c47a4a;font-weight:600;margin-bottom:8px}
+.onboard-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);font-weight:600;margin-bottom:8px}
 .onboard-title{font-family:'Cormorant Garant',serif;font-size:22px;font-weight:700;color:#1a0f0a;margin-bottom:6px;letter-spacing:-.01em}
 .onboard-sub{font-size:13px;color:#555;margin-bottom:24px;line-height:1.5}
 .onboard-progress{display:flex;gap:6px;margin-bottom:32px}
 .onboard-step-dot{height:4px;border-radius:99px;flex:1;background:var(--line);transition:background .3s}
-.onboard-step-dot.done{background:#c47a4a}
-.onboard-step-dot.active{background:#d4895a}
-.onboard-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#c47a4a;font-weight:600;margin-bottom:8px}
+.onboard-step-dot.done{background:var(--accent)}
+.onboard-step-dot.active{background:var(--accent2)}
+.onboard-eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);font-weight:600;margin-bottom:8px}
 .onboard-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:var(--ink);margin-bottom:6px;letter-spacing:-.01em}
 .onboard-sub{font-size:13px;color:var(--mut);margin-bottom:24px;line-height:1.5}
 .onboard-nav{display:flex;justify-content:space-between;align-items:center;margin-top:24px}
 .prat-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
 .prat-row{display:flex;gap:8px;align-items:center;background:var(--fog);border-radius:var(--r-sm);padding:10px 12px}
 .prat-row input{flex:1;padding:6px 8px;border:1.5px solid var(--line);border-radius:6px;font-family:'Inter',sans-serif;font-size:13px;background:white;outline:none}
-.prat-row input:focus{border-color:#c47a4a}
+.prat-row input:focus{border-color:var(--accent)}
 .prat-row .prat-taux{width:70px}
 .chip-group{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .chip{padding:6px 14px;border-radius:99px;border:1.5px solid var(--line);background:var(--fog);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--mut)}
-.chip.selected{background:rgba(196,122,74,.1);border-color:#c47a4a;color:#c47a4a}
+.chip.selected{background:rgba(196,122,74,.1);border-color:var(--accent);color:var(--accent)}
 
 /* ── APP ── */
 .app{display:none}
@@ -152,11 +155,11 @@ body{font-family:'Inter',sans-serif;background:var(--fog);color:var(--ink);font-
 .sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--ink);padding:0;z-index:200;display:flex;flex-direction:column}
 .sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,.06)}
 .sidebar-logo-text{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:white;letter-spacing:-.02em}
-.sidebar-logo-text span{color:#d4895a}
+.sidebar-logo-text span{color:var(--accent2)}
 .sidebar-salon{font-size:11px;color:rgba(255,255,255,.35);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sidebar-plan{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-top:6px;text-transform:uppercase;letter-spacing:.06em}
 .plan-simple{background:rgba(255,255,255,.1);color:rgba(255,255,255,.5)}
-.plan-avance{background:rgba(108,71,255,.3);color:#d4895a}
+.plan-avance{background:rgba(108,71,255,.3);color:var(--accent2)}
 .plan-complet{background:rgba(0,200,150,.2);color:var(--mint)}
 .sidebar-nav{flex:1;padding:12px 10px;overflow-y:auto}
 .nav-section{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.25);font-weight:600;padding:12px 10px 6px}
@@ -178,8 +181,8 @@ body{font-family:'Inter',sans-serif;background:var(--fog);color:var(--ink);font-
 .kpi-value{font-family:'DM Mono',monospace;font-size:26px;font-weight:500;color:var(--ink);line-height:1}
 .kpi-sub{font-size:12px;color:var(--mut);margin-top:6px}
 .kpi-bar{height:3px;background:var(--fog2);border-radius:99px;margin-top:10px;overflow:hidden}
-.kpi-bar-fill{height:100%;border-radius:99px;background:#c47a4a;transition:width .6s}
-.kpi.accent{background:#c47a4a;border-color:#c47a4a}
+.kpi-bar-fill{height:100%;border-radius:99px;background:var(--accent);transition:width .6s}
+.kpi.accent{background:var(--accent);border-color:var(--accent)}
 .kpi.accent .kpi-label,.kpi.accent .kpi-sub{color:rgba(255,255,255,.6)}
 .kpi.accent .kpi-value{color:white}
 .kpi.mint{background:var(--mint);border-color:var(--mint)}
@@ -201,7 +204,7 @@ td{padding:11px 14px;vertical-align:middle}
 .td-mut{color:var(--mut);font-size:12px}
 .td-green{color:var(--mint);font-weight:600;font-family:'DM Mono',monospace}
 .td-red{color:var(--red);font-weight:600;font-family:'DM Mono',monospace}
-.td-violet{color:#c47a4a;font-weight:600;font-family:'DM Mono',monospace}
+.td-violet{color:var(--accent);font-weight:600;font-family:'DM Mono',monospace}
 .tr-sum td{background:var(--fog2);font-weight:700;border-top:2px solid var(--line)}
 
 /* ── BADGES ── */
@@ -224,7 +227,7 @@ td{padding:11px 14px;vertical-align:middle}
 /* ── FILTERS ── */
 .filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
 .fi{padding:8px 12px;border:1.5px solid var(--line);border-radius:var(--r-sm);font-family:'Inter',sans-serif;font-size:13px;background:white;color:var(--ink);outline:none;cursor:pointer}
-.fi:focus{border-color:#c47a4a}
+.fi:focus{border-color:var(--accent)}
 
 /* ── TOAST ── */
 .toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:white;padding:12px 20px;border-radius:var(--r);font-size:13px;z-index:600;transform:translateY(60px);opacity:0;transition:all .3s;pointer-events:none;box-shadow:var(--shadow-lg)}
@@ -232,7 +235,7 @@ td{padding:11px 14px;vertical-align:middle}
 
 /* ── UPGRADE BANNER ── */
 .upgrade-banner{background:linear-gradient(135deg,rgba(196,122,74,.1),#f0ebff);border:1.5px solid var(--violet);border-radius:var(--r);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-.upgrade-text{font-size:13px;color:#c47a4a;font-weight:600}
+.upgrade-text{font-size:13px;color:var(--accent);font-weight:600}
 .upgrade-sub{font-size:12px;color:var(--mut);margin-top:2px}
 
 /* ── EMPTY ── */
@@ -242,13 +245,13 @@ td{padding:11px 14px;vertical-align:middle}
 .empty-sub{font-size:13px}
 
 /* ── LOADING ── */
-.spinner{width:28px;height:28px;border:3px solid var(--line);border-top-color:#c47a4a;border-radius:50%;animation:spin .7s linear infinite}
+.spinner{width:28px;height:28px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ── PRAT TOGGLE ── */
 .prat-toggle{display:flex;border-radius:var(--r-sm);overflow:hidden;border:1.5px solid var(--line);margin-bottom:4px}
 .prat-btn{flex:1;padding:9px;border:none;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;background:var(--fog);color:var(--mut);transition:all .15s}
-.prat-btn.emma{background:#c47a4a;color:white}
+.prat-btn.emma{background:var(--accent);color:white}
 .prat-btn.p1{background:#dc2626;color:white}
 .prat-btn.p2{background:#d97706;color:white}
 
@@ -260,17 +263,17 @@ td{padding:11px 14px;vertical-align:middle}
 .modal h2{font-family:'Cormorant Garant',serif;font-size:18px;font-weight:600;color:#1a0f0a;margin-bottom:20px}
 .modal .field label{color:#444;font-size:10px}
 .modal .field input,.modal .field select{color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px}
-.modal .field input:focus,.modal .field select:focus{border-color:#c47a4a;background:white}
+.modal .field input:focus,.modal .field select:focus{border-color:var(--accent);background:white}
 .modal .field select option{color:#1a0f0a;background:white}
 .prat-toggle{display:flex;border-radius:8px;overflow:hidden;border:1.5px solid #ddd;margin-bottom:4px}
 .prat-btn{flex:1;padding:9px;border:none;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;background:#f9f6f4;color:#888;transition:all .15s}
-.prat-btn.emma{background:#c47a4a;color:white}
+.prat-btn.emma{background:var(--accent);color:white}
 .prat-btn.p1{background:#8B4513;color:white}
 .prat-btn.p2{background:#6B3410;color:white}
 
 #settingsContent .field label{color:#444}
 #settingsContent .field input,#settingsContent .field select{color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px}
-#settingsContent .field input:focus{border-color:#c47a4a;background:white}
+#settingsContent .field input:focus{border-color:var(--accent);background:white}
 #settingsContent .card{background:white}
 #settingsContent .card-title{color:#1a0f0a}
 
@@ -283,12 +286,12 @@ td{padding:11px 14px;vertical-align:middle}
 
 #collabApp .field label{color:#444}
 #collabApp .field input,#collabApp .field select{color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px}
-#collabApp .field input:focus,#collabApp .field select:focus{border-color:#c47a4a;background:white}
+#collabApp .field input:focus,#collabApp .field select:focus{border-color:var(--accent);background:white}
 #collabApp .card-title{color:#1a0f0a}
 #collabApp{color:#1a0f0a}
 #collabLoginPage .field label{color:#444}
 #collabLoginPage .field input{color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px}
-#collabLoginPage .field input:focus{border-color:#c47a4a;background:white}
+#collabLoginPage .field input:focus{border-color:var(--accent);background:white}
   
 @media(max-width:768px){
   .main{margin-left:0;padding:16px}
@@ -401,7 +404,7 @@ td{padding:11px 14px;vertical-align:middle}
       </div>
       <div class="auth-error" id="loginErr"></div>
       <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doLogin()">Se connecter</button>
-      <div class="auth-divider">Pas encore de compte ? <span style="color:#c47a4a;cursor:pointer;font-weight:600" onclick="switchTab('signup')">Créer un compte</span></div>
+      <div class="auth-divider">Pas encore de compte ? <span style="color:var(--accent);cursor:pointer;font-weight:600" onclick="switchTab('signup')">Créer un compte</span></div>
     </div>
 
     <!-- SIGNUP -->
@@ -450,7 +453,7 @@ td{padding:11px 14px;vertical-align:middle}
 
       <div class="auth-error" id="signupErr"></div>
       <button class="btn btn-primary btn-full" onclick="doSignup()">Créer mon compte</button>
-      <div class="auth-divider">Déjà un compte ? <span style="color:#c47a4a;cursor:pointer;font-weight:600" onclick="switchTab('login')">Se connecter</span></div>
+      <div class="auth-divider">Déjà un compte ? <span style="color:var(--accent);cursor:pointer;font-weight:600" onclick="switchTab('login')">Se connecter</span></div>
     </div>
 
     <div style="margin-top:16px;text-align:center">
@@ -585,7 +588,7 @@ td{padding:11px 14px;vertical-align:middle}
         <div class="card-header"><span class="card-title">📅 Importer mon planning du jour</span></div>
         <div style="padding:20px">
           <div style="font-size:13px;color:#555;margin-bottom:16px">Prenez une photo ou screenshot de votre agenda (Planity, Wavy, Google Calendar, agenda papier...) — l'IA extrait automatiquement vos rendez-vous.</div>
-          <button onclick="document.getElementById('agendaFileInput').click()" style="display:inline-flex;align-items:center;gap:8px;background:#c47a4a;color:white;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;border:none">
+          <button onclick="document.getElementById('agendaFileInput').click()" style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:white;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;border:none">
   📸 Choisir une image
 </button>
 <input type="file" id="agendaFileInput" accept="image/*" onchange="importAgenda(event)" style="display:none">
@@ -604,11 +607,11 @@ td{padding:11px 14px;vertical-align:middle}
     <div style="padding:20px">
       <div style="font-size:13px;color:#555;margin-bottom:16px">Importez votre relevé bancaire — PDF ou CSV — Solia détecte automatiquement les mouvements.</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap">
-        <label style="display:inline-flex;align-items:center;gap:8px;background:#c47a4a;color:white;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">
+        <label style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:white;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">
           📄 Importer PDF
           <input type="file" accept=".pdf" onchange="importBanquePDF(event)" style="display:none">
         </label>
-        <label style="display:inline-flex;align-items:center;gap:8px;background:white;color:#c47a4a;border:1.5px solid #c47a4a;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">
+        <label style="display:inline-flex;align-items:center;gap:8px;background:white;color:var(--accent);border:1.5px solid var(--accent);border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">
           📊 Importer CSV
           <input type="file" accept=".csv" onchange="importBanqueCSV(event)" style="display:none">
         </label>
@@ -638,7 +641,7 @@ td{padding:11px 14px;vertical-align:middle}
   <div class="view" id="view-factures">
   <div class="page-header">
     <div><div class="page-title">🧾 Factures</div><div class="page-sub">Import et gestion de vos factures fournisseurs</div></div>
-    <label style="display:inline-flex;align-items:center;gap:8px;background:#c47a4a;color:white;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">
+    <label style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:white;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">
       + Importer une facture
       <input type="file" accept="image/*,.pdf" onchange="importerFacture(event)" style="display:none">
     </label>
@@ -684,7 +687,7 @@ td{padding:11px 14px;vertical-align:middle}
 <!-- ══════════════ INTERFACE COLLABORATEUR ══════════════ -->
 <div id="collabApp" style="display:none;min-height:100vh;background:#f9f6f4">
   <div style="background:#1a0f0a;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100">
-    <div style="font-family:'Cormorant Garant',serif;font-size:18px;font-weight:300;letter-spacing:.12em;color:white">S O L <span style="color:#c47a4a">I A</span></div>
+    <div style="font-family:'Cormorant Garant',serif;font-size:18px;font-weight:300;letter-spacing:.12em;color:white">S O L <span style="color:var(--accent)">I A</span></div>
     <div style="display:flex;align-items:center;gap:12px">
       <span style="font-size:12px;color:rgba(255,255,255,.5)" id="collabNomLabel"></span>
       <button onclick="ouvrirChangementMdp()" style="background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.6);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-family:'Inter',sans-serif;margin-right:6px">🔑 Changer mdp</button>
@@ -747,7 +750,7 @@ td{padding:11px 14px;vertical-align:middle}
 <!-- Page connexion collaborateur -->
 <div id="collabLoginPage" style="display:none;min-height:100vh;background:#1a0f0a;align-items:center;justify-content:center">
   <div style="background:white;border-radius:0;padding:48px 40px;width:420px;max-width:100%;border:1px solid rgba(210,160,120,.2)">
-    <div style="font-family:'Cormorant Garant',serif;font-size:26px;font-weight:300;letter-spacing:.18em;text-transform:uppercase;color:#1a0f0a;margin-bottom:4px">S O L <span style="color:#c47a4a">I A</span></div>
+    <div style="font-family:'Cormorant Garant',serif;font-size:26px;font-weight:300;letter-spacing:.18em;text-transform:uppercase;color:#1a0f0a;margin-bottom:4px">S O L <span style="color:var(--accent)">I A</span></div>
     <div style="font-size:12px;color:#888;margin-bottom:8px;letter-spacing:.06em;text-transform:uppercase" id="collabSalonLoginLabel"></div>
     <div style="font-size:13px;color:#444;margin-bottom:28px">Accès collaborateur</div>
 
@@ -1039,7 +1042,7 @@ function renderObStep(){
     const prests=activite?activite.prestations:[];
     if(!CONFIG.prestations.length) CONFIG.prestations=[...prests];
     body.innerHTML=`
-      <div style="font-size:12px;color:#c47a4a;margin-bottom:12px;font-weight:600">${ACTIVITES[CONFIG.activite||'lash']?.label||''}</div>
+      <div style="font-size:12px;color:var(--accent);margin-bottom:12px;font-weight:600">${ACTIVITES[CONFIG.activite||'lash']?.label||''}</div>
       <div class="chip-group">
         ${prests.map(p=>`<div class="chip ${CONFIG.prestations.includes(p)?'selected':''}" onclick="obTogglePrest(this,'${p}')">${p}</div>`).join('')}
       </div>
@@ -1145,7 +1148,7 @@ function renderObStep3Preview(){
   if(forme==='auto'){
     el.innerHTML=`
       <div style="background:rgba(196,122,74,.08);border:1px solid rgba(196,122,74,.2);border-radius:8px;padding:12px 14px;margin-bottom:12px">
-        <div style="font-size:12px;color:#c47a4a;font-weight:600;margin-bottom:4px">🧾 Auto-entrepreneur</div>
+        <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:4px">🧾 Auto-entrepreneur</div>
         <div style="font-size:12px;color:#555;line-height:1.5">Pas de TVA. Cotisations URSSAF calculées automatiquement sur votre CA.</div>
       </div>
       <div class="field"><label>Taux URSSAF (%)</label>
@@ -1159,7 +1162,7 @@ function renderObStep3Preview(){
   } else if(forme){
     el.innerHTML=`
       <div style="background:rgba(196,122,74,.08);border:1px solid rgba(196,122,74,.2);border-radius:8px;padding:12px 14px;margin-bottom:12px">
-        <div style="font-size:12px;color:#c47a4a;font-weight:600;margin-bottom:4px">🏢 Société</div>
+        <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:4px">🏢 Société</div>
         <div style="font-size:12px;color:#555;line-height:1.5">TVA applicable. Les charges sociales dépendent de votre statut.</div>
       </div>
       <div class="field"><label>Taux TVA (%)</label>
@@ -1212,12 +1215,12 @@ function renderChargesCheckboxes(type){
   const selected=CONFIG.chargesSelectionnees||[];
   return charges.map(c=>`
     <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:#f9f6f4;border:1px solid #eee">
-      <input type="checkbox" id="chk-${c.id}" ${c.locked||selected.includes(c.id)?'checked':''} ${c.locked?'disabled':''} style="accent-color:#c47a4a;width:16px;height:16px">
+      <input type="checkbox" id="chk-${c.id}" ${c.locked||selected.includes(c.id)?'checked':''} ${c.locked?'disabled':''} style="accent-color:var(--accent);width:16px;height:16px">
       <div style="flex:1">
         <div style="font-size:13px;font-weight:600;color:#1a0f0a">${c.label}</div>
         <div style="font-size:11px;color:#888">${c.desc}</div>
       </div>
-      ${c.locked?'<span style="font-size:10px;color:#c47a4a;font-weight:600">AUTO</span>':''}
+      ${c.locked?'<span style="font-size:10px;color:var(--accent);font-weight:600">AUTO</span>':''}
     </div>`).join('');
 }
 
@@ -1795,7 +1798,7 @@ function renderSettings(){
           <img src="${CONFIG.logo}" style="max-height:80px;max-width:200px;object-fit:contain;border-radius:8px;border:1px solid #eee;padding:8px;background:#f9f6f4">
         </div>`:''}
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-          <label style="display:inline-flex;align-items:center;gap:6px;background:#c47a4a;color:white;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">
+          <label style="display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:white;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">
             📤 ${CONFIG.logo?'Changer le logo':'Importer un logo'}
             <input type="file" accept="image/*" onchange="importerLogo(event)" style="display:none">
           </label>
@@ -1824,7 +1827,7 @@ function renderSettings(){
         <span class="card-title">🏪 Franchise</span>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
           <span style="font-size:12px;color:var(--mut)">${CONFIG.franchise?'Activée':'Désactivée'}</span>
-          <div onclick="toggleFranchise()" style="width:40px;height:22px;border-radius:99px;background:${CONFIG.franchise?'#c47a4a':'#ddd'};cursor:pointer;position:relative;transition:background .2s">
+          <div onclick="toggleFranchise()" style="width:40px;height:22px;border-radius:99px;background:${CONFIG.franchise?'var(--accent)':'#ddd'};cursor:pointer;position:relative;transition:background .2s">
             <div style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:2px;${CONFIG.franchise?'right:2px':'left:2px'};transition:all .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>
           </div>
         </label>
@@ -1840,7 +1843,7 @@ function renderSettings(){
       <div class="card-header"><span class="card-title">🏠 Sous-location</span>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
           <span style="font-size:12px;color:var(--mut)">Activer</span>
-          <div onclick="toggleSousLocation()" style="width:40px;height:22px;border-radius:99px;background:${CONFIG.sousLocationActive?'#c47a4a':'#ddd'};cursor:pointer;position:relative;transition:background .2s">
+          <div onclick="toggleSousLocation()" style="width:40px;height:22px;border-radius:99px;background:${CONFIG.sousLocationActive?'var(--accent)':'#ddd'};cursor:pointer;position:relative;transition:background .2s">
             <div style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:2px;${CONFIG.sousLocationActive?'right:2px':'left:2px'};transition:all .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>
           </div>
         </label>
@@ -1873,7 +1876,7 @@ function renderSettings(){
               <div style="display:flex;flex-wrap:wrap;gap:6px">
                 ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>{
                   const regle=(p.regles||{})[m]||'societe';
-                  return`<div onclick="toggleRegleCollab(${i},'${m}')" style="cursor:pointer;padding:5px 10px;border-radius:20px;border:1.5px solid ${regle==='societe'?'#c47a4a':'#ddd'};background:${regle==='societe'?'rgba(196,122,74,.1)':'#f9f6f4'};font-size:11px;font-weight:600;color:${regle==='societe'?'#c47a4a':'#888'}">
+                  return`<div onclick="toggleRegleCollab(${i},'${m}')" style="cursor:pointer;padding:5px 10px;border-radius:20px;border:1.5px solid ${regle==='societe'?'var(--accent)':'#ddd'};background:${regle==='societe'?'rgba(196,122,74,.1)':'#f9f6f4'};font-size:11px;font-weight:600;color:${regle==='societe'?'var(--accent)':'#888'}">
                     ${m} → ${regle==='societe'?'Société':'Collaborateur'}
                   </div>`;
                 }).join('')}
@@ -1900,7 +1903,7 @@ function renderSettings(){
   return`<div style="display:flex;align-items:center;gap:8px;background:#f9f6f4;border:1.5px solid #ddd;border-radius:12px;padding:8px 12px;margin-bottom:6px">
     <span style="font-size:13px;font-weight:600;color:#1a0f0a;min-width:80px">${m}</span>
     <div style="display:flex;border-radius:6px;overflow:hidden;border:1.5px solid #ddd">
-      <button onclick="setModeType('${m}','physique')" style="padding:4px 10px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${type==='physique'?'#c47a4a':'#f9f6f4'};color:${type==='physique'?'white':'#888'}">💵 Physique</button>
+      <button onclick="setModeType('${m}','physique')" style="padding:4px 10px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${type==='physique'?'var(--accent)':'#f9f6f4'};color:${type==='physique'?'white':'#888'}">💵 Physique</button>
       <button onclick="setModeType('${m}','virement')" style="padding:4px 10px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${type==='virement'?'#1a0f0a':'#f9f6f4'};color:${type==='virement'?'white':'#888'}">🏦 Virement</button>
     </div>
     <button onclick="delMode(${i})" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:16px;margin-left:auto">✕</button>
@@ -1915,7 +1918,7 @@ function renderSettings(){
   <div style="font-size:12px;color:#555;margin-bottom:10px">Ces modes s'affichent dans le widget "en attente" du dashboard.</div>
   <div style="display:flex;flex-wrap:wrap;gap:8px">
     ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>`
-      <div onclick="toggleModeAttente('${m}')" style="cursor:pointer;padding:6px 14px;border-radius:20px;border:1.5px solid ${(CONFIG.modesAttente||['VIR']).includes(m)?'#c47a4a':'#ddd'};background:${(CONFIG.modesAttente||['VIR']).includes(m)?'rgba(196,122,74,.1)':'#f9f6f4'};font-size:12px;font-weight:600;color:${(CONFIG.modesAttente||['VIR']).includes(m)?'#c47a4a':'#888'}">${m}</div>
+      <div onclick="toggleModeAttente('${m}')" style="cursor:pointer;padding:6px 14px;border-radius:20px;border:1.5px solid ${(CONFIG.modesAttente||['VIR']).includes(m)?'var(--accent)':'#ddd'};background:${(CONFIG.modesAttente||['VIR']).includes(m)?'rgba(196,122,74,.1)':'#f9f6f4'};font-size:12px;font-weight:600;color:${(CONFIG.modesAttente||['VIR']).includes(m)?'var(--accent)':'#888'}">${m}</div>
     `).join('')}
   </div>
 </div>
@@ -1940,7 +1943,7 @@ function renderSettings(){
     <div class="card" style="margin-bottom:16px">
       <div class="card-header"><span class="card-title">🤖 Intelligence artificielle</span></div>
       <div style="padding:16px">
-        <div style="font-size:13px;color:#555;margin-bottom:12px">Nécessaire pour l'import agenda et l'analyse de documents. Créez votre clé sur <a href="https://console.anthropic.com" target="_blank" style="color:#c47a4a">console.anthropic.com</a> — elle reste stockée uniquement sur votre appareil.</div>
+        <div style="font-size:13px;color:#555;margin-bottom:12px">Nécessaire pour l'import agenda et l'analyse de documents. Créez votre clé sur <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent)">console.anthropic.com</a> — elle reste stockée uniquement sur votre appareil.</div>
         <div class="field">
           <label>Clé API Anthropic</label>
           <input type="password" id="set-apikey" placeholder="sk-ant-..." value="${localStorage.getItem('solia_apikey')||''}">
@@ -2115,7 +2118,7 @@ function buildForm(ctx,editId=null){
       <div class="field" id="depot-field" style="display:none"><label>Rapprocher avec des prestations caisse <span style="font-size:10px;color:var(--mut)">(dépôt ESP ou CHQ)</span></label>
         <div id="depot-list" style="max-height:200px;overflow-y:auto;border:1.5px solid #ddd;border-radius:8px;padding:8px"></div>
         <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--mut)">
-          Total sélectionné : <span id="depot-total" style="font-weight:700;color:#c47a4a">0,00 €</span>
+          Total sélectionné : <span id="depot-total" style="font-weight:700;color:var(--accent)">0,00 €</span>
         </div>
       </div>
       ${DB_FACTURES.filter(f=>!f.rapprochee).length>0?`
@@ -2345,7 +2348,7 @@ function renderAgendaResult(){
                 <div style="font-size:12px;color:var(--mut)">${r.heure_debut||''}${r.heure_fin?' → '+r.heure_fin:''} · ${r.prestation||'—'}</div>
                 ${r.prestation&&!CONFIG.prestations.includes(r.prestation)?
                   `<button onclick="ajouterPrestationAgenda('${r.prestation.replace(/'/g,"\\'")}',this)" 
-                  style="margin-top:4px;background:#c47a4a;color:white;border:none;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer">
+                  style="margin-top:4px;background:var(--accent);color:white;border:none;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer">
                   + Ajouter aux prestations
                   </button>`:''}
               </div>
@@ -2373,7 +2376,7 @@ ${collabs.filter(c=>c.nom.toLowerCase()!==(CONFIG.proprietaire||'').toLowerCase(
               </div>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
-              <button onclick="addPaymentLine(${i})" style="background:none;border:1.5px dashed #ddd;border-radius:6px;padding:5px 12px;font-size:11px;color:#c47a4a;font-weight:600;cursor:pointer">+ Ajouter un mode</button>
+              <button onclick="addPaymentLine(${i})" style="background:none;border:1.5px dashed #ddd;border-radius:6px;padding:5px 12px;font-size:11px;color:var(--accent);font-weight:600;cursor:pointer">+ Ajouter un mode</button>
               <span id="rdv-total-${i}" style="font-size:12px;color:var(--mut)">Total : 0,00 €</span>
             </div>
 
@@ -2867,7 +2870,7 @@ function buildFormCollab(p=null){
       <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee">
         <span style="font-size:13px;font-weight:600">${m}</span>
         <div style="display:flex;border-radius:8px;overflow:hidden;border:1.5px solid #ddd">
-          <button id="regle-${m}-soc" onclick="setRegle('${m}','societe')" style="padding:6px 12px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${!p?.regles||p?.regles[m]==='societe'?'#c47a4a':'#f9f6f4'};color:${!p?.regles||p?.regles[m]==='societe'?'white':'#888'};transition:all .15s">Société</button>
+          <button id="regle-${m}-soc" onclick="setRegle('${m}','societe')" style="padding:6px 12px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${!p?.regles||p?.regles[m]==='societe'?'var(--accent)':'#f9f6f4'};color:${!p?.regles||p?.regles[m]==='societe'?'white':'#888'};transition:all .15s">Société</button>
           <button id="regle-${m}-col" onclick="setRegle('${m}','collab')" style="padding:6px 12px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${p?.regles&&p?.regles[m]==='collab'?'#1a0f0a':'#f9f6f4'};color:${p?.regles&&p?.regles[m]==='collab'?'white':'#888'};transition:all .15s">Collaborateur</button>
         </div>
       </div>`).join('')}
@@ -2876,13 +2879,13 @@ function buildFormCollab(p=null){
         <span style="font-size:11px;color:#888;flex:1;font-family:'DM Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
           ${p?.code?`${window.location.origin}${window.location.pathname}?code=${p.code}`:'Généré à la sauvegarde'}
         </span>
-        ${p?.code?`<button onclick="copyCollabLink('${p.code}')" style="background:none;border:none;cursor:pointer;color:#c47a4a;font-size:12px;font-weight:600">📋 Copier</button>`:''}
+        ${p?.code?`<button onclick="copyCollabLink('${p.code}')" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;font-weight:600">📋 Copier</button>`:''}
       </div>
       ${!p?.code?'':`
     <div class="field" style="margin-top:8px"><label>Mot de passe temporaire</label>
       <div style="display:flex;gap:8px;align-items:center;background:#fff8e1;border:1.5px solid #f0c040;border-radius:8px;padding:8px 12px">
         <span style="font-size:13px;font-weight:700;color:#92400e;font-family:'DM Mono',monospace" id="collab-pwd-display">${p?.tempPwd||'—'}</span>
-        <button onclick="copyCollabPwd('${p?.tempPwd||''}')" style="background:none;border:none;cursor:pointer;color:#c47a4a;font-size:12px;font-weight:600">📋 Copier</button>
+        <button onclick="copyCollabPwd('${p?.tempPwd||''}')" style="background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;font-weight:600">📋 Copier</button>
       </div>
       <div style="font-size:11px;color:#888;margin-top:4px">À envoyer à ${p?.nom} avec le lien d'accès</div>
     </div>`}
@@ -2895,7 +2898,7 @@ function setRegle(mode, val){
   tempRegles[mode]=val;
   const socBtn=document.getElementById(`regle-${mode}-soc`);
   const colBtn=document.getElementById(`regle-${mode}-col`);
-  if(socBtn){socBtn.style.background=val==='societe'?'#c47a4a':'#f9f6f4';socBtn.style.color=val==='societe'?'white':'#888';}
+  if(socBtn){socBtn.style.background=val==='societe'?'var(--accent)':'#f9f6f4';socBtn.style.color=val==='societe'?'white':'#888';}
   if(colBtn){colBtn.style.background=val==='collab'?'#1a0f0a':'#f9f6f4';colBtn.style.color=val==='collab'?'white':'#888';}
 }
 
@@ -3068,7 +3071,7 @@ if(caEmma>0){
           </div>
           <div style="background:var(--fog);border-radius:10px;padding:12px;text-align:center">
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:4px">Part société</div>
-            <div style="font-family:'Playfair Display',serif;font-size:18px;color:#c47a4a">${fa(partSociete)}</div>
+            <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--accent)">${fa(partSociete)}</div>
           </div>
           <div style="background:var(--fog);border-radius:10px;padding:12px;text-align:center">
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:4px">Déjà encaissé</div>
@@ -3482,9 +3485,9 @@ function checkDepot(){
 
   list.innerHTML=prestations.map(t=>`
     <div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--fog)">
-      <input type="checkbox" id="dep-${t.id}" value="${t.id}" data-mnt="${t.montant}" onchange="updateDepotTotal()" style="accent-color:#c47a4a;width:15px;height:15px">
+      <input type="checkbox" id="dep-${t.id}" value="${t.id}" data-mnt="${t.montant}" onchange="updateDepotTotal()" style="accent-color:var(--accent);width:15px;height:15px">
       <label for="dep-${t.id}" style="flex:1;cursor:pointer;font-size:12px">
-        ${dlbl(t.date)} — <strong>${t.nom}</strong> — ${t.prestation||'—'} — <span style="color:#c47a4a;font-weight:600">${fa(t.montant)}</span> ${bdg(t.reglement)}
+        ${dlbl(t.date)} — <strong>${t.nom}</strong> — ${t.prestation||'—'} — <span style="color:var(--accent);font-weight:600">${fa(t.montant)}</span> ${bdg(t.reglement)}
       </label>
     </div>`).join('');
 }
@@ -3521,7 +3524,7 @@ function ouvrirRapprochementCaisse(banqueId){
     </div>
     <div id="rap-list"></div>
     <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-top:8px">
-      Total sélectionné : <span id="rdepot-total" style="font-weight:700;color:#c47a4a">0,00 €</span>
+      Total sélectionné : <span id="rdepot-total" style="font-weight:700;color:var(--accent)">0,00 €</span>
     </div>`;
 
   document.querySelector('#mainModal .modal-footer').innerHTML=`
@@ -3565,14 +3568,14 @@ function updateRapprochementList(banqueId){
     <div style="max-height:250px;overflow-y:auto;border:1.5px solid #ddd;border-radius:8px;padding:8px">
       ${prestations.map(t=>`
         <div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--fog)">
-          <input type="checkbox" id="rdep-${t.id}" value="${t.id}" data-mnt="${t.montant}" data-mode="${t.reglement}" onchange="updateRDepotTotal()" style="accent-color:#c47a4a;width:15px;height:15px">
+          <input type="checkbox" id="rdep-${t.id}" value="${t.id}" data-mnt="${t.montant}" data-mode="${t.reglement}" onchange="updateRDepotTotal()" style="accent-color:var(--accent);width:15px;height:15px">
           <label for="rdep-${t.id}" style="flex:1;cursor:pointer;font-size:12px">
-            ${dlbl(t.date)} — <strong>${t.nom}</strong> — ${t.prestation||'—'} — <span style="color:#c47a4a;font-weight:600">${fa(t.montant)}</span> ${bdg(t.reglement)}
+            ${dlbl(t.date)} — <strong>${t.nom}</strong> — ${t.prestation||'—'} — <span style="color:var(--accent);font-weight:600">${fa(t.montant)}</span> ${bdg(t.reglement)}
           </label>
         </div>`).join('')}
     </div>
     <div style="margin-top:6px;text-align:right">
-      <button onclick="selectAllRdep()" style="background:none;border:none;cursor:pointer;font-size:11px;color:#c47a4a;font-weight:600">Tout sélectionner</button>
+      <button onclick="selectAllRdep()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--accent);font-weight:600">Tout sélectionner</button>
     </div>`;
 }
 
@@ -3793,8 +3796,8 @@ async function genererDossierComptable(){
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
       body{font-family:'Helvetica Neue',sans-serif;font-size:12px;color:#1a0f0a;padding:40px}
-      h1{font-size:24px;color:#c47a4a;margin-bottom:4px;font-weight:300;letter-spacing:.04em}
-      h2{font-size:13px;color:#c47a4a;margin:28px 0 10px;border-bottom:1px solid #e8d8c8;padding-bottom:6px;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+      h1{font-size:24px;color:var(--accent);margin-bottom:4px;font-weight:300;letter-spacing:.04em}
+      h2{font-size:13px;color:var(--accent);margin:28px 0 10px;border-bottom:1px solid #e8d8c8;padding-bottom:6px;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
       .meta{font-size:11px;color:#888;margin-bottom:32px}
       .resume{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
       .kpi{background:#f9f6f4;padding:16px;text-align:center;border:1px solid #e8d8c8}
@@ -3963,7 +3966,7 @@ function renderSousLocation(){
           <span style="font-size:11px;color:var(--mut);margin-left:8px">${l.activite||''}</span>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <span style="font-family:'Playfair Display',serif;font-size:18px;color:#c47a4a">${fa(l.loyer)}/mois</span>
+          <span style="font-family:'Playfair Display',serif;font-size:18px;color:var(--accent)">${fa(l.loyer)}/mois</span>
           <button class="btn btn-ghost btn-sm" onclick="openEditSousLocataire(${i})">✏️</button>
           <button class="btn btn-danger btn-sm" onclick="delSousLocataire(${i})">✕</button>
         </div>
@@ -3972,7 +3975,7 @@ function renderSousLocation(){
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
           <div style="background:var(--fog);border-radius:10px;padding:12px;text-align:center">
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:4px">Loyer mensuel</div>
-            <div style="font-family:'Playfair Display',serif;font-size:18px;color:#c47a4a">${fa(l.loyer)}</div>
+            <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--accent)">${fa(l.loyer)}</div>
           </div>
           <div style="background:var(--fog);border-radius:10px;padding:12px;text-align:center">
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:4px">Factures générées</div>
@@ -4153,7 +4156,7 @@ function imprimerFactureSousLocation(facture, locataire){
       *{box-sizing:border-box;margin:0;padding:0}
       body{font-family:'Helvetica Neue',sans-serif;font-size:12px;color:#1a0f0a;padding:60px}
       .header{display:flex;justify-content:space-between;margin-bottom:48px}
-      .logo{font-size:28px;font-weight:300;color:#c47a4a;letter-spacing:.08em;text-transform:uppercase}
+      .logo{font-size:28px;font-weight:300;color:var(--accent);letter-spacing:.08em;text-transform:uppercase}
       .facture-num{font-size:13px;color:#888;margin-top:6px}
       .parties{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-bottom:40px}
       .partie-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:8px}
@@ -4165,7 +4168,7 @@ function imprimerFactureSousLocation(facture, locataire){
       .total-section{display:flex;justify-content:flex-end;margin-bottom:40px}
       .total-box{width:280px}
       .total-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0e8e0;font-size:12px}
-      .total-row.final{font-size:15px;font-weight:700;color:#c47a4a;border-bottom:none;padding-top:12px}
+      .total-row.final{font-size:15px;font-weight:700;color:var(--accent);border-bottom:none;padding-top:12px}
       .footer{text-align:center;font-size:10px;color:#aaa;border-top:1px solid #e8d8c8;padding-top:20px;margin-top:40px}
       @media print{body{padding:30px}@page{margin:1cm}}
     </style>
@@ -4283,8 +4286,8 @@ function renderFranchiseConfigHTML(){
     </div>
     <div class="field"><label>Type de redevance</label>
       <div style="display:flex;border-radius:8px;overflow:hidden;border:1.5px solid #ddd">
-        <button id="fr-type-pct" onclick="setFranchiseType('pct')" style="flex:1;padding:9px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:${!CONFIG.franchiseType||CONFIG.franchiseType==='pct'?'#c47a4a':'#f9f6f4'};color:${!CONFIG.franchiseType||CONFIG.franchiseType==='pct'?'white':'#888'}">% du CA</button>
-        <button id="fr-type-fixe" onclick="setFranchiseType('fixe')" style="flex:1;padding:9px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:${CONFIG.franchiseType==='fixe'?'#c47a4a':'#f9f6f4'};color:${CONFIG.franchiseType==='fixe'?'white':'#888'}">Montant fixe</button>
+        <button id="fr-type-pct" onclick="setFranchiseType('pct')" style="flex:1;padding:9px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:${!CONFIG.franchiseType||CONFIG.franchiseType==='pct'?'var(--accent)':'#f9f6f4'};color:${!CONFIG.franchiseType||CONFIG.franchiseType==='pct'?'white':'#888'}">% du CA</button>
+        <button id="fr-type-fixe" onclick="setFranchiseType('fixe')" style="flex:1;padding:9px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:${CONFIG.franchiseType==='fixe'?'var(--accent)':'#f9f6f4'};color:${CONFIG.franchiseType==='fixe'?'white':'#888'}">Montant fixe</button>
       </div>
     </div>
     <div id="fr-taux-section">
@@ -4297,7 +4300,7 @@ function renderFranchiseConfigHTML(){
         <div style="display:flex;flex-direction:column;gap:6px" id="fr-prestations">
           ${prestations.map(p=>`
             <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f9f6f4;border-radius:8px;border:1px solid #eee">
-              <input type="checkbox" id="frp-${p.replace(/\s/g,'_')}" ${(CONFIG.franchisePrestations||prestations).includes(p)?'checked':''} style="accent-color:#c47a4a;width:15px;height:15px">
+              <input type="checkbox" id="frp-${p.replace(/\s/g,'_')}" ${(CONFIG.franchisePrestations||prestations).includes(p)?'checked':''} style="accent-color:var(--accent);width:15px;height:15px">
               <label for="frp-${p.replace(/\s/g,'_')}" style="font-size:13px;cursor:pointer">${p}</label>
             </div>`).join('')}
         </div>`:`
@@ -4314,9 +4317,9 @@ function renderFranchiseConfig(){
 
 function setFranchiseType(type){
   CONFIG.franchiseType=type;
-  document.getElementById('fr-type-pct').style.background=type==='pct'?'#c47a4a':'#f9f6f4';
+  document.getElementById('fr-type-pct').style.background=type==='pct'?'var(--accent)':'#f9f6f4';
   document.getElementById('fr-type-pct').style.color=type==='pct'?'white':'#888';
-  document.getElementById('fr-type-fixe').style.background=type==='fixe'?'#c47a4a':'#f9f6f4';
+  document.getElementById('fr-type-fixe').style.background=type==='fixe'?'var(--accent)':'#f9f6f4';
   document.getElementById('fr-type-fixe').style.color=type==='fixe'?'white':'#888';
   renderFranchiseConfig();
 }
@@ -4496,7 +4499,7 @@ async function checkPendingBadge(){
   }
   const navEl=document.getElementById('nav-validation');
   if(navEl&&total>0){
-    navEl.innerHTML=`<span class="nav-icon">✅</span>À valider <span style="background:#c47a4a;color:white;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto">${total}</span>`;
+    navEl.innerHTML=`<span class="nav-icon">✅</span>À valider <span style="background:var(--accent);color:white;border-radius:99px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto">${total}</span>`;
   }
 }
 
@@ -4645,7 +4648,7 @@ async function renderCollabAgenda(){
           <div style="font-weight:600;font-size:13px">${r.nom}</div>
           <div style="font-size:11px;color:#888">${r.prestation||'—'}</div>
         </div>
-        <button onclick="prefillFromRdv(this)" data-nom="${r.nom.replace(/"/g,'&quot;')}" data-prest="${(r.prestation||'').replace(/"/g,'&quot;')}" style="background:#c47a4a;color:white;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer">
+        <button onclick="prefillFromRdv(this)" data-nom="${r.nom.replace(/"/g,'&quot;')}" data-prest="${(r.prestation||'').replace(/"/g,'&quot;')}" style="background:var(--accent);color:white;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer">
   Encaisser
 </button>
       </div>`).join('');
@@ -4723,7 +4726,7 @@ async function renderCollabRecap(){
         </div>
         <div style="background:#f9f6f4;border-radius:10px;padding:14px;text-align:center">
           <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#888;margin-bottom:6px">Part société (${currentCollab.taux||40}%)</div>
-          <div style="font-family:'Playfair Display',serif;font-size:22px;color:#c47a4a">${fa(partSociete)}</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--accent)">${fa(partSociete)}</div>
         </div>
         <div style="background:#e8fdf5;border-radius:10px;padding:14px;text-align:center;border:1.5px solid #00c896">
           <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#065f46;margin-bottom:6px">Ma part (${100-(currentCollab.taux||40)}%)</div>
@@ -4800,7 +4803,7 @@ function ouvrirChangementMdp(){
       <div style="color:#ef4444;font-size:12px;margin-bottom:12px" id="pwd-err"></div>
       <div style="display:flex;gap:8px">
         <button onclick="document.getElementById('pwd-overlay').remove()" style="flex:1;padding:10px;border:1.5px solid #ddd;border-radius:8px;background:white;cursor:pointer;font-family:'Inter',sans-serif;font-size:13px">Annuler</button>
-        <button onclick="validerChangementMdp()" style="flex:1;padding:10px;border:none;border-radius:8px;background:#c47a4a;color:white;cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;font-weight:600">Valider</button>
+        <button onclick="validerChangementMdp()" style="flex:1;padding:10px;border:none;border-radius:8px;background:var(--accent);color:white;cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;font-weight:600">Valider</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -4834,7 +4837,7 @@ function ouvrirModalMapping(nonMappes, collabs, mapping, rdvs){
     </div>
     ${nonMappes.map(p=>`
       <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #eee">
-        <div style="font-weight:600;font-size:13px;min-width:100px;color:#c47a4a">"${p}"</div>
+        <div style="font-weight:600;font-size:13px;min-width:100px;color:var(--accent)">"${p}"</div>
         <span style="color:#888">→</span>
         <select id="map-${p.replace(/\s/g,'_')}" style="flex:1;padding:8px;border:1.5px solid #ddd;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;color:#1a0f0a">
           <option value="${proprietaire}">${proprietaire} (vous)</option>
@@ -5005,15 +5008,21 @@ Choisis des couleurs qui s'harmonisent avec le logo et conviennent à une app pr
 function appliquerPalette(palette){
   if(!palette) return;
   const root=document.documentElement;
-  if(palette.accent) root.style.setProperty('--violet',palette.accent);
-  if(palette.accent2) root.style.setProperty('--violet2',palette.accent2);
+  if(palette.accent){
+  root.style.setProperty('--accent',palette.accent);
+  root.style.setProperty('--violet',palette.accent);
+}
+if(palette.accent2){
+  root.style.setProperty('--accent2',palette.accent2);
+  root.style.setProperty('--violet2',palette.accent2);
+}
   if(palette.ink) root.style.setProperty('--ink',palette.ink);
   if(palette.bg) root.style.setProperty('--fog',palette.bg);
   if(palette.mint) root.style.setProperty('--mint',palette.mint);
   // Mettre à jour aussi les couleurs terracotta de la landing
   if(palette.accent){
-    document.querySelectorAll('[style*="#c47a4a"]').forEach(el=>{
-      el.style.cssText=el.style.cssText.replace(/#c47a4a/g,palette.accent);
+    document.querySelectorAll('[style*="var(--accent)"]').forEach(el=>{
+      el.style.cssText=el.style.cssText.replace(/var(--accent)/g,palette.accent);
     });
   }
 }
@@ -5023,11 +5032,10 @@ async function reinitialiserPalette(){
   await saveAll();
   // Réinitialiser les variables CSS
   const root=document.documentElement;
-  root.style.setProperty('--violet','#c47a4a');
-  root.style.setProperty('--violet2','#d4895a');
-  root.style.setProperty('--ink','#0f0f14');
-  root.style.setProperty('--fog','#f4f4f8');
-  root.style.setProperty('--mint','#00c896');
+  root.style.setProperty('--accent','#c47a4a');
+root.style.setProperty('--accent2','#d4895a');
+root.style.setProperty('--violet','#c47a4a');
+root.style.setProperty('--violet2','#d4895a');
   renderSettings();
   toast('✓ Couleurs réinitialisées');
 }
