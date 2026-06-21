@@ -3659,7 +3659,8 @@ function renderExport(){
   const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
 
   // Stats rapprochement
-  const totalOpsBanque=mouvements.length;
+  const toutesPrests=DB.caisse.filter(t=>inM(t.date,mois)&&t.montant>0);
+const totalOpsBanque=mouvements.length;
 const rapprocheesBanque=mouvements.filter(b=>b.factureId||b.caisseIds?.length).length;
 const totalOps=totalOpsBanque+toutesPrests.length;
 const rapprochees=rapprocheesBanque+cM.length;
