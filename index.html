@@ -292,10 +292,16 @@ td{padding:11px 14px;vertical-align:middle}
 #collabLoginPage .field label{color:#444}
 #collabLoginPage .field input{color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px}
 #collabLoginPage .field input:focus{border-color:var(--accent);background:white}
+
+.mobile-menu-btn{display:none;position:fixed;top:16px;left:16px;z-index:200;width:40px;height:40px;border-radius:10px;background:#1a0f0a;color:white;border:none;font-size:18px;cursor:pointer;align-items:center;justify-content:center}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:149}
+.sidebar-overlay.show{display:block}
   
 @media(max-width:768px){
-  .main{margin-left:0;padding:16px}
-  .sidebar{display:none}
+  .main{margin-left:0;padding:16px;padding-top:64px}
+  .mobile-menu-btn{display:flex}
+  .sidebar{display:flex;position:fixed;left:-260px;top:0;height:100vh;z-index:150;transition:left .25s;width:220px}
+  .sidebar.mobile-open{left:0}
   .kpi-grid{grid-template-columns:1fr 1fr}
   .plans-grid{grid-template-columns:1fr}
   .g2{grid-template-columns:1fr}
