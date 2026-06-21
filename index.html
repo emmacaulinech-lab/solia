@@ -484,6 +484,8 @@ td{padding:11px 14px;vertical-align:middle}
 </div>
 
 <!-- ══════════════ APP ══════════════ -->
+<button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu()">☰</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileMenu()"></div>
 <div class="app" id="app">
   <div class="sidebar">
     <div class="sidebar-logo">
@@ -1353,6 +1355,8 @@ if(hidden) return '';
 }
 
 function goView(id){
+  document.querySelector('.sidebar')?.classList.remove('mobile-open');
+  document.getElementById('sidebarOverlay')?.classList.remove('show');
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+id)?.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -5064,6 +5068,11 @@ function appliquerLogoCollab(logo){
     }
   }
   if(collabConfig.palette) appliquerPalette(collabConfig.palette);
+}
+
+function toggleMobileMenu(){
+  document.querySelector('.sidebar')?.classList.toggle('mobile-open');
+  document.getElementById('sidebarOverlay')?.classList.toggle('show');
 }
   
 document.addEventListener('keydown',e=>{
