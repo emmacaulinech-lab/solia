@@ -2132,7 +2132,15 @@ function buildForm(ctx,editId=null){
   const today=new Date().toISOString().split('T')[0];
   const thisMonth=today.slice(0,7);
   const clients=[...new Set(DB.caisse.map(t=>t.nom).filter(n=>n&&!n.startsWith('DÉPÔT')))].sort();
-
+if(ctx==='depot-caisse'){
+    document.getElementById('mTitle').textContent='💵 Mouvement de caisse';
+    document.getElementById('mBody').innerHTML=buildForm('depot-caisse');
+    document.querySelector('#mainModal .modal-footer').innerHTML=`
+      <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveMouvementCaisse()">Enregistrer</button>`;
+    document.getElementById('mainModal').classList.add('open');
+    return;
+  }
   if(ctx==='caisse'){
     const t=editId?DB.caisse.find(x=>x.id===editId):null;
     const prats=CONFIG.praticiennes||[];
@@ -2193,6 +2201,32 @@ function buildForm(ctx,editId=null){
           ${DB_FACTURES.filter(f=>!f.rapprochee).map(f=>`<option value="${f.id}" ${t?.factureId===f.id?'selected':''}>${f.fournisseur} — ${dlbl(f.date)} — ${fa(f.montantTTC)}</option>`).join('')}
         </select>
       </div>`:''}`;
+  }
+if(ctx==='depot-caisse'){
+    const coupures=[500,200,100,50,20,10,5,2,1,0.50,0.20,0.10,0.05,0.02,0.01];
+    return`
+      <div class="field"><label>Type de mouvement</label>
+        <select id="dc-type">
+          <option value="appro">💰 Approvisionnement (entrée)</option>
+          <option value="retrait">🏧 Retrait (sortie)</option>
+        </select>
+      </div>
+      <div class="field"><label>Description</label>
+        <input type="text" id="dc-desc" placeholder="ex: Fond de caisse, retrait pour dépôt...">
+      </div>
+      <div style="font-size:11px;font-weight:600;color:#444;margin-bottom:10px;text-transform:uppercase;letter-spacing:.08em">Comptage des coupures</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
+        ${coupures.map(c=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f9f6f4;border-radius:8px;border:1px solid #eee">
+            <span style="font-size:12px;font-weight:700;color:#1a0f0a;min-width:50px">${c>=1?c+'€':Math.round(c*100)+'c'}</span>
+            <input type="number" id="dc-${String(c).replace('.','_')}" min="0" value="0" style="width:60px;padding:4px 8px;border:1.5px solid #ddd;border-radius:6px;font-size:13px;text-align:center" oninput="updateDCTotal()">
+            <span style="font-size:11px;color:var(--mut)" id="dc-sub-${String(c).replace('.','_')}">= 0,00€</span>
+          </div>`).join('')}
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;background:#1a0f0a;color:white;border-radius:10px;padding:12px 16px">
+        <span style="font-size:13px;font-weight:600">Total</span>
+        <span style="font-family:'Playfair Display',serif;font-size:22px" id="dc-total">0,00 €</span>
+      </div>`;
   }
   if(ctx==='fixes'){
     const t=editId?DB.fixes.find(x=>x.id===editId):null;
@@ -5098,8 +5132,9 @@ async function saveFondCaisse(){
 function getSoldeCaisse(){
   const fond=CONFIG.fondCaisse||0;
   const encaissements=DB.caisse.filter(t=>t.montant>0&&t.reglement==='ESP').reduce((s,t)=>s+t.montant,0);
-  const depots=DB.banque.filter(b=>b.montant>0&&(b.caisseIds?.length>0)).reduce((s,b)=>s+b.montant,0);
-  return fond+encaissements-depots;
+  const depots=DB.banque.filter(b=>b.montant>0&&b.caisseIds?.length>0).reduce((s,b)=>s+b.montant,0);
+  const mouvements=(CONFIG.mouvementsCaisse||[]).reduce((s,m)=>s+m.montant,0);
+  return fond+encaissements-depots+mouvements;
 }
 
 function renderCaisseMonnaie(){
@@ -5147,7 +5182,8 @@ function renderCaisseMonnaie(){
             const mouvements=[
               {date:'',desc:`Fond de caisse initial`,type:'Fond',montant:fond,solde:fond},
               ...encaissements.map(t=>({date:t.date,desc:t.nom+(t.prestation?' — '+t.prestation:''),type:'Encaissement',montant:t.montant})),
-              ...depots.map(b=>({date:b.date,desc:b.nom,type:'Dépôt banque',montant:-b.montant}))
+...(CONFIG.mouvementsCaisse||[]).map(m=>({date:m.date,desc:m.desc,type:m.type==='appro'?'Approvisionnement':'Retrait',montant:m.montant})),
+...depots.map(b=>({date:b.date,desc:b.nom,type:'Dépôt banque',montant:-b.montant}))
             ].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
 
             let cumul=0;
@@ -5165,6 +5201,49 @@ function renderCaisseMonnaie(){
         </tbody>
       </table>
     </div>`;
+}
+
+const DC_COUPURES=[500,200,100,50,20,10,5,2,1,0.50,0.20,0.10,0.05,0.02,0.01];
+
+function updateDCTotal(){
+  let total=0;
+  DC_COUPURES.forEach(c=>{
+    const id='dc-'+String(c).replace('.','_');
+    const nb=parseInt(document.getElementById(id)?.value)||0;
+    const sous=nb*c;
+    total+=sous;
+    const subEl=document.getElementById('dc-sub-'+String(c).replace('.','_'));
+    if(subEl) subEl.textContent=sous>0?'= '+fa(sous):'= 0,00€';
+  });
+  const el=document.getElementById('dc-total');
+  if(el) el.textContent=fa(total);
+}
+
+async function saveMouvementCaisse(){
+  let total=0;
+  const detail={};
+  DC_COUPURES.forEach(c=>{
+    const id='dc-'+String(c).replace('.','_');
+    const nb=parseInt(document.getElementById(id)?.value)||0;
+    if(nb>0){detail[c]=nb;}
+    total+=nb*c;
+  });
+  if(total<=0){toast('⚠ Saisis au moins une coupure');return;}
+  const type=document.getElementById('dc-type')?.value||'appro';
+  const desc=document.getElementById('dc-desc')?.value?.trim()||'Mouvement caisse';
+  const montant=type==='appro'?total:-total;
+
+  if(!CONFIG.mouvementsCaisse) CONFIG.mouvementsCaisse=[];
+  CONFIG.mouvementsCaisse.push({
+    id:genId(),
+    date:new Date().toISOString().split('T')[0],
+    desc,type,montant,detail,
+    createdAt:new Date().toISOString()
+  });
+  await saveAll();
+  closeMo('mainModal');
+  renderCaisseMonnaie();
+  toast(`✓ ${type==='appro'?'Approvisionnement':'Retrait'} de ${fa(total)} enregistré`);
 }
   
 document.addEventListener('keydown',e=>{
