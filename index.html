@@ -335,55 +335,55 @@ td{padding:11px 14px;vertical-align:middle}
     <div class="plans-title">Choisissez votre formule</div>
     <div class="plans-sub">Sans engagement · Résiliable à tout moment</div>
     <div class="plans-grid">
-      <div class="plan-card">
-        <div class="plan-name">Simple</div>
-        <div class="plan-price">9<span>€/mois</span></div>
-        <div class="plan-desc">Pour démarrer et garder le contrôle de vos encaissements.</div>
-        <ul class="plan-features">
-          <li>Caisse & encaissements</li>
-          <li>Tableau de bord</li>
-          <li>1 praticienne</li>
-          <li class="off">Banque & charges</li>
-          <li class="off">Récap hebdomadaire</li>
-          <li class="off">Boutique & fidélité</li>
-          <li class="off">Import Planity (IA)</li>
-        </ul>
-        <button class="btn btn-outline btn-full" onclick="showAuth('signup','simple')">Choisir Simple</button>
-      </div>
-
-      <div class="plan-card featured">
-        <div class="plan-badge">Populaire</div>
-        <div class="plan-name">Avancé</div>
-        <div class="plan-price">19<span>€/mois</span></div>
-        <div class="plan-desc">La formule complète pour piloter votre salon au quotidien.</div>
-        <ul class="plan-features">
-          <li>Caisse & encaissements</li>
-          <li>Tableau de bord avancé</li>
-          <li>Jusqu'à 3 praticiennes</li>
-          <li>Banque & charges</li>
-          <li>Récap hebdomadaire</li>
-          <li class="off">Boutique & fidélité</li>
-          <li class="off">Import Planity (IA)</li>
-        </ul>
-        <button class="btn btn-white btn-full" onclick="showAuth('signup','avance')">Choisir Avancé</button>
-      </div>
-
-      <div class="plan-card">
-        <div class="plan-name">Complet</div>
-        <div class="plan-price">29<span>€/mois</span></div>
-        <div class="plan-desc">Tout Solia, praticiennes illimitées et IA intégrée.</div>
-        <ul class="plan-features">
-          <li>Caisse & encaissements</li>
-          <li>Tableau de bord avancé</li>
-          <li>Praticiennes illimitées</li>
-          <li>Banque & charges</li>
-          <li>Récap hebdomadaire</li>
-          <li>Boutique & fidélité</li>
-          <li>Import Planity (IA)</li>
-        </ul>
-        <button class="btn btn-primary btn-full" onclick="showAuth('signup','complet')">Choisir Complet</button>
-      </div>
-    </div>
+  <div class="plan-card">
+    <div class="plan-name">Simple</div>
+    <div class="plan-price">9<span>€/mois</span></div>
+    <div class="plan-desc">Pour démarrer et garder le contrôle de vos encaissements.</div>
+    <ul class="plan-features">
+      <li>Caisse & encaissements</li>
+      <li>Tableau de bord</li>
+      <li>Charges & résultat mensuel</li>
+      <li>Clientes & historique</li>
+      <li class="off">Banque & rapprochement</li>
+      <li class="off">Factures fournisseurs</li>
+      <li class="off">Accès collaborateur</li>
+      <li class="off">Import agenda IA</li>
+    </ul>
+    <button class="btn btn-outline btn-full" onclick="showAuth('signup','simple')">Choisir Simple</button>
+  </div>
+  <div class="plan-card featured">
+    <div class="plan-badge">Populaire</div>
+    <div class="plan-name">Avancé</div>
+    <div class="plan-price">19<span>€/mois</span></div>
+    <div class="plan-desc">La formule complète pour piloter votre salon au quotidien.</div>
+    <ul class="plan-features">
+      <li>Tout Simple +</li>
+      <li>Banque & rapprochement</li>
+      <li>Import relevé PDF/CSV/photo</li>
+      <li>Factures fournisseurs</li>
+      <li>Accès collaborateur</li>
+      <li>Dossier comptable PDF</li>
+      <li>Franchise & sous-location</li>
+      <li class="off">Import agenda IA</li>
+      <li class="off">Collaborateurs illimités</li>
+    </ul>
+    <button class="btn btn-white btn-full" onclick="showAuth('signup','avance')">Choisir Avancé</button>
+  </div>
+  <div class="plan-card">
+    <div class="plan-name">Complet</div>
+    <div class="plan-price">29<span>€/mois</span></div>
+    <div class="plan-desc">Tout Solia, praticiennes illimitées et IA intégrée.</div>
+    <ul class="plan-features">
+      <li>Tout Avancé +</li>
+      <li>Import agenda universel IA</li>
+      <li>Collaborateurs illimités</li>
+      <li>Adaptation couleurs au logo</li>
+      <li>Sous-location & factures auto</li>
+      <li>Calcul TVA / URSSAF auto</li>
+    </ul>
+    <button class="btn btn-primary btn-full" onclick="showAuth('signup','complet')">Choisir Complet</button>
+  </div>
+</div>
   </div>
 </div>
 
@@ -445,14 +445,14 @@ td{padding:11px 14px;vertical-align:middle}
               <span class="plan-opt-name">⚡ Avancé</span>
               <span class="plan-opt-price">19€/mois</span>
             </div>
-            <div class="plan-opt-desc">+ Banque, charges, récap · 3 praticiennes</div>
+            <div class="plan-opt-desc">+ Banque, factures, accès collaborateur</div>
           </div>
           <div class="plan-opt" id="opt-complet" onclick="selectPlan('complet')">
             <div class="plan-opt-header">
               <span class="plan-opt-name">✨ Complet</span>
               <span class="plan-opt-price">29€/mois</span>
             </div>
-            <div class="plan-opt-desc">+ Boutique, fidélité, import Planity IA</div>
+            <div class="plan-opt-desc">+ Import agenda IA, collaborateurs illimités</div>
           </div>
         </div>
       </div>
