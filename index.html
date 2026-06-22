@@ -5328,8 +5328,8 @@ function renderCaisseMonnaie(){
       <div style="padding:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
         ${piecesDef.map(p=>svgPiece(p.val,p.label,p.bg,p.border,p.col,p.size)).join('')}
       </div>
-
-  <!-- Historique -->
+    </div>
+    <!-- Historique -->
     <div class="card" style="margin-top:16px">
       <div class="card-header"><span class="card-title">📋 Historique des mouvements</span></div>
       ${(()=>{
@@ -5366,9 +5366,9 @@ function renderCaisseMonnaie(){
           </tbody>
         </table>`;
       })()}
+    </div>
     </div>`;
 }
-
 // ── Transaction ESP (ouvre depuis la caisse) ──
 let cvTransaction={montant:0,donnes:{},rendus:{},entry:null};
 
