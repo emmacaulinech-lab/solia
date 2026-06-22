@@ -550,8 +550,9 @@ select option{color:#1a0f0a;background:white}
         <input class="fi" id="cs" placeholder="🔍 Rechercher..." oninput="renderCaisse()" style="min-width:180px">
         <select class="fi" id="cm" onchange="renderCaisse()"><option value="">Tous les mois</option></select>
         <select class="fi" id="cmo" onchange="renderCaisse()">
-          <option value="">Tous modes</option><option>ESP</option><option>VIR</option><option>CHQ</option><option>PLANITY</option>
-        </select>
+  <option value="">Tous modes</option>
+  ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>`<option>${m}</option>`).join('')}
+</select>
       </div>
       <div class="card" id="caisseTable"></div>
       <div id="caisse-actions" style="display:flex;gap:8px;margin-bottom:12px"></div>
