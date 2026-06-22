@@ -109,6 +109,9 @@ body{font-family:'Inter',sans-serif;background:var(--fog);color:var(--ink);font-
 .onboard-card .field label{color:#555}
 .onboard-card .field input{color:#1a0f0a;background:#f9f9f9;border:1.5px solid #ddd;border-radius:8px}
 .onboard-card .field input:focus{border-color:var(--accent);background:white}
+.onboard-card .field select{color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px}
+.onboard-card .field select:focus{border-color:#c47a4a;background:white}
+.onboard-card .field select option{color:#1a0f0a;background:white}
 .field input,.field select{width:100%;padding:12px 14px;border:1px solid rgba(210,160,120,.2);border-radius:0;font-family:'Inter',sans-serif;font-size:13px;color:#f5ede6;background:rgba(245,237,230,.04);outline:none;transition:border-color .15s}
 .field input:focus,.field select:focus{border-color:var(--accent);background:rgba(196,122,74,.06)}
 .field select option{background:#211008;color:#f5ede6}
@@ -296,6 +299,12 @@ td{padding:11px 14px;vertical-align:middle}
 .mobile-menu-btn{display:none;position:fixed;top:16px;left:16px;z-index:200;width:40px;height:40px;border-radius:10px;background:#1a0f0a;color:white;border:none;font-size:18px;cursor:pointer;align-items:center;justify-content:center}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:149}
 .sidebar-overlay.show{display:block}
+
+.onboard-page select,
+.onboard-page .field select,
+.onboard-card select{color:#1a0f0a!important;background:white!important}
+.onboard-page .field input{color:#1a0f0a!important}
+select option{color:#1a0f0a;background:white}
   
 @media(max-width:768px){
   .main{margin-left:0;padding:16px;padding-top:64px}
