@@ -535,12 +535,15 @@ select option{color:#1a0f0a;background:white}
           <div style="padding:0" id="dashTop"></div>
         </div>
       </div>
-      <div id="dashResultat"></div>
-      <div class="card" style="margin-top:16px">
-        <div class="card-header"><span class="card-title">⏳ Paiements en attente</span></div>
-        <div id="dashVir"></div>
-      </div>
-    </div>
+     <div id="dashResultat"></div>
+<div class="card" style="margin-top:16px">
+  <div class="card-header"><span class="card-title">⏳ Paiements en attente</span></div>
+  <div id="dashVir"></div>
+</div>
+<div class="card" style="margin-top:16px">
+  <div class="card-header"><span class="card-title">📈 CA par semaine</span></div>
+  <div style="padding:16px" id="dashChart"></div>
+</div>
 
     <div class="view" id="view-caisse">
       <div class="page-header">
@@ -1614,6 +1617,37 @@ const vir=DB.caisse.filter(t=>modesAttente.includes(t.reglement)&&!t.paye&&t.mon
       </div>`:''}
     </div>`;
 
+  // Graphique CA par semaine
+  const semaines=[];
+  const now2=new Date(now.getFullYear(),now.getMonth(),1);
+  let startW=new Date(now2);
+  const dow=startW.getDay();
+  startW.setDate(startW.getDate()-(dow===0?6:dow-1));
+  const lastD=new Date(now.getFullYear(),now.getMonth()+1,0);
+  while(startW<=lastD){
+    const l=new Date(startW);
+    const d=new Date(startW);
+    d.setDate(d.getDate()+6);
+    const d1=l.toISOString().split('T')[0];
+    const d2=d.toISOString().split('T')[0];
+    const caS=DB.caisse.filter(t=>t.date>=d1&&t.date<=d2&&t.montant>0).reduce((s,t)=>s+t.montant,0);
+    semaines.push({label:`S${semaines.length+1}`,ca:caS,d1,d2});
+    startW.setDate(startW.getDate()+7);
+  }
+  const maxS=Math.max(...semaines.map(s=>s.ca),1);
+  const chartEl=document.getElementById('dashChart');
+  if(chartEl) chartEl.innerHTML=`
+    <div style="display:flex;align-items:flex-end;gap:12px;height:120px">
+      ${semaines.map(s=>{
+        const h=s.ca>0?Math.max(Math.round(s.ca/maxS*100),4):2;
+        const isNow=new Date()>=new Date(s.d1)&&new Date()<=new Date(s.d2);
+        return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+          ${s.ca>0?`<div style="font-size:9px;color:var(--mut);white-space:nowrap">${fa(s.ca)}</div>`:''}
+          <div style="width:100%;background:${isNow?'#c47a4a':'#e8d8c8'};border-radius:6px 6px 0 0;height:${h}%;min-height:3px;transition:height .5s"></div>
+          <div style="font-size:10px;color:${isNow?'#c47a4a':'var(--mut)'};font-weight:${isNow?700:400}">${s.label}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
     
 }
 
