@@ -1244,8 +1244,14 @@ function obSaveStep(){
     CONFIG.prestations=[]; // reset pour l'étape 3
   }
   else if(obStep===1){
-    CONFIG.praticiennes=obPraticiennes.filter(p=>p.nom.trim());
-    if(!CONFIG.praticiennes.length){toast('⚠ Ajoute au moins une praticienne');return false;}
+    const rows=document.querySelectorAll('#obPratRows .ob-prat-row');
+    obPraticiennes=[];
+    rows.forEach(r=>{
+      const nom=r.querySelector('input')?.value?.trim();
+      const taux=parseInt(r.querySelectorAll('input')[1]?.value)||100;
+      if(nom) obPraticiennes.push({nom,taux});
+    });
+    // Pas de blocage si aucune praticienne — on peut travailler seule
   }
   else if(obStep===2){
     if(!CONFIG.prestations.length){toast('⚠ Sélectionne au moins une prestation');return false;}
