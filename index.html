@@ -5440,8 +5440,10 @@ function openMouvementCaisse(type){
   document.getElementById('mainModal').classList.add('open');
 }
 
-function renderMvtModal(){
+function renderMvtModal(mode=''){
   const tempMvt=window._tempMvt||{};
+  const collabs=(CONFIG.praticiennes||[]).filter(p=>p.nom.toLowerCase()!==(CONFIG.proprietaire||'').toLowerCase());
+  const showCollab=mode==='depot-collab'&&collabs.length>0;
   const billetsDef=window._mvtBillets;
   const piecesDef=window._mvtPieces;
   const total=Object.entries(tempMvt).reduce((s,[c,n])=>s+parseFloat(c)*n,0);
@@ -5475,6 +5477,11 @@ function renderMvtModal(){
   };
 
   document.getElementById('mBody').innerHTML=`
+  ${showCollab?`<div class="field" style="margin-bottom:12px"><label>Collaboratrice</label>
+      <select id="depot-collab-id" style="color:#1a0f0a">
+        ${collabs.map(c=>`<option value="${c.id}">${c.nom}</option>`).join('')}
+      </select>
+    </div>`:''}
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px">
       ${billetsDef.map(b=>svgB(b.val,b.bg,b.stripe,b.col)).join('')}
     </div>
@@ -5488,7 +5495,7 @@ function renderMvtModal(){
     <div style="display:flex;gap:8px">
       <button class="btn btn-ghost" onclick="closeMo('mainModal')" style="flex:1">Annuler</button>
       <button class="btn btn-primary" onclick="validerMvtCaisse()" style="flex:2" ${total<=0?'disabled':''}>
-        ${window._mvtType==='appro'?'✓ Approvisionner':'✓ Retirer'}
+        ${mode==='depot-collab'?'✓ Valider le dépôt':window._mvtType==='appro'?'✓ Approvisionner':'✓ Retirer'}
       </button>
     </div>`;
 }
@@ -5574,7 +5581,7 @@ function openDepotCollab(){
     {val:0.02,label:'2c',  bg:'#fed7aa',border:'#fdba74',col:'#7c2d12',size:26},
     {val:0.01,label:'1c',  bg:'#fed7aa',border:'#fdba74',col:'#7c2d12',size:22},
   ];
-  renderMvtModal();
+  renderMvtModal('depot-collab');
   document.querySelector('#mainModal .modal-footer').style.display='none';
   document.getElementById('mainModal').classList.add('open');
 }
