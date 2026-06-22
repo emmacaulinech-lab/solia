@@ -693,6 +693,14 @@ select option{color:#1a0f0a;background:white}
   </div>
   <div id="validationContent"></div>
 </div>
+
+  <div class="view" id="view-caisse-monnaie">
+  <div class="page-header">
+    <div><div class="page-title">💵 Caisse de monnaie</div><div class="page-sub">Suivi de votre caisse physique</div></div>
+    <button class="btn btn-primary" onclick="openModal('depot-caisse')">+ Mouvement</button>
+  </div>
+  <div id="caisseMonnaieContent"></div>
+</div>
     
     <div class="view" id="view-settings">
       <div class="page-header"><div class="page-title">⚙️ Paramètres</div></div>
@@ -1340,6 +1348,7 @@ const NAV=[
   {id:'dashboard',icon:'🏠',label:'Dashboard',plans:['simple','avance','complet']},
   {id:'caisse',icon:'🧳',label:'Caisse',plans:['simple','avance','complet']},
   {id:'banque',icon:'🏦',label:'Banque',plans:['avance','complet']},
+  {id:'caisse-monnaie',icon:'💵',label:'Caisse de monnaie',plans:['simple','avance','complet'],condition:()=>CONFIG.caisseMonnaieActive},
   {id:'equipe',icon:'🎭',label:'Équipe',plans:['avance','complet']},
   {id:'validation',icon:'✅',label:'À valider',plans:['avance','complet']},
   {id:'recap',icon:'📊',label:'Récap',plans:['avance','complet']},
@@ -1388,6 +1397,7 @@ function goView(id){
   if(id==='export') renderExport();
   if(id==='validation') renderValidation();
   if(id==='sous-location') renderSousLocation();
+  if(id==='caisse-monnaie') renderCaisseMonnaie();
   if(id==='import-banque') document.getElementById('importBanqueResult').innerHTML='';
   if(id==='agenda'){
   const saved=localStorage.getItem('solia_agenda');
@@ -1601,6 +1611,17 @@ const vir=DB.caisse.filter(t=>modesAttente.includes(t.reglement)&&!t.paye&&t.mon
         ${CONFIG.franchiseType==='pct'?`(${CONFIG.franchiseTaux||10}% sur CA soumis)`:'(fixe mensuel)'}
       </div>`:''}
     </div>`;
+
+  // Badge caisse monnaie dans dashboard si activée
+  if(CONFIG.caisseMonnaieActive){
+    const solde=getSoldeCaisse();
+    if(solde<50){
+      document.getElementById('dashResultat').innerHTML+=`
+        <div style="background:#fef3c7;border:1px solid #f0c040;border-radius:12px;padding:12px 16px;font-size:13px;color:#92400e;margin-top:12px;cursor:pointer" onclick="goView('caisse-monnaie')">
+          💵 Caisse de monnaie : ${fa(solde)} — ${solde<0?'❌ Négative':'⚠️ Basse'}
+        </div>`;
+    }
+  }
     
 }
 
@@ -1876,6 +1897,25 @@ function renderSettings(){
       ${CONFIG.sousLocationActive?`<div style="padding:14px 16px;font-size:13px;color:var(--mut)">
         Gérez vos sous-locataires depuis le menu <strong>🏠 Sous-location</strong>.
       </div>`:'<div style="padding:14px 16px;font-size:12px;color:var(--mut)">Activez si vous sous-louez une partie de votre local.</div>'}
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <span class="card-title">💵 Caisse de monnaie</span>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <span style="font-size:12px;color:var(--mut)">${CONFIG.caisseMonnaieActive?'Activée':'Désactivée'}</span>
+          <div onclick="toggleCaisseMonnaie()" style="width:40px;height:22px;border-radius:99px;background:${CONFIG.caisseMonnaieActive?'#c47a4a':'#ddd'};cursor:pointer;position:relative;transition:background .2s">
+            <div style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:2px;${CONFIG.caisseMonnaieActive?'right:2px':'left:2px'};transition:all .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>
+          </div>
+        </label>
+      </div>
+      ${CONFIG.caisseMonnaieActive?`
+      <div style="padding:16px">
+        <div class="field"><label>Fond de caisse initial (€)</label>
+          <input type="number" id="set-fond-caisse" value="${CONFIG.fondCaisse||0}" placeholder="0" step="0.01">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="saveFondCaisse()">Sauvegarder</button>
+      </div>`:'<div style="padding:14px 16px;font-size:12px;color:var(--mut)">Activez pour suivre votre caisse physique en espèces.</div>'}
     </div>
 
     <div class="card" style="margin-bottom:16px">
@@ -5035,6 +5075,96 @@ function appliquerLogoCollab(logo){
 function toggleMobileMenu(){
   document.querySelector('.sidebar')?.classList.toggle('mobile-open');
   document.getElementById('sidebarOverlay')?.classList.toggle('show');
+}
+
+// ══════════════════════════════════════
+// CAISSE DE MONNAIE
+// ══════════════════════════════════════
+async function toggleCaisseMonnaie(){
+  CONFIG.caisseMonnaieActive=!CONFIG.caisseMonnaieActive;
+  await saveAll();
+  buildSidebar();
+  renderSettings();
+  toast(CONFIG.caisseMonnaieActive?'✓ Caisse de monnaie activée':'Caisse désactivée');
+}
+
+async function saveFondCaisse(){
+  CONFIG.fondCaisse=parseFloat(document.getElementById('set-fond-caisse')?.value)||0;
+  await saveAll();
+  renderSettings();
+  toast('✓ Fond de caisse sauvegardé');
+}
+
+function getSoldeCaisse(){
+  const fond=CONFIG.fondCaisse||0;
+  const encaissements=DB.caisse.filter(t=>t.montant>0&&t.reglement==='ESP').reduce((s,t)=>s+t.montant,0);
+  const depots=DB.banque.filter(b=>b.montant>0&&(b.caisseIds?.length>0)).reduce((s,b)=>s+b.montant,0);
+  return fond+encaissements-depots;
+}
+
+function renderCaisseMonnaie(){
+  const el=document.getElementById('caisseMonnaieContent');
+  if(!el) return;
+
+  const solde=getSoldeCaisse();
+  const fond=CONFIG.fondCaisse||0;
+  const encaissements=DB.caisse.filter(t=>t.montant>0&&t.reglement==='ESP');
+  const totalEsp=encaissements.reduce((s,t)=>s+t.montant,0);
+  const depots=DB.banque.filter(b=>b.montant>0&&b.caisseIds?.length>0);
+  const totalDepots=depots.reduce((s,b)=>s+b.montant,0);
+
+  el.innerHTML=`
+    <!-- Solde -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px">
+      <div class="kpi" style="background:${solde<50?'#fef3c7':solde<0?'#fee2e2':'var(--mint-pale)'}">
+        <div class="kpi-label">Solde caisse</div>
+        <div class="kpi-value" style="color:${solde<0?'var(--red)':solde<50?'#92400e':'var(--mint)'};font-family:'Playfair Display',serif">${fa(solde)}</div>
+        ${solde<50&&solde>=0?'<div style="font-size:11px;color:#92400e;margin-top:4px">⚠️ Caisse basse</div>':''}
+        ${solde<0?'<div style="font-size:11px;color:var(--red);margin-top:4px">❌ Caisse négative</div>':''}
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Encaissements ESP</div>
+        <div class="kpi-value" style="color:var(--mint);font-family:'Playfair Display',serif">${fa(totalEsp)}</div>
+        <div style="font-size:11px;color:var(--mut);margin-top:4px">${encaissements.length} prestation${encaissements.length>1?'s':''}</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Dépôts banque</div>
+        <div class="kpi-value" style="color:var(--red);font-family:'Playfair Display',serif">${fa(totalDepots)}</div>
+        <div style="font-size:11px;color:var(--mut);margin-top:4px">${depots.length} dépôt${depots.length>1?'s':''}</div>
+      </div>
+    </div>
+
+    <!-- Détail -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">📋 Mouvements ESP</span></div>
+      <table>
+        <thead><tr>
+          <th>Date</th><th>Description</th><th>Type</th>
+          <th style="text-align:right">Montant</th><th style="text-align:right">Solde cumulé</th>
+        </tr></thead>
+        <tbody>
+          ${(()=>{
+            const mouvements=[
+              {date:'',desc:`Fond de caisse initial`,type:'Fond',montant:fond,solde:fond},
+              ...encaissements.map(t=>({date:t.date,desc:t.nom+(t.prestation?' — '+t.prestation:''),type:'Encaissement',montant:t.montant})),
+              ...depots.map(b=>({date:b.date,desc:b.nom,type:'Dépôt banque',montant:-b.montant}))
+            ].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+
+            let cumul=0;
+            return mouvements.map(m=>{
+              cumul+=m.montant;
+              return`<tr>
+                <td class="td-mut">${m.date?dlbl(m.date):'—'}</td>
+                <td style="font-size:12px">${m.desc}</td>
+                <td><span class="badge" style="background:${m.type==='Encaissement'?'#d1fae5':m.type==='Dépôt banque'?'#fee2e2':'#f3e8ff'};color:${m.type==='Encaissement'?'#065f46':m.type==='Dépôt banque'?'#991b1b':'#6b21a8'}">${m.type}</span></td>
+                <td class="${m.montant>=0?'td-green':'td-red'}" style="text-align:right">${fm(m.montant,m.montant>0)}</td>
+                <td style="text-align:right;font-family:'Playfair Display',serif;color:${cumul<0?'var(--red)':'var(--ink)'}">${fa(cumul)}</td>
+              </tr>`;
+            }).join('');
+          })()}
+        </tbody>
+      </table>
+    </div>`;
 }
   
 document.addEventListener('keydown',e=>{
