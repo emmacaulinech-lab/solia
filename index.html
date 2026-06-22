@@ -999,7 +999,7 @@ function renderObProgress(){
   el.innerHTML=OB_STEPS.map((_,i)=>`<div class="onboard-step-dot ${i<obStep?'done':i===obStep?'active':''}"></div>`).join('');
 }
 
-const obPraticiennes=[{nom:'',taux:100}];
+let obPraticiennes=[{nom:'',taux:100}];
 
 const ACTIVITES={
   lash:{label:'👁️ Lash & Brow',prestations:['Pose complète Volume Russe','Remplissage 2 semaines','Remplissage 3 semaines','Remplissage 4 semaines','Retouche','Rehaussement cils','Lashlift coréen','Browlift','Lash Lift','Lash Up']},
