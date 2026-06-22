@@ -2132,15 +2132,6 @@ function buildForm(ctx,editId=null){
   const today=new Date().toISOString().split('T')[0];
   const thisMonth=today.slice(0,7);
   const clients=[...new Set(DB.caisse.map(t=>t.nom).filter(n=>n&&!n.startsWith('DÉPÔT')))].sort();
-if(ctx==='depot-caisse'){
-    document.getElementById('mTitle').textContent='💵 Mouvement de caisse';
-    document.getElementById('mBody').innerHTML=buildForm('depot-caisse');
-    document.querySelector('#mainModal .modal-footer').innerHTML=`
-      <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>
-      <button class="btn btn-primary" onclick="saveMouvementCaisse()">Enregistrer</button>`;
-    document.getElementById('mainModal').classList.add('open');
-    return;
-  }
   if(ctx==='caisse'){
     const t=editId?DB.caisse.find(x=>x.id===editId):null;
     const prats=CONFIG.praticiennes||[];
