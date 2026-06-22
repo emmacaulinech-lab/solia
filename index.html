@@ -3663,7 +3663,7 @@ function renderExport(){
 const totalOpsBanque=mouvements.length;
 const rapprocheesBanque=mouvements.filter(b=>b.factureId||b.caisseIds?.length).length;
 const totalOps=totalOpsBanque+toutesPrests.length;
-const rapprochees=rapprocheesBanque+cM.length;
+const rapprochees=rapprocheesBanque+cM.filter(t=>t.depose||t.rapprocheBanque).length;
 
   let html=`
     <!-- Résumé -->
