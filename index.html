@@ -861,6 +861,7 @@ async function loadAll(){
       if(d.variables) DB.variables=JSON.parse(d.variables);
       if(d.config) CONFIG={...CONFIG,...JSON.parse(d.config)};
     }
+    await loadCV();
   }catch(e){console.error(e);}
 }
 
@@ -1612,16 +1613,6 @@ const vir=DB.caisse.filter(t=>modesAttente.includes(t.reglement)&&!t.paye&&t.mon
       </div>`:''}
     </div>`;
 
-  // Badge caisse monnaie dans dashboard si activée
-  if(CONFIG.caisseMonnaieActive){
-    const solde=getSoldeCaisse();
-    if(solde<50){
-      document.getElementById('dashResultat').innerHTML+=`
-        <div style="background:#fef3c7;border:1px solid #f0c040;border-radius:12px;padding:12px 16px;font-size:13px;color:#92400e;margin-top:12px;cursor:pointer" onclick="goView('caisse-monnaie')">
-          💵 Caisse de monnaie : ${fa(solde)} — ${solde<0?'❌ Négative':'⚠️ Basse'}
-        </div>`;
-    }
-  }
     
 }
 
@@ -2193,32 +2184,7 @@ function buildForm(ctx,editId=null){
         </select>
       </div>`:''}`;
   }
-if(ctx==='depot-caisse'){
-    const coupures=[500,200,100,50,20,10,5,2,1,0.50,0.20,0.10,0.05,0.02,0.01];
-    return`
-      <div class="field"><label>Type de mouvement</label>
-        <select id="dc-type">
-          <option value="appro">💰 Approvisionnement (entrée)</option>
-          <option value="retrait">🏧 Retrait (sortie)</option>
-        </select>
-      </div>
-      <div class="field"><label>Description</label>
-        <input type="text" id="dc-desc" placeholder="ex: Fond de caisse, retrait pour dépôt...">
-      </div>
-      <div style="font-size:11px;font-weight:600;color:#444;margin-bottom:10px;text-transform:uppercase;letter-spacing:.08em">Comptage des coupures</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
-        ${coupures.map(c=>`
-          <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f9f6f4;border-radius:8px;border:1px solid #eee">
-            <span style="font-size:12px;font-weight:700;color:#1a0f0a;min-width:50px">${c>=1?c+'€':Math.round(c*100)+'c'}</span>
-            <input type="number" id="dc-${String(c).replace('.','_')}" min="0" value="0" style="width:60px;padding:4px 8px;border:1.5px solid #ddd;border-radius:6px;font-size:13px;text-align:center" oninput="updateDCTotal()">
-            <span style="font-size:11px;color:var(--mut)" id="dc-sub-${String(c).replace('.','_')}">= 0,00€</span>
-          </div>`).join('')}
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;background:#1a0f0a;color:white;border-radius:10px;padding:12px 16px">
-        <span style="font-size:13px;font-weight:600">Total</span>
-        <span style="font-family:'Playfair Display',serif;font-size:22px" id="dc-total">0,00 €</span>
-      </div>`;
-  }
+
   if(ctx==='fixes'){
     const t=editId?DB.fixes.find(x=>x.id===editId):null;
     return`
@@ -2261,7 +2227,14 @@ rapprocheBanque:false
   };
       if(!t.date||isNaN(t.montant)||!t.nom){toast('⚠ Remplis tous les champs');return;}
       if(mEditId){const i=DB.caisse.findIndex(x=>x.id===mEditId);DB.caisse[i]=t;}
-      else DB.caisse.push(t);
+      else if(t.reglement==='ESP'&&CONFIG.caisseMonnaieActive&&!mEditId){
+        // Ouvrir la caisse virtuelle au lieu d'enregistrer directement
+        closeMo('mainModal');
+        openCaisseESP(t.montant, t);
+        return;
+      } else {
+        DB.caisse.push(t);
+      }
     } else if(mCtx==='banque'){
       const factureId=document.getElementById('fFacture')?.value||'';
       const facture=factureId?DB_FACTURES.find(f=>f.id===factureId):null;
@@ -5120,12 +5093,29 @@ async function saveFondCaisse(){
   toast('✓ Fond de caisse sauvegardé');
 }
 
+// ══════════════════════════════════════
+// CAISSE DE MONNAIE
+// ══════════════════════════════════════
+const BILLETS=[500,200,100,50,20,10,5];
+const PIECES=[2,1,0.5,0.2,0.1,0.05,0.02,0.01];
+
+// Structure de la caisse virtuelle
+let CV={billets:{},pieces:{}};
+
+async function saveCV(){
+  if(!CONFIG.cv) CONFIG.cv={billets:{},pieces:{}};
+  CONFIG.cv=CV;
+  await saveAll();
+}
+
+async function loadCV(){
+  CV=CONFIG.cv||{billets:{},pieces:{}};
+}
+
 function getSoldeCaisse(){
-  const fond=CONFIG.fondCaisse||0;
-  const encaissements=DB.caisse.filter(t=>t.montant>0&&t.reglement==='ESP').reduce((s,t)=>s+t.montant,0);
-  const depots=DB.banque.filter(b=>b.montant>0&&b.caisseIds?.length>0).reduce((s,b)=>s+b.montant,0);
-  const mouvements=(CONFIG.mouvementsCaisse||[]).reduce((s,m)=>s+m.montant,0);
-  return fond+encaissements-depots+mouvements;
+  const billets=Object.entries(CV.billets).reduce((s,[c,n])=>s+parseFloat(c)*n,0);
+  const pieces=Object.entries(CV.pieces).reduce((s,[c,n])=>s+parseFloat(c)*n,0);
+  return Math.round((billets+pieces)*100)/100;
 }
 
 function renderCaisseMonnaie(){
@@ -5133,15 +5123,62 @@ function renderCaisseMonnaie(){
   if(!el) return;
 
   const solde=getSoldeCaisse();
-  const fond=CONFIG.fondCaisse||0;
-  const encaissements=DB.caisse.filter(t=>t.montant>0&&t.reglement==='ESP');
-  const totalEsp=encaissements.reduce((s,t)=>s+t.montant,0);
-  const depots=DB.banque.filter(b=>b.montant>0&&b.caisseIds?.length>0);
-  const totalDepots=depots.reduce((s,b)=>s+b.montant,0);
+  const billetsDef=[
+    {val:500,bg:'#ede9fe',stripe:'#c4b5fd',col:'#5b21b6'},
+    {val:200,bg:'#fef3c7',stripe:'#fde68a',col:'#92400e'},
+    {val:100,bg:'#d1fae5',stripe:'#a7f3d0',col:'#065f46'},
+    {val:50, bg:'#ffedd5',stripe:'#fed7aa',col:'#c2410c'},
+    {val:20, bg:'#dbeafe',stripe:'#bfdbfe',col:'#1d4ed8'},
+    {val:10, bg:'#fee2e2',stripe:'#fecaca',col:'#b91c1c'},
+    {val:5,  bg:'#f3f4f6',stripe:'#e5e7eb',col:'#374151'},
+  ];
+  const piecesDef=[
+    {val:2,   label:'2€',  bg:'#e2e8f0',border:'#cbd5e1',col:'#1a0f0a',size:50},
+    {val:1,   label:'1€',  bg:'#fef9c3',border:'#fde047',col:'#713f12',size:46},
+    {val:0.5, label:'50c', bg:'#fef9c3',border:'#fde047',col:'#713f12',size:42},
+    {val:0.2, label:'20c', bg:'#fef9c3',border:'#fde047',col:'#713f12',size:38},
+    {val:0.1, label:'10c', bg:'#fef9c3',border:'#fde047',col:'#713f12',size:34},
+    {val:0.05,label:'5c',  bg:'#fed7aa',border:'#fdba74',col:'#7c2d12',size:30},
+    {val:0.02,label:'2c',  bg:'#fed7aa',border:'#fdba74',col:'#7c2d12',size:26},
+    {val:0.01,label:'1c',  bg:'#fed7aa',border:'#fdba74',col:'#7c2d12',size:22},
+  ];
+
+  const svgBillet=(val,bg,stripe,col)=>{
+    const qty=(CV.billets[String(val)]||0);
+    return`<div style="position:relative;display:inline-block">
+      <svg width="90" height="47" viewBox="0 0 90 47" xmlns="http://www.w3.org/2000/svg" opacity="${qty>0?1:0.4}">
+        <rect width="90" height="47" rx="5" fill="${bg}"/>
+        <rect x="0" y="0" width="12" height="47" rx="5" fill="${stripe}"/>
+        <rect x="12" y="0" width="1" height="47" fill="${col}" opacity=".3"/>
+        <circle cx="72" cy="10" r="18" fill="none" stroke="${stripe}" stroke-width="5"/>
+        <line x1="16" y1="35" x2="82" y2="35" stroke="${stripe}" stroke-width="0.8"/>
+        <text x="${val>=100?17:val>=10?21:25}" y="27" font-family="Georgia,serif" font-size="17" font-weight="700" fill="${col}">${val}</text>
+        <text x="17" y="43" font-family="sans-serif" font-size="6" fill="${col}" letter-spacing="1.5" opacity=".7">EURO</text>
+      </svg>
+      ${qty>0?`<div style="position:absolute;bottom:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:#c47a4a;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid white;z-index:10;padding:0 4px">${qty}</div>`:''}
+    </div>`;
+  };
+
+  const svgPiece=(val,label,bg,border,col,size)=>{
+    const qty=(CV.pieces[String(val)]||0);
+    const cx=size/2,cy=size/2,r=size/2-1;
+    const innerR=val>=1?r*0.62:0;
+    const innerFill=val===2?'#fef9c3':val===1?'#fef3c7':'none';
+    const innerStroke=val===2?'#fde047':val===1?'#fbbf24':'none';
+    const fs=size>40?11:size>34?10:size>28?9:8;
+    return`<div style="position:relative;display:inline-block">
+      <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" opacity="${qty>0?1:0.4}">
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="${bg}" stroke="${border}" stroke-width="1"/>
+        ${innerR>0?`<circle cx="${cx}" cy="${cy}" r="${innerR}" fill="${innerFill}" stroke="${innerStroke}" stroke-width="1"/>`:''}
+        <text x="${cx}" y="${cy}" font-family="Georgia,serif" font-size="${fs}" font-weight="700" fill="${col}" text-anchor="middle" dominant-baseline="middle">${label}</text>
+      </svg>
+      ${qty>0?`<div style="position:absolute;bottom:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:#c47a4a;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid white;z-index:10;padding:0 4px">${qty}</div>`:''}
+    </div>`;
+  };
 
   el.innerHTML=`
     <!-- Solde -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
       <div class="kpi" style="background:${solde<50?'#fef3c7':solde<0?'#fee2e2':'var(--mint-pale)'}">
         <div class="kpi-label">Solde caisse</div>
         <div class="kpi-value" style="color:${solde<0?'var(--red)':solde<50?'#92400e':'var(--mint)'};font-family:'Playfair Display',serif">${fa(solde)}</div>
@@ -5149,92 +5186,333 @@ function renderCaisseMonnaie(){
         ${solde<0?'<div style="font-size:11px;color:var(--red);margin-top:4px">❌ Caisse négative</div>':''}
       </div>
       <div class="kpi">
-        <div class="kpi-label">Encaissements ESP</div>
-        <div class="kpi-value" style="color:var(--mint);font-family:'Playfair Display',serif">${fa(totalEsp)}</div>
-        <div style="font-size:11px;color:var(--mut);margin-top:4px">${encaissements.length} prestation${encaissements.length>1?'s':''}</div>
-      </div>
-      <div class="kpi">
-        <div class="kpi-label">Dépôts banque</div>
-        <div class="kpi-value" style="color:var(--red);font-family:'Playfair Display',serif">${fa(totalDepots)}</div>
-        <div style="font-size:11px;color:var(--mut);margin-top:4px">${depots.length} dépôt${depots.length>1?'s':''}</div>
+        <div class="kpi-label">Actions</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">
+          <button class="btn btn-primary btn-sm" onclick="openMouvementCaisse('appro')">+ Approvisionner</button>
+          <button class="btn btn-outline btn-sm" onclick="openMouvementCaisse('retrait')">- Retirer</button>
+        </div>
       </div>
     </div>
 
-    <!-- Détail -->
-    <div class="card">
-      <div class="card-header"><span class="card-title">📋 Mouvements ESP</span></div>
-      <table>
-        <thead><tr>
-          <th>Date</th><th>Description</th><th>Type</th>
-          <th style="text-align:right">Montant</th><th style="text-align:right">Solde cumulé</th>
-        </tr></thead>
-        <tbody>
-          ${(()=>{
-            const mouvements=[
-              {date:'',desc:`Fond de caisse initial`,type:'Fond',montant:fond,solde:fond},
-              ...encaissements.map(t=>({date:t.date,desc:t.nom+(t.prestation?' — '+t.prestation:''),type:'Encaissement',montant:t.montant})),
-...(CONFIG.mouvementsCaisse||[]).map(m=>({date:m.date,desc:m.desc,type:m.type==='appro'?'Approvisionnement':'Retrait',montant:m.montant})),
-...depots.map(b=>({date:b.date,desc:b.nom,type:'Dépôt banque',montant:-b.montant}))
-            ].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    <!-- Billets -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">💵 Billets</span></div>
+      <div style="padding:16px;display:flex;flex-wrap:wrap;gap:12px">
+        ${billetsDef.map(b=>svgBillet(b.val,b.bg,b.stripe,b.col)).join('')}
+      </div>
+    </div>
 
-            let cumul=0;
-            return mouvements.map(m=>{
-              cumul+=m.montant;
-              return`<tr>
-                <td class="td-mut">${m.date?dlbl(m.date):'—'}</td>
-                <td style="font-size:12px">${m.desc}</td>
-                <td><span class="badge" style="background:${m.type==='Encaissement'?'#d1fae5':m.type==='Dépôt banque'?'#fee2e2':'#f3e8ff'};color:${m.type==='Encaissement'?'#065f46':m.type==='Dépôt banque'?'#991b1b':'#6b21a8'}">${m.type}</span></td>
-                <td class="${m.montant>=0?'td-green':'td-red'}" style="text-align:right">${fm(m.montant,m.montant>0)}</td>
-                <td style="text-align:right;font-family:'Playfair Display',serif;color:${cumul<0?'var(--red)':'var(--ink)'}">${fa(cumul)}</td>
-              </tr>`;
-            }).join('');
-          })()}
-        </tbody>
-      </table>
+    <!-- Pièces -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">🪙 Pièces</span></div>
+      <div style="padding:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+        ${piecesDef.map(p=>svgPiece(p.val,p.label,p.bg,p.border,p.col,p.size)).join('')}
+      </div>
     </div>`;
 }
 
-const DC_COUPURES=[500,200,100,50,20,10,5,2,1,0.50,0.20,0.10,0.05,0.02,0.01];
+// ── Transaction ESP (ouvre depuis la caisse) ──
+let cvTransaction={montant:0,donnes:{},rendus:{},entry:null};
 
-function updateDCTotal(){
-  let total=0;
-  DC_COUPURES.forEach(c=>{
-    const id='dc-'+String(c).replace('.','_');
-    const nb=parseInt(document.getElementById(id)?.value)||0;
-    const sous=nb*c;
-    total+=sous;
-    const subEl=document.getElementById('dc-sub-'+String(c).replace('.','_'));
-    if(subEl) subEl.textContent=sous>0?'= '+fa(sous):'= 0,00€';
-  });
-  const el=document.getElementById('dc-total');
-  if(el) el.textContent=fa(total);
+function openCaisseESP(montant, entry){
+  cvTransaction={montant,donnes:{},rendus:{},entry};
+  document.getElementById('mTitle').textContent='💵 Caisse espèces';
+  renderCVModal();
+  document.querySelector('#mainModal .modal-footer').style.display='none';
+  document.getElementById('mainModal').classList.add('open');
 }
 
-async function saveMouvementCaisse(){
-  let total=0;
-  const detail={};
-  DC_COUPURES.forEach(c=>{
-    const id='dc-'+String(c).replace('.','_');
-    const nb=parseInt(document.getElementById(id)?.value)||0;
-    if(nb>0){detail[c]=nb;}
-    total+=nb*c;
-  });
-  if(total<=0){toast('⚠ Saisis au moins une coupure');return;}
-  const type=document.getElementById('dc-type')?.value||'appro';
-  const desc=document.getElementById('dc-desc')?.value?.trim()||'Mouvement caisse';
-  const montant=type==='appro'?total:-total;
+function renderCVModal(){
+  const totalDonne=Object.entries(cvTransaction.donnes).reduce((s,[c,n])=>s+parseFloat(c)*n,0);
+  const totalRendu=Object.entries(cvTransaction.rendus).reduce((s,[c,n])=>s+parseFloat(c)*n,0);
+  const net=Math.round((totalDonne-totalRendu)*100)/100;
+  const montant=cvTransaction.montant;
+  const diff=Math.round((net-montant)*100)/100;
 
-  if(!CONFIG.mouvementsCaisse) CONFIG.mouvementsCaisse=[];
-  CONFIG.mouvementsCaisse.push({
-    id:genId(),
-    date:new Date().toISOString().split('T')[0],
-    desc,type,montant,detail,
-    createdAt:new Date().toISOString()
-  });
+  const billetsDef=[
+    {val:500,bg:'#ede9fe',stripe:'#c4b5fd',col:'#5b21b6'},
+    {val:200,bg:'#fef3c7',stripe:'#fde68a',col:'#92400e'},
+    {val:100,bg:'#d1fae5',stripe:'#a7f3d0',col:'#065f46'},
+    {val:50, bg:'#ffedd5',stripe:'#fed7aa',col:'#c2410c'},
+    {val:20, bg:'#dbeafe',stripe:'#bfdbfe',col:'#1d4ed8'},
+    {val:10, bg:'#fee2e2',stripe:'#fecaca',col:'#b91c1c'},
+    {val:5,  bg:'#f3f4f6',stripe:'#e5e7eb',col:'#374151'},
+  ];
+  const piecesDef=[
+    {val:2,   label:'2€',  bg:'#e2e8f0',border:'#cbd5e1',col:'#1a0f0a',size:50},
+    {val:1,   label:'1€',  bg:'#fef9c3',border:'#fde047',col:'#713f12',size:46},
+    {val:0.5, label:'50c', bg:'#fef9c3',border:'#fde047',col:'#713f12',size:42},
+    {val:0.2, label:'20c', bg:'#fef9c3',border:'#fde047',col:'#713f12',size:38},
+    {val:0.1, label:'10c', bg:'#fef9c3',border:'#fde047',col:'#713f12',size:34},
+    {val:0.05,label:'5c',  bg:'#fed7aa',border:'#fdba74',col:'#7c2d12',size:30},
+    {val:0.02,label:'2c',  bg:'#fed7aa',border:'#fdba74',col:'#7c2d12',size:26},
+    {val:0.01,label:'1c',  bg:'#fed7aa',border:'#fdba74',col:'#7c2d12',size:22},
+  ];
+
+  const svgBillet=(val,bg,stripe,col,type)=>{
+    const store=type==='donne'?cvTransaction.donnes:cvTransaction.rendus;
+    const qty=store[String(val)]||0;
+    return`<div style="position:relative;cursor:pointer" onclick="cvAjuster('${val}','${type}',1)">
+      <svg width="90" height="47" viewBox="0 0 90 47" xmlns="http://www.w3.org/2000/svg">
+        <rect width="90" height="47" rx="5" fill="${bg}" opacity="${qty>0?1:0.5}"/>
+        <rect x="0" y="0" width="12" height="47" rx="5" fill="${stripe}"/>
+        <rect x="12" y="0" width="1" height="47" fill="${col}" opacity=".3"/>
+        <circle cx="72" cy="10" r="18" fill="none" stroke="${stripe}" stroke-width="5"/>
+        <line x1="16" y1="35" x2="82" y2="35" stroke="${stripe}" stroke-width="0.8"/>
+        <text x="${val>=100?17:val>=10?21:25}" y="27" font-family="Georgia,serif" font-size="17" font-weight="700" fill="${col}">${val}</text>
+        <text x="17" y="43" font-family="sans-serif" font-size="6" fill="${col}" letter-spacing="1.5" opacity=".7">EURO</text>
+      </svg>
+      ${qty>0?`
+        <div style="position:absolute;bottom:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:#c47a4a;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid white;z-index:10;padding:0 4px">${qty}</div>
+        <div style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#ef4444;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid white;z-index:10" onclick="event.stopPropagation();cvAjuster('${val}','${type}',-1)">✕</div>
+      `:''}
+    </div>`;
+  };
+
+  const svgPiece=(val,label,bg,border,col,size,type)=>{
+    const store=type==='donne'?cvTransaction.donnes:cvTransaction.rendus;
+    const qty=store[String(val)]||0;
+    const cx=size/2,cy=size/2,r=size/2-1;
+    const innerR=val>=1?r*0.62:0;
+    const innerFill=val===2?'#fef9c3':val===1?'#fef3c7':'none';
+    const innerStroke=val===2?'#fde047':val===1?'#fbbf24':'none';
+    const fs=size>40?11:size>34?10:size>28?9:8;
+    return`<div style="position:relative;cursor:pointer" onclick="cvAjuster('${val}','${type}',1)">
+      <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" opacity="${qty>0?1:0.5}">
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="${bg}" stroke="${border}" stroke-width="1"/>
+        ${innerR>0?`<circle cx="${cx}" cy="${cy}" r="${innerR}" fill="${innerFill}" stroke="${innerStroke}" stroke-width="1"/>`:''}
+        <text x="${cx}" y="${cy}" font-family="Georgia,serif" font-size="${fs}" font-weight="700" fill="${col}" text-anchor="middle" dominant-baseline="middle">${label}</text>
+      </svg>
+      ${qty>0?`
+        <div style="position:absolute;bottom:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:#c47a4a;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid white;z-index:10;padding:0 4px">${qty}</div>
+        <div style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#ef4444;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid white;z-index:10" onclick="event.stopPropagation();cvAjuster('${val}','${type}',-1)">✕</div>
+      `:''}
+    </div>`;
+  };
+
+  document.getElementById('mBody').innerHTML=`
+    <div style="background:#f9f6f4;border-radius:14px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:#888">À encaisser</span>
+      <span style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#c47a4a">${fa(montant)}</span>
+    </div>
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#00c896;font-weight:700;margin-bottom:10px">✅ Reçu de la cliente</div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px">
+      ${billetsDef.map(b=>svgBillet(b.val,b.bg,b.stripe,b.col,'donne')).join('')}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      ${piecesDef.map(p=>svgPiece(p.val,p.label,p.bg,p.border,p.col,p.size,'donne')).join('')}
+    </div>
+    <div style="background:${diff===0?'#d1fae5':diff>0?'#fef3c7':'#fee2e2'};border-radius:14px;padding:12px 16px;margin-bottom:${diff>0?'14px':'0'};display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:11px;color:#888">Reçu : <strong style="color:#00c896">${fa(totalDonne)}</strong></div>
+        ${diff>0?`<div style="font-size:12px;font-weight:700;color:#92400e">🪙 À rendre : ${fa(diff)}</div>`:
+          diff<0?`<div style="font-size:11px;color:#ef4444">Manque ${fa(Math.abs(diff))}</div>`:''}
+      </div>
+      <span style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:${diff===0?'#00c896':diff>0?'#92400e':'#ef4444'}">${diff===0?'✓ Exact':diff>0?'-'+fa(diff):fa(net)}</span>
+    </div>
+    ${diff>0?`
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#ef4444;font-weight:700;margin-bottom:10px;margin-top:14px">💸 Rendu à la cliente</div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px">
+      ${billetsDef.map(b=>svgBillet(b.val,b.bg,b.stripe,b.col,'rendu')).join('')}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+      ${piecesDef.map(p=>svgPiece(p.val,p.label,p.bg,p.border,p.col,p.size,'rendu')).join('')}
+    </div>`:''}
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeMo('mainModal')" style="flex:1">Annuler</button>
+      <button class="btn ${diff>=0?'btn-primary':'btn-ghost'}" onclick="${diff>=0?'validerCaisseESP()':''}" style="flex:2;font-size:15px;padding:13px;${diff<0?'opacity:.5':''}">
+        ${diff===0?'✓ Confirmer':diff>0?'✓ Confirmer (rendre '+fa(diff)+')':'Montant insuffisant'}
+      </button>
+    </div>`;
+}
+
+function cvAjuster(coupure, type, delta){
+  const store=type==='donne'?cvTransaction.donnes:cvTransaction.rendus;
+  const current=store[coupure]||0;
+  const newVal=Math.max(0,current+delta);
+  if(newVal===0) delete store[coupure];
+  else store[coupure]=newVal;
+  renderCVModal();
+}
+
+async function validerCaisseESP(){
+  const totalDonne=Object.entries(cvTransaction.donnes).reduce((s,[c,n])=>s+parseFloat(c)*n,0);
+  const totalRendu=Object.entries(cvTransaction.rendus).reduce((s,[c,n])=>s+parseFloat(c)*n,0);
+  const diff=Math.round((totalDonne-totalRendu-cvTransaction.montant)*100)/100;
+  if(diff<0){toast('⚠ Montant insuffisant');return;}
+
+  // Mettre à jour le stock de la caisse
+  for(const [c,n] of Object.entries(cvTransaction.donnes)){
+    const val=parseFloat(c);
+    if(BILLETS.includes(val)) CV.billets[val]=(CV.billets[val]||0)+n;
+    else CV.pieces[val]=(CV.pieces[val]||0)+n;
+  }
+  for(const [c,n] of Object.entries(cvTransaction.rendus)){
+    const val=parseFloat(c);
+    if(BILLETS.includes(val)) CV.billets[val]=Math.max(0,(CV.billets[val]||0)-n);
+    else CV.pieces[val]=Math.max(0,(CV.pieces[val]||0)-n);
+  }
+
+  // Enregistrer la prestation si elle vient de la caisse
+  if(cvTransaction.entry){
+    DB.caisse.push(cvTransaction.entry);
+  }
+
+  await saveCV();
   await saveAll();
   closeMo('mainModal');
+  renderCaisse();
+  if(CONFIG.caisseMonnaieActive) renderCaisseMonnaie();
+  toast('✓ Encaissement ESP enregistré !');
+}
+
+// ── Approvisionner / Retirer ──
+function openMouvementCaisse(type){
+  const billetsDef=[
+    {val:500,bg:'#ede9fe',stripe:'#c4b5fd',col:'#5b21b6'},
+    {val:200,bg:'#fef3c7',stripe:'#fde68a',col:'#92400e'},
+    {val:100,bg:'#d1fae5',stripe:'#a7f3d0',col:'#065f46'},
+    {val:50, bg:'#ffedd5',stripe:'#fed7aa',col:'#c2410c'},
+    {val:20, bg:'#dbeafe',stripe:'#bfdbfe',col:'#1d4ed8'},
+    {val:10, bg:'#fee2e2',stripe:'#fecaca',col:'#b91c1c'},
+    {val:5,  bg:'#f3f4f6',stripe:'#e5e7eb',col:'#374151'},
+  ];
+  const piecesDef=[
+    {val:2,   label:'2€',  bg:'#e2e8f0',border:'#cbd5e1',col:'#1a0f0a',size:50},
+    {val:1,   label:'1€',  bg:'#fef9c3',border:'#fde047',col:'#713f12',size:46},
+    {val:0.5, label:'50c', bg:'#fef9c3',border:'#fde047',col:'#713f12',size:42},
+    {val:0.2, label:'20c', bg:'#fef9c3',border:'#fde047',col:'#713f12',size:38},
+    {val:0.1, label:'10c', bg:'#fef9c3',border:'#fde047',col:'#713f12',size:34},
+    {val:0.05,label:'5c',  bg:'#fed7aa',border:'#fdba74',col:'#7c2d12',size:30},
+    {val:0.02,label:'2c',  bg:'#fed7aa',border:'#fdba74',col:'#7c2d12',size:26},
+    {val:0.01,label:'1c',  bg:'#fed7aa',border:'#fdba74',col:'#7c2d12',size:22},
+  ];
+
+  let tempMvt={};
+
+  const svgB=(val,bg,stripe,col)=>{
+    const qty=tempMvt[String(val)]||0;
+    return`<div style="position:relative;cursor:pointer" onclick="mvtAjuster('${val}',1)">
+      <svg width="90" height="47" viewBox="0 0 90 47" xmlns="http://www.w3.org/2000/svg" opacity="${qty>0?1:0.5}">
+        <rect width="90" height="47" rx="5" fill="${bg}"/>
+        <rect x="0" y="0" width="12" height="47" rx="5" fill="${stripe}"/>
+        <text x="${val>=100?17:val>=10?21:25}" y="27" font-family="Georgia,serif" font-size="17" font-weight="700" fill="${col}">${val}</text>
+        <text x="17" y="43" font-family="sans-serif" font-size="6" fill="${col}" letter-spacing="1.5" opacity=".7">EURO</text>
+      </svg>
+      ${qty>0?`<div style="position:absolute;bottom:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:#c47a4a;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid white;z-index:10">${qty}</div>
+      <div style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#ef4444;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid white;z-index:10" onclick="event.stopPropagation();mvtAjuster('${val}',-1)">✕</div>`:''}
+    </div>`;
+  };
+
+  const svgP=(val,label,bg,border,col,size)=>{
+    const qty=tempMvt[String(val)]||0;
+    const cx=size/2,cy=size/2,r=size/2-1;
+    const fs=size>40?11:size>34?10:size>28?9:8;
+    return`<div style="position:relative;cursor:pointer" onclick="mvtAjuster('${val}',1)">
+      <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" opacity="${qty>0?1:0.5}">
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="${bg}" stroke="${border}" stroke-width="1"/>
+        <text x="${cx}" y="${cy}" font-family="Georgia,serif" font-size="${fs}" font-weight="700" fill="${col}" text-anchor="middle" dominant-baseline="middle">${label}</text>
+      </svg>
+      ${qty>0?`<div style="position:absolute;bottom:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:#c47a4a;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid white;z-index:10">${qty}</div>
+      <div style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#ef4444;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid white;z-index:10" onclick="event.stopPropagation();mvtAjuster('${val}',-1)">✕</div>`:''}
+    </div>`;
+  };
+
+  // Stocker tempMvt globalement pour mvtAjuster
+  window._tempMvt=tempMvt;
+  window._mvtType=type;
+  window._mvtBillets=billetsDef;
+  window._mvtPieces=piecesDef;
+  window._svgB=svgB;
+  window._svgP=svgP;
+
+  document.getElementById('mTitle').textContent=type==='appro'?'💰 Approvisionnement':'🏧 Retrait';
+  renderMvtModal();
+  document.querySelector('#mainModal .modal-footer').style.display='none';
+  document.getElementById('mainModal').classList.add('open');
+}
+
+function renderMvtModal(){
+  const tempMvt=window._tempMvt||{};
+  const billetsDef=window._mvtBillets;
+  const piecesDef=window._mvtPieces;
+  const total=Object.entries(tempMvt).reduce((s,[c,n])=>s+parseFloat(c)*n,0);
+
+  const svgB=(val,bg,stripe,col)=>{
+    const qty=tempMvt[String(val)]||0;
+    return`<div style="position:relative;cursor:pointer" onclick="mvtAjuster('${val}',1)">
+      <svg width="90" height="47" viewBox="0 0 90 47" xmlns="http://www.w3.org/2000/svg" opacity="${qty>0?1:0.5}">
+        <rect width="90" height="47" rx="5" fill="${bg}"/>
+        <rect x="0" y="0" width="12" height="47" rx="5" fill="${stripe}"/>
+        <text x="${val>=100?17:val>=10?21:25}" y="27" font-family="Georgia,serif" font-size="17" font-weight="700" fill="${col}">${val}</text>
+        <text x="17" y="43" font-family="sans-serif" font-size="6" fill="${col}" letter-spacing="1.5" opacity=".7">EURO</text>
+      </svg>
+      ${qty>0?`<div style="position:absolute;bottom:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:#c47a4a;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid white;z-index:10">${qty}</div>
+      <div style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#ef4444;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid white;z-index:10" onclick="event.stopPropagation();mvtAjuster('${val}',-1)">✕</div>`:''}
+    </div>`;
+  };
+
+  const svgP=(val,label,bg,border,col,size)=>{
+    const qty=tempMvt[String(val)]||0;
+    const cx=size/2,cy=size/2,r=size/2-1;
+    const fs=size>40?11:size>34?10:size>28?9:8;
+    return`<div style="position:relative;cursor:pointer" onclick="mvtAjuster('${val}',1)">
+      <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" opacity="${qty>0?1:0.5}">
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="${bg}" stroke="${border}" stroke-width="1"/>
+        <text x="${cx}" y="${cy}" font-family="Georgia,serif" font-size="${fs}" font-weight="700" fill="${col}" text-anchor="middle" dominant-baseline="middle">${label}</text>
+      </svg>
+      ${qty>0?`<div style="position:absolute;bottom:-7px;right:-7px;min-width:20px;height:20px;border-radius:10px;background:#c47a4a;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid white;z-index:10">${qty}</div>
+      <div style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#ef4444;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid white;z-index:10" onclick="event.stopPropagation();mvtAjuster('${val}',-1)">✕</div>`:''}
+    </div>`;
+  };
+
+  document.getElementById('mBody').innerHTML=`
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px">
+      ${billetsDef.map(b=>svgB(b.val,b.bg,b.stripe,b.col)).join('')}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;align-items:flex-end">
+      ${piecesDef.map(p=>svgP(p.val,p.label,p.bg,p.border,p.col,p.size)).join('')}
+    </div>
+    <div style="background:#1a0f0a;color:white;border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <span style="font-size:13px;font-weight:600">Total</span>
+      <span style="font-family:'Playfair Display',serif;font-size:22px">${fa(total)}</span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" onclick="closeMo('mainModal')" style="flex:1">Annuler</button>
+      <button class="btn btn-primary" onclick="validerMvtCaisse()" style="flex:2" ${total<=0?'disabled':''}>
+        ${window._mvtType==='appro'?'✓ Approvisionner':'✓ Retirer'}
+      </button>
+    </div>`;
+}
+
+function mvtAjuster(coupure, delta){
+  if(!window._tempMvt) window._tempMvt={};
+  const current=window._tempMvt[coupure]||0;
+  const newVal=Math.max(0,current+delta);
+  if(newVal===0) delete window._tempMvt[coupure];
+  else window._tempMvt[coupure]=newVal;
+  renderMvtModal();
+}
+
+async function validerMvtCaisse(){
+  const tempMvt=window._tempMvt||{};
+  const type=window._mvtType;
+  for(const [c,n] of Object.entries(tempMvt)){
+    const val=parseFloat(c);
+    if(type==='appro'){
+      if(BILLETS.includes(val)) CV.billets[val]=(CV.billets[val]||0)+n;
+      else CV.pieces[val]=(CV.pieces[val]||0)+n;
+    } else {
+      if(BILLETS.includes(val)) CV.billets[val]=Math.max(0,(CV.billets[val]||0)-n);
+      else CV.pieces[val]=Math.max(0,(CV.pieces[val]||0)-n);
+    }
+  }
+  await saveCV();
+  closeMo('mainModal');
   renderCaisseMonnaie();
+  const total=Object.entries(tempMvt).reduce((s,[c,n])=>s+parseFloat(c)*n,0);
   toast(`✓ ${type==='appro'?'Approvisionnement':'Retrait'} de ${fa(total)} enregistré`);
+  window._tempMvt={};
 }
   
 document.addEventListener('keydown',e=>{
