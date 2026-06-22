@@ -1618,13 +1618,14 @@ const vir=DB.caisse.filter(t=>modesAttente.includes(t.reglement)&&!t.paye&&t.mon
     </div>`;
 
   // Graphique CA par semaine
+  const moisChart=`${dashY}-${String(dashM+1).padStart(2,'0')}`;
   const semaines=[];
-  const now2=new Date(now.getFullYear(),now.getMonth(),1);
-  let startW=new Date(now2);
+  const firstDayChart=new Date(dashY,dashM,1);
+  let startW=new Date(firstDayChart);
   const dow=startW.getDay();
   startW.setDate(startW.getDate()-(dow===0?6:dow-1));
-  const lastD=new Date(now.getFullYear(),now.getMonth()+1,0);
-  while(startW<=lastD){
+  const lastDChart=new Date(dashY,dashM+1,0);
+  while(startW<=lastDChart){
     const l=new Date(startW);
     const d=new Date(startW);
     d.setDate(d.getDate()+6);
@@ -1637,14 +1638,14 @@ const vir=DB.caisse.filter(t=>modesAttente.includes(t.reglement)&&!t.paye&&t.mon
   const maxS=Math.max(...semaines.map(s=>s.ca),1);
   const chartEl=document.getElementById('dashChart');
   if(chartEl) chartEl.innerHTML=`
-    <div style="display:flex;align-items:flex-end;gap:12px;height:120px">
+    <div style="display:flex;align-items:flex-end;gap:8px;height:120px;padding-bottom:20px;position:relative">
       ${semaines.map(s=>{
-        const h=s.ca>0?Math.max(Math.round(s.ca/maxS*100),4):2;
-        const isNow=new Date()>=new Date(s.d1)&&new Date()<=new Date(s.d2);
-        return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
-          ${s.ca>0?`<div style="font-size:9px;color:var(--mut);white-space:nowrap">${fa(s.ca)}</div>`:''}
-          <div style="width:100%;background:${isNow?'#c47a4a':'#e8d8c8'};border-radius:6px 6px 0 0;height:${h}%;min-height:3px;transition:height .5s"></div>
-          <div style="font-size:10px;color:${isNow?'#c47a4a':'var(--mut)'};font-weight:${isNow?700:400}">${s.label}</div>
+        const hpx=s.ca>0?Math.max(Math.round(s.ca/maxS*100),4):3;
+        const isNow=NOW>=new Date(s.d1)&&NOW<=new Date(s.d2+'T23:59:59');
+        return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px">
+          ${s.ca>0?`<div style="font-size:9px;color:var(--mut);white-space:nowrap">${fa(s.ca)}</div>`:'<div></div>'}
+          <div style="width:100%;background:${isNow?'#c47a4a':'#e8d8c8'};border-radius:6px 6px 0 0;height:${hpx}px;min-height:3px"></div>
+          <div style="font-size:10px;color:${isNow?'#c47a4a':'var(--mut)'};font-weight:${isNow?700:400};position:absolute;bottom:0">${s.label}</div>
         </div>`;
       }).join('')}
     </div>`;
