@@ -2228,12 +2228,16 @@ rapprocheBanque:false
       if(!t.date||isNaN(t.montant)||!t.nom){toast('⚠ Remplis tous les champs');return;}
       if(mEditId){const i=DB.caisse.findIndex(x=>x.id===mEditId);DB.caisse[i]=t;}
       else if(t.reglement==='ESP'&&CONFIG.caisseMonnaieActive&&!mEditId){
-        // Ouvrir la caisse virtuelle au lieu d'enregistrer directement
-        closeMo('mainModal');
-        openCaisseESP(t.montant, t);
-        return;
-      } else {
-        DB.caisse.push(t);
+        const estProprietaire=!t.praticien||t.praticien==='';
+        if(estProprietaire){
+          // Ouvrir la caisse virtuelle
+          closeMo('mainModal');
+          openCaisseESP(t.montant, t);
+          return;
+        } else {
+          // Collaboratrice — enregistrer sans toucher la caisse
+          DB.caisse.push(t);
+        }
       }
     } else if(mCtx==='banque'){
       const factureId=document.getElementById('fFacture')?.value||'';
@@ -5190,6 +5194,10 @@ function renderCaisseMonnaie(){
         <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">
           <button class="btn btn-primary btn-sm" onclick="openMouvementCaisse('appro')">+ Approvisionner</button>
           <button class="btn btn-outline btn-sm" onclick="openMouvementCaisse('retrait')">- Retirer</button>
+          ${(CONFIG.praticiennes||[]).length?`
+      <div style="margin-top:8px">
+        <button class="btn btn-outline btn-sm btn-full" onclick="openDepotCollab()">💸 Dépôt collaboratrice</button>
+      </div>`:''}
         </div>
       </div>
     </div>
@@ -5513,6 +5521,62 @@ async function validerMvtCaisse(){
   const total=Object.entries(tempMvt).reduce((s,[c,n])=>s+parseFloat(c)*n,0);
   toast(`✓ ${type==='appro'?'Approvisionnement':'Retrait'} de ${fa(total)} enregistré`);
   window._tempMvt={};
+  // Si c'est un dépôt collaboratrice, enregistrer aussi en caisse
+  const collabId=document.getElementById('depot-collab-id')?.value;
+  if(collabId&&type==='appro'){
+    const total=Object.entries(tempMvt).reduce((s,[c,n])=>s+parseFloat(c)*n,0);
+    const collab=(CONFIG.praticiennes||[]).find(p=>p.id===collabId);
+    DB.caisse.push({
+      id:genId(),
+      date:new Date().toISOString().split('T')[0],
+      nom:`Dépôt ${collab?.nom||'collaboratrice'}`,
+      prestation:'Dépôt espèces',
+      praticien:collabId,
+      montant:total,
+      reglement:'ESP',
+      paye:true,
+      depose:true
+    });
+    await saveAll();
+  }
+}
+
+function openDepotCollab(){
+  const collabs=(CONFIG.praticiennes||[]).filter(p=>p.nom.toLowerCase()!==(CONFIG.proprietaire||'').toLowerCase());
+  document.getElementById('mTitle').textContent='💸 Dépôt collaboratrice';
+  document.getElementById('mBody').innerHTML=`
+    <div class="field"><label>Collaboratrice</label>
+      <select id="depot-collab-id">
+        ${collabs.map(c=>`<option value="${c.id}">${c.nom}</option>`).join('')}
+      </select>
+    </div>
+    <div style="font-size:12px;color:var(--mut);margin-bottom:12px">Sélectionnez les billets et pièces déposés par la collaboratrice.</div>
+    <div id="depot-collab-billets"></div>`;
+  
+  window._tempMvt={};
+  window._mvtType='appro';
+  window._mvtBillets=[
+    {val:500,bg:'#ede9fe',stripe:'#c4b5fd',col:'#5b21b6'},
+    {val:200,bg:'#fef3c7',stripe:'#fde68a',col:'#92400e'},
+    {val:100,bg:'#d1fae5',stripe:'#a7f3d0',col:'#065f46'},
+    {val:50, bg:'#ffedd5',stripe:'#fed7aa',col:'#c2410c'},
+    {val:20, bg:'#dbeafe',stripe:'#bfdbfe',col:'#1d4ed8'},
+    {val:10, bg:'#fee2e2',stripe:'#fecaca',col:'#b91c1c'},
+    {val:5,  bg:'#f3f4f6',stripe:'#e5e7eb',col:'#374151'},
+  ];
+  window._mvtPieces=[
+    {val:2,   label:'2€',  bg:'#e2e8f0',border:'#cbd5e1',col:'#1a0f0a',size:50},
+    {val:1,   label:'1€',  bg:'#fef9c3',border:'#fde047',col:'#713f12',size:46},
+    {val:0.5, label:'50c', bg:'#fef9c3',border:'#fde047',col:'#713f12',size:42},
+    {val:0.2, label:'20c', bg:'#fef9c3',border:'#fde047',col:'#713f12',size:38},
+    {val:0.1, label:'10c', bg:'#fef9c3',border:'#fde047',col:'#713f12',size:34},
+    {val:0.05,label:'5c',  bg:'#fed7aa',border:'#fdba74',col:'#7c2d12',size:30},
+    {val:0.02,label:'2c',  bg:'#fed7aa',border:'#fdba74',col:'#7c2d12',size:26},
+    {val:0.01,label:'1c',  bg:'#fed7aa',border:'#fdba74',col:'#7c2d12',size:22},
+  ];
+  renderMvtModal();
+  document.querySelector('#mainModal .modal-footer').style.display='none';
+  document.getElementById('mainModal').classList.add('open');
 }
   
 document.addEventListener('keydown',e=>{
