@@ -1754,26 +1754,102 @@ function renderCharges(){
 // RÉCAP
 // ══════════════════════════════════════
 function renderRecap(){
-  const allMois=[...new Set(DB.caisse.map(t=>dm(t.date)))].sort().reverse();
-  let html='';
-  for(const mois of allMois){
-    const cM=DB.caisse.filter(t=>inM(t.date,mois)&&t.montant>0);
-    const ca=cM.reduce((s,t)=>s+t.montant,0);
-    const charges=[...DB.fixes,...DB.variables].filter(f=>f.mois===mois).reduce((s,f)=>s+(f.montant||0),0);
-    const res=ca+charges;
-    html+=`<div class="card" style="margin-bottom:16px">
-      <div class="card-header">
-        <span class="card-title">${mf(mois)}</span>
-        <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${res>=0?'var(--mint)':'var(--red)'}">${fm(res,true)}</span>
-      </div>
-      <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
-        <div><div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:4px">CA</div><div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:var(--mint)">${fa(ca)}</div></div>
-        <div><div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:4px">Charges</div><div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:var(--red)">${fm(charges)}</div></div>
-        <div><div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:4px">Résultat</div><div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:${res>=0?'var(--mint)':'var(--red)'}">${fm(res,true)}</div></div>
-      </div>
-    </div>`;
+  const el=document.getElementById('recapContent');
+  if(!el) return;
+
+  const now=new Date();
+  const mois=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
+
+  // Générer les semaines du mois
+  const firstDay=new Date(now.getFullYear(),now.getMonth(),1);
+  const lastDay=new Date(now.getFullYear(),now.getMonth()+1,0);
+
+  // Trouver le lundi de la première semaine
+  let start=new Date(firstDay);
+  const dayOfWeek=start.getDay();
+  start.setDate(start.getDate()-(dayOfWeek===0?6:dayOfWeek-1));
+
+  const semaines=[];
+  while(start<=lastDay){
+    const lundi=new Date(start);
+    const dimanche=new Date(start);
+    dimanche.setDate(dimanche.getDate()+6);
+    semaines.push({lundi:new Date(lundi),dimanche:new Date(dimanche)});
+    start.setDate(start.getDate()+7);
   }
-  document.getElementById('recapContent').innerHTML=html||`<div class="empty"><div class="empty-icon">📊</div><div class="empty-title">Aucune donnée</div></div>`;
+
+  // CA total du mois
+  const caisseM=DB.caisse.filter(t=>inM(t.date,mois)&&t.montant>0);
+  const caTotal=caisseM.reduce((s,t)=>s+t.montant,0);
+  const chargesTotal=[...DB.fixes,...DB.variables].filter(f=>f.mois===mois).reduce((s,f)=>s+(f.montant||0),0);
+  const maxCA=Math.max(...semaines.map(s=>{
+    const d1=s.lundi.toISOString().split('T')[0];
+    const d2=s.dimanche.toISOString().split('T')[0];
+    return DB.caisse.filter(t=>t.date>=d1&&t.date<=d2&&t.montant>0).reduce((s,t)=>s+t.montant,0);
+  }),1);
+
+  let html=`
+    <!-- Résumé mensuel -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">📊 ${mf(mois)}</span></div>
+      <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div style="text-align:center">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">CA Total</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--mint)">${fa(caTotal)}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">Charges</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--red)">${fm(chargesTotal)}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">Résultat</div>
+          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:${caTotal+chargesTotal>=0?'var(--mint)':'var(--red)'}">${fm(caTotal+chargesTotal,true)}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Semaines -->
+    ${semaines.map((s,i)=>{
+      const d1=s.lundi.toISOString().split('T')[0];
+      const d2=s.dimanche.toISOString().split('T')[0];
+      const prestations=DB.caisse.filter(t=>t.date>=d1&&t.date<=d2&&t.montant>0);
+      const ca=prestations.reduce((s,t)=>s+t.montant,0);
+      const barW=ca>0?Math.round(ca/maxCA*100):0;
+      const isCurrentWeek=new Date()>=s.lundi&&new Date()<=s.dimanche;
+
+      const labelLundi=s.lundi.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+      const labelDim=s.dimanche.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+
+      return`<div class="card" style="margin-bottom:12px${isCurrentWeek?';border:1.5px solid #c47a4a':''}">
+        <div class="card-header">
+          <span class="card-title">Semaine ${i+1} <span style="font-size:11px;color:var(--mut);font-weight:400">${labelLundi} → ${labelDim}</span></span>
+          ${isCurrentWeek?'<span style="font-size:10px;background:#c47a4a;color:white;padding:2px 8px;border-radius:99px;font-weight:600">Cette semaine</span>':''}
+          <span style="font-family:'Playfair Display',serif;font-size:18px;color:var(--mint)">${fa(ca)}</span>
+        </div>
+        ${ca>0?`
+        <div style="padding:12px 16px">
+          <!-- Barre de progression -->
+          <div style="background:#f0e8e0;border-radius:99px;height:6px;margin-bottom:12px">
+            <div style="background:#c47a4a;border-radius:99px;height:6px;width:${barW}%;transition:width .3s"></div>
+          </div>
+          <!-- Détail par mode -->
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+            ${modes.map(m=>{
+              const v=prestations.filter(t=>t.reglement===m).reduce((s,t)=>s+t.montant,0);
+              return v>0?`<div style="display:flex;align-items:center;gap:6px">
+                ${bdg(m)}
+                <span style="font-family:'Playfair Display',serif;font-size:14px;color:var(--mint)">${fa(v)}</span>
+              </div>`:'';
+            }).join('')}
+          </div>
+          <!-- Prestations -->
+          <div style="font-size:11px;color:var(--mut)">${prestations.length} prestation${prestations.length>1?'s':''} · Panier moyen ${fa(ca/prestations.length)}</div>
+        </div>`:`<div style="padding:12px 16px;font-size:13px;color:var(--mut)">Aucune prestation</div>`}
+      </div>`;
+    }).join('')}`;
+
+  el.innerHTML=html;
 }
 
 // ══════════════════════════════════════
