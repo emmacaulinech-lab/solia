@@ -5329,44 +5329,7 @@ function renderCaisseMonnaie(){
         ${piecesDef.map(p=>svgPiece(p.val,p.label,p.bg,p.border,p.col,p.size)).join('')}
       </div>
     </div>
-    <!-- Historique -->
-    <div class="card" style="margin-top:16px">
-      <div class="card-header"><span class="card-title">📋 Historique des mouvements</span></div>
-      ${(()=>{
-        const mvts=[];
-        // Encaissements ESP propriétaire
-        DB.caisse.filter(t=>t.montant>0&&t.reglement==='ESP'&&(!t.praticien||t.praticien==='')).forEach(t=>{
-          mvts.push({date:t.date,desc:'Encaissement — '+(t.nom||'')+(t.prestation?' ('+t.prestation+')':''),type:'Entrée',montant:t.montant});
-        });
-        // Dépôts collaboratrices
-        DB.caisse.filter(t=>t.montant>0&&t.reglement==='ESP'&&t.praticien&&t.nom?.startsWith('Dépôt')).forEach(t=>{
-          mvts.push({date:t.date,desc:t.nom,type:'Dépôt',montant:t.montant});
-        });
-        // Mouvements manuels
-        (CONFIG.mouvementsCaisse||[]).forEach(m=>{
-          mvts.push({date:m.date,desc:m.desc,type:m.type==='appro'?'Appro':'Retrait',montant:m.montant});
-        });
-        // Dépôts banque (retraits caisse)
-        DB.banque.filter(b=>b.montant>0&&b.caisseIds?.length>0).forEach(b=>{
-          mvts.push({date:b.date,desc:'Dépôt banque — '+(b.nom||''),type:'Sortie',montant:-b.montant});
-        });
-        mvts.sort((a,b)=>b.date.localeCompare(a.date));
-        if(!mvts.length) return '<div style="padding:16px;font-size:13px;color:var(--mut)">Aucun mouvement</div>';
-        return`<table>
-          <thead><tr>
-            <th>Date</th><th>Description</th><th>Type</th><th style="text-align:right">Montant</th>
-          </tr></thead>
-          <tbody>
-            ${mvts.map(m=>`<tr>
-              <td class="td-mut">${dlbl(m.date)}</td>
-              <td style="font-size:12px">${m.desc}</td>
-              <td><span class="badge" style="background:${m.montant>=0?'#d1fae5':'#fee2e2'};color:${m.montant>=0?'#065f46':'#991b1b'}">${m.type}</span></td>
-              <td class="${m.montant>=0?'td-green':'td-red'}" style="text-align:right">${fm(m.montant,m.montant>0)}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>`;
-      })()}
-    </div>`;
+   
 }
 // ── Transaction ESP (ouvre depuis la caisse) ──
 let cvTransaction={montant:0,donnes:{},rendus:{},entry:null};
