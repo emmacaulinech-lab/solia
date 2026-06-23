@@ -5336,7 +5336,7 @@ function renderCaisseMonnaie(){
         const mvts=[];
         // Encaissements ESP propriétaire
         DB.caisse.filter(t=>t.montant>0&&t.reglement==='ESP'&&(!t.praticien||t.praticien==='')).forEach(t=>{
-          mvts.push({date:t.date,desc:`Encaissement — ${t.nom}${t.prestation?' ('+t.prestation+')':''}`,type:'Entrée',montant:t.montant});
+          mvts.push({date:t.date,desc:'Encaissement — '+(t.nom||'')+(t.prestation?' ('+t.prestation+')':''),type:'Entrée',montant:t.montant});
         });
         // Dépôts collaboratrices
         DB.caisse.filter(t=>t.montant>0&&t.reglement==='ESP'&&t.praticien&&t.nom?.startsWith('Dépôt')).forEach(t=>{
@@ -5348,7 +5348,7 @@ function renderCaisseMonnaie(){
         });
         // Dépôts banque (retraits caisse)
         DB.banque.filter(b=>b.montant>0&&b.caisseIds?.length>0).forEach(b=>{
-          mvts.push({date:b.date,desc:`Dépôt banque — ${b.nom}`,type:'Sortie',montant:-b.montant});
+          mvts.push({date:b.date,desc:'Dépôt banque — '+(b.nom||''),type:'Sortie',montant:-b.montant});
         });
         mvts.sort((a,b)=>b.date.localeCompare(a.date));
         if(!mvts.length) return '<div style="padding:16px;font-size:13px;color:var(--mut)">Aucun mouvement</div>';
