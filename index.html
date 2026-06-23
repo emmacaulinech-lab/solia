@@ -1402,7 +1402,7 @@ function goView(id){
   if(id==='export') renderExport();
   if(id==='validation') renderValidation();
   if(id==='sous-location') renderSousLocation();
-  if(id==='caisse-monnaie') renderCaisseMonnaie();
+  if(id==='caisse-monnaie'){await loadCV(); renderCaisseMonnaie();}
   if(id==='import-banque') document.getElementById('importBanqueResult').innerHTML='';
   if(id==='agenda'){
   const saved=localStorage.getItem('solia_agenda');
