@@ -704,6 +704,10 @@ select option{color:#1a0f0a;background:white}
     <button class="btn btn-primary" onclick="openModal('depot-caisse')">+ Mouvement</button>
   </div>
   <div id="caisseMonnaieContent"></div>
+  <div class="card" style="margin-top:16px">
+    <div class="card-header"><span class="card-title">📋 Historique des mouvements</span></div>
+    <div id="caisseHistorique"></div>
+  </div>
 </div>
     
     <div class="view" id="view-settings">
@@ -1402,7 +1406,7 @@ function goView(id){
   if(id==='export') renderExport();
   if(id==='validation') renderValidation();
   if(id==='sous-location') renderSousLocation();
-  if(id==='caisse-monnaie') renderCaisseMonnaie();
+  if(id==='caisse-monnaie'){renderCaisseMonnaie();renderHistoCaisse();}
   if(id==='import-banque') document.getElementById('importBanqueResult').innerHTML='';
   if(id==='agenda'){
   const saved=localStorage.getItem('solia_agenda');
@@ -5696,6 +5700,32 @@ function openDepotCollab(){
   renderMvtModal('depot-collab');
   document.querySelector('#mainModal .modal-footer').style.display='none';
   document.getElementById('mainModal').classList.add('open');
+}
+
+function renderHistoCaisse(){
+  const el=document.getElementById('caisseHistorique');
+  if(!el) return;
+  const mvts=[];
+  DB.caisse.filter(t=>t.montant>0&&t.reglement==='ESP').forEach(t=>{
+    const label=(t.nom||'').startsWith('Depot')||t.depose?'Dépôt':'Encaissement';
+    mvts.push({date:t.date,desc:(t.nom||'')+(t.prestation?' — '+t.prestation:''),type:label,montant:t.montant});
+  });
+  mvts.sort((a,b)=>b.date.localeCompare(a.date));
+  if(!mvts.length){el.innerHTML='<div style="padding:16px;font-size:13px;color:var(--mut)">Aucun mouvement</div>';return;}
+  let rows='<table><thead><tr><th>Date</th><th>Description</th><th>Type</th><th style="text-align:right">Montant</th></tr></thead><tbody>';
+  mvts.forEach(function(m){
+    var bg=m.montant>=0?'#d1fae5':'#fee2e2';
+    var col=m.montant>=0?'#065f46':'#991b1b';
+    var cls=m.montant>=0?'td-green':'td-red';
+    rows+='<tr>';
+    rows+='<td class="td-mut">'+dlbl(m.date)+'</td>';
+    rows+='<td style="font-size:12px">'+m.desc+'</td>';
+    rows+='<td><span class="badge" style="background:'+bg+';color:'+col+'">'+m.type+'</span></td>';
+    rows+='<td class="'+cls+'" style="text-align:right">'+fa(m.montant)+'</td>';
+    rows+='</tr>';
+  });
+  rows+='</tbody></table>';
+  el.innerHTML=rows;
 }
   
 document.addEventListener('keydown',e=>{
