@@ -5329,7 +5329,46 @@ function renderCaisseMonnaie(){
       <div style="padding:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
         ${piecesDef.map(p=>svgPiece(p.val,p.label,p.bg,p.border,p.col,p.size)).join('')}
       </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-header"><span class="card-title">📋 Historique des mouvements</span></div>
+      <div id="caisseHistorique"></div>
     </div>`;
+  // Remplir l'historique séparément
+  const histEl=document.getElementById('caisseHistorique');
+  if(!histEl) return;
+  const mvts=[];
+  DB.caisse.filter(t=>t.montant>0&&t.reglement==='ESP'&&(!t.praticien||t.praticien==='')).forEach(t=>{
+    mvts.push({date:t.date,desc:'Encaissement — '+(t.nom||'')+(t.prestation?' ('+t.prestation+')':''),type:'Entrée',montant:t.montant});
+  });
+  DB.caisse.filter(t=>t.montant>0&&t.reglement==='ESP'&&t.praticien&&(t.nom||'').startsWith('Dépôt')).forEach(t=>{
+    mvts.push({date:t.date,desc:t.nom||'',type:'Dépôt',montant:t.montant});
+  });
+  (CONFIG.mouvementsCaisse||[]).forEach(m=>{
+    mvts.push({date:m.date,desc:m.desc,type:m.type==='appro'?'Appro':'Retrait',montant:m.montant});
+  });
+  DB.banque.filter(b=>b.montant>0&&b.caisseIds&&b.caisseIds.length>0).forEach(b=>{
+    mvts.push({date:b.date,desc:'Dépôt banque — '+(b.nom||''),type:'Sortie',montant:-b.montant});
+  });
+  mvts.sort((a,b)=>b.date.localeCompare(a.date));
+  if(!mvts.length){
+    histEl.innerHTML='<div style="padding:16px;font-size:13px;color:var(--mut)">Aucun mouvement</div>';
+    return;
+  }
+  let rows='<table><thead><tr><th>Date</th><th>Description</th><th>Type</th><th style="text-align:right">Montant</th></tr></thead><tbody>';
+  for(const m of mvts){
+    const bg=m.montant>=0?'#d1fae5':'#fee2e2';
+    const col=m.montant>=0?'#065f46':'#991b1b';
+    const cls=m.montant>=0?'td-green':'td-red';
+    rows+='<tr>';
+    rows+='<td class="td-mut">'+dlbl(m.date)+'</td>';
+    rows+='<td style="font-size:12px">'+m.desc+'</td>';
+    rows+='<td><span class="badge" style="background:'+bg+';color:'+col+'">'+m.type+'</span></td>';
+    rows+='<td class="'+cls+'" style="text-align:right">'+fm(m.montant,m.montant>0)+'</td>';
+    rows+='</tr>';
+  }
+  rows+='</tbody></table>';
+  histEl.innerHTML=rows;
 }
 
 // ── Transaction ESP (ouvre depuis la caisse) ──
