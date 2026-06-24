@@ -709,6 +709,11 @@ select option{color:#1a0f0a;background:white}
     <div id="caisseHistorique"></div>
   </div>
 </div>
+
+    <div class="view" id="view-compte">
+  <div class="page-header"><div class="page-title">👤 Mon compte</div></div>
+  <div id="compteContent"></div>
+</div>
     
     <div class="view" id="view-settings">
       <div class="page-header"><div class="page-title">⚙️ Paramètres</div></div>
@@ -1366,6 +1371,7 @@ const NAV=[
   {id:'export',icon:'📤',label:'Dossier comptable',plans:['avance','complet']},
   {id:'charges',icon:'📋',label:'Charges',plans:['simple','avance','complet']},
   {id:'settings',icon:'⚙️',label:'Paramètres',plans:['simple','avance','complet']},
+{id:'compte',icon:'👤',label:'Mon compte',plans:['simple','avance','complet']},
 ];
 
 function buildSidebar(){
@@ -1400,7 +1406,7 @@ function goView(id){
   if(id==='charges') renderCharges();
   if(id==='recap') renderRecap();
   if(id==='clients') renderClients();
-  if(id==='settings') renderSettings();
+  if(id==='compte') renderCompte();
   if(id==='equipe') renderEquipe();
   if(id==='factures') renderFactures();
   if(id==='export') renderExport();
@@ -5728,6 +5734,91 @@ function validerEditPrest(i){
   agendaRdvs[i].prestation=finale;
   closeMo('mainModal');
   renderAgendaResult();
+}
+
+  function renderCompte(){
+  const email=currentUser?.email||'—';
+  document.getElementById('compteContent').innerHTML=`
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">📧 Email & mot de passe</span></div>
+      <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:13px;color:#555">Email actuel : <strong>${email}</strong></div>
+        <div class="field"><label>Nouvel email</label>
+          <input type="email" id="compte-email" placeholder="${email}" style="color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="changerEmail()">Changer l'email</button>
+        <hr style="border:none;border-top:1px solid var(--line);margin:8px 0">
+        <div class="g2">
+          <div class="field"><label>Nouveau mot de passe</label>
+            <input type="password" id="compte-pwd1" placeholder="6 caractères min" style="color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px">
+          </div>
+          <div class="field"><label>Confirmer</label>
+            <input type="password" id="compte-pwd2" placeholder="Répéter" style="color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px">
+          </div>
+        </div>
+        <div style="color:var(--red);font-size:12px" id="compte-err"></div>
+        <button class="btn btn-primary btn-sm" onclick="changerMotDePasse()">Changer le mot de passe</button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">💳 Ma formule</span></div>
+      <div style="padding:16px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+          ${['simple','avance','complet'].map(p=>{
+            const noms={simple:'🌱 Simple',avance:'⚡ Avancé',complet:'✨ Complet'};
+            const prix={simple:'9€/mois',avance:'19€/mois',complet:'29€/mois'};
+            const actif=CONFIG.plan===p;
+            return`<div style="border:2px solid ${actif?'var(--accent)':'var(--line)'};border-radius:12px;padding:16px;text-align:center;background:${actif?'rgba(196,122,74,.08)':'white'}">
+              <div style="font-size:15px;font-weight:700;margin-bottom:4px">${noms[p]}</div>
+              <div style="font-size:13px;color:var(--mut);margin-bottom:12px">${prix[p]}</div>
+              ${actif?`<span style="font-size:11px;background:var(--accent);color:white;padding:3px 10px;border-radius:99px;font-weight:600">Actuel</span>`
+              :`<button class="btn btn-outline btn-sm" onclick="changerPlan('${p}')">Choisir</button>`}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+async function changerEmail(){
+  const nouvelEmail=document.getElementById('compte-email')?.value?.trim();
+  const err=document.getElementById('compte-err');
+  if(!nouvelEmail){err.textContent='Saisis un email';return;}
+  try{
+    await currentUser.updateEmail(nouvelEmail);
+    toast('✓ Email modifié !');
+    renderCompte();
+  }catch(e){
+    if(e.code==='auth/requires-recent-login') err.textContent='Reconnectez-vous pour changer l\'email';
+    else err.textContent='Erreur : '+e.message;
+  }
+}
+
+async function changerMotDePasse(){
+  const pwd1=document.getElementById('compte-pwd1')?.value;
+  const pwd2=document.getElementById('compte-pwd2')?.value;
+  const err=document.getElementById('compte-err');
+  err.textContent='';
+  if(!pwd1||pwd1.length<6){err.textContent='Mot de passe trop court';return;}
+  if(pwd1!==pwd2){err.textContent='Les mots de passe ne correspondent pas';return;}
+  try{
+    await currentUser.updatePassword(pwd1);
+    toast('✓ Mot de passe modifié !');
+    document.getElementById('compte-pwd1').value='';
+    document.getElementById('compte-pwd2').value='';
+  }catch(e){
+    if(e.code==='auth/requires-recent-login') err.textContent='Reconnectez-vous pour changer le mot de passe';
+    else err.textContent='Erreur : '+e.message;
+  }
+}
+
+async function changerPlan(p){
+  if(!confirm('Changer pour la formule '+p+' ?')) return;
+  CONFIG.plan=p;
+  await saveAll();
+  buildSidebar();
+  renderCompte();
+  toast('✓ Formule mise à jour');
 }
 
 function renderHistoCaisse(){
