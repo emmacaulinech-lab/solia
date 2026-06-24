@@ -279,8 +279,14 @@ td{padding:11px 14px;vertical-align:middle}
 #settingsContent .field label{color:#444}
 #settingsContent .field input,#settingsContent .field select{color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px}
 #settingsContent .field input:focus{border-color:var(--accent);background:white}
-#settingsContent .card{background:rgba(255,255,255,.75) !important;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.85) !important}
 #settingsContent .card-title{color:#1a0f0a}
+#settingsContent .card,
+#collabApp .card,
+.view .card{
+  background:rgba(255,255,255,.75) !important;
+  border:1px solid rgba(255,255,255,.9) !important;
+  box-shadow:0 2px 16px rgba(0,0,0,.08) !important;
+}
 
 .kpi-value{font-family:'Playfair Display',serif !important;font-weight:400}
 #dashResultat .card div[style*="DM Mono"]{font-family:'Playfair Display',serif !important;font-weight:400}
@@ -5162,6 +5168,11 @@ function appliquerPalette(palette){
     <div style="position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(${r},${g},${b},.35) 0%,transparent 65%);top:-150px;right:50px;"></div>
     <div style="position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(${r},${g},${b},.22) 0%,transparent 65%);top:200px;left:100px;"></div>
     <div style="position:absolute;width:350px;height:350px;border-radius:50%;background:radial-gradient(circle,rgba(${r},${g},${b},.18) 0%,transparent 65%);bottom:-100px;right:200px;"></div>`;
+  // Forcer la visibilité des cartes quelle que soit la palette
+document.querySelectorAll('.card').forEach(c=>{
+  c.style.background='rgba(255,255,255,.75)';
+  c.style.border='1px solid rgba(255,255,255,.9)';
+});
 }
 
 async function reinitialiserPalette(){
