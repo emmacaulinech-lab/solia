@@ -2508,7 +2508,7 @@ Réponds UNIQUEMENT en JSON valide sans backticks ni markdown :
     const text=data.content.map(i=>i.text||'').join('');
     const match=text.match(/\[[\s\S]*\]/);
     if(!match) throw new Error('Aucun RDV détecté');
-    agendaRdvs=JSON.parse(match[0]);
+    agendaRdvs=JSON.parse(match[0]).map((r,i)=>({...r, _id: genId()}));;
 
 // Détecter les praticiens uniques
 const praticiensDetectes=[...new Set(agendaRdvs.map(r=>r.praticien).filter(Boolean))];
@@ -2581,7 +2581,7 @@ function renderAgendaResult(){
                   + Ajouter aux prestations
                   </button>`:''}
               </div>
-              <button onclick="supprimerRdv(${i})" style="background:none;border:none;cursor:pointer;color:var(--mut);font-size:18px">✕</button>
+              <button onclick="supprimerRdv('${r._id}')" style="background:none;border:none;cursor:pointer;color:var(--mut);font-size:18px">✕</button>
             </div>
 
             <!-- Praticien -->
@@ -2609,7 +2609,7 @@ ${collabs.filter(c=>c.nom.toLowerCase()!==(CONFIG.proprietaire||'').toLowerCase(
               <span id="rdv-total-${i}" style="font-size:12px;color:var(--mut)">Total : 0,00 €</span>
             </div>
 
-            <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%" onclick="encaisserRdv(${i})">💰 Encaisser</button>
+            <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%" onclick="encaisserRdv('${r._id}')">💰 Encaisser</button>
           </div>`).join('')}
       </div>
     </div>`;
@@ -2638,14 +2638,15 @@ function updateRdvTotal(i){
   if(el) el.textContent=`Total : ${total.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} €`;
 }
 
-function supprimerRdv(i){
-  document.getElementById(`rdv-row-${i}`)?.remove();
-  agendaRdvs.splice(i,1);
+function supprimerRdv(id){
+  agendaRdvs=agendaRdvs.filter(r=>r._id!==id);
   localStorage.setItem('solia_agenda',JSON.stringify({date:new Date().toISOString().split('T')[0],rdvs:agendaRdvs}));
+  renderAgendaResult();
 }
 
-async function encaisserRdv(i){
-  const r=agendaRdvs[i];
+async function encaisserRdv(id){
+  const r=agendaRdvs.find(x=>x._id===id);
+  if(!r) return;
   const pratId=document.getElementById(`rdv-prat-${i}`)?.value||'';
   const lines=document.querySelectorAll(`#rdv-payments-${i} .rdv-payment-line`);
   const today=document.getElementById('agenda-date')?.value||new Date().toISOString().split('T')[0];
