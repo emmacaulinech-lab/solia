@@ -1422,6 +1422,7 @@ function goView(id){
   if(id==='sous-location') renderSousLocation();
   if(id==='caisse-monnaie'){renderCaisseMonnaie();renderHistoCaisse();}
   if(id==='import-banque') document.getElementById('importBanqueResult').innerHTML='';
+  if(id==='settings') renderSettings();
   if(id==='agenda'){
   const saved=localStorage.getItem('solia_agenda');
   if(saved){
