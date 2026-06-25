@@ -2647,6 +2647,7 @@ function supprimerRdv(id){
 async function encaisserRdv(id){
   const r=agendaRdvs.find(x=>x._id===id);
   if(!r) return;
+  const i=agendaRdvs.findIndex(x=>x._id===id);
   const pratId=document.getElementById(`rdv-prat-${i}`)?.value||'';
   const lines=document.querySelectorAll(`#rdv-payments-${i} .rdv-payment-line`);
   const today=document.getElementById('agenda-date')?.value||new Date().toISOString().split('T')[0];
