@@ -1354,10 +1354,19 @@ function obSaveStep(){
 async function obNext(){
   if(!obSaveStep()) return;
   if(obStep===5){
-    await saveAll();
-    showApp();
-    return;
-  }
+  CONFIG.praticiennes = obPraticiennes
+    .filter(p => p.nom)
+    .map(p => ({
+      id: genId(),
+      nom: p.nom,
+      taux: p.taux || 40,
+      statut: 'auto',
+      regles: {}
+    }));
+  await saveAll();
+  showApp();
+  return;
+}
   obStep++;
   renderObStep();
 }
