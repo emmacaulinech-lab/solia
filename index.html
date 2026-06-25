@@ -2593,24 +2593,23 @@ ${collabs.filter(c=>c.nom.toLowerCase()!==(CONFIG.proprietaire||'').toLowerCase(
               </select>
             </div>
 
-            <!-- Paiements splittés -->
+          <!-- Paiements splittés -->
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);font-weight:600;margin-bottom:6px">Règlement(s)</div>
-            <div id="rdv-payments-${i}">
+            <div id="rdv-payments-${r._id}">
               <div class="rdv-payment-line" style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
-                <input type="number" placeholder="Montant €" step="0.01" class="rdv-mnt" style="flex:1;padding:6px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:12px" oninput="updateRdvTotal(${i})">
+                <input type="number" placeholder="Montant €" step="0.01" class="rdv-mnt" style="flex:1;padding:6px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:12px" oninput="updateRdvTotal('${r._id}')">
                 <select class="rdv-mode" style="padding:6px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:12px">
                   ${modes.map(m=>`<option>${m}</option>`).join('')}
                 </select>
-                <button onclick="this.closest('.rdv-payment-line').remove();updateRdvTotal(${i})" style="background:none;border:none;cursor:pointer;color:var(--mut);font-size:16px">✕</button>
+                <button onclick="this.closest('.rdv-payment-line').remove();updateRdvTotal('${r._id}')" style="background:none;border:none;cursor:pointer;color:var(--mut);font-size:16px">✕</button>
               </div>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
-              <button onclick="addPaymentLine(${i})" style="background:none;border:1.5px dashed #ddd;border-radius:6px;padding:5px 12px;font-size:11px;color:var(--accent);font-weight:600;cursor:pointer">+ Ajouter un mode</button>
-              <span id="rdv-total-${i}" style="font-size:12px;color:var(--mut)">Total : 0,00 €</span>
+              <button onclick="addPaymentLine('${r._id}')" style="background:none;border:1.5px dashed #ddd;border-radius:6px;padding:5px 12px;font-size:11px;color:var(--accent);font-weight:600;cursor:pointer">+ Ajouter un mode</button>
+              <span id="rdv-total-${r._id}" style="font-size:12px;color:var(--mut)">Total : 0,00 €</span>
             </div>
-
             <button class="btn btn-primary btn-sm" style="margin-top:10px;width:100%" onclick="encaisserRdv('${r._id}')">💰 Encaisser</button>
-          </div>`).join('')}
+            </div>`).join('')}
       </div>
     </div>`;
   el.innerHTML=html;
