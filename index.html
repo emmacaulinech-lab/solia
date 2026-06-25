@@ -2587,7 +2587,7 @@ function renderAgendaResult(){
             <!-- Praticien -->
             <div style="margin-bottom:10px">
               <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);font-weight:600;margin-bottom:5px">Praticien(ne)</div>
-              <select id="rdv-prat-${i}" style="padding:6px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:12px;width:100%">
+              <select id="rdv-prat-${r._id}" style="padding:6px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:12px;width:100%">
                 <option value="">✦ ${CONFIG.proprietaire||'Vous'}</option>
 ${collabs.filter(c=>c.nom.toLowerCase()!==(CONFIG.proprietaire||'').toLowerCase()).map(c=>`<option value="${c.id}" ${r.praticien===c.nom?'selected':''}>${c.nom}</option>`).join('')}
               </select>
@@ -2615,25 +2615,25 @@ ${collabs.filter(c=>c.nom.toLowerCase()!==(CONFIG.proprietaire||'').toLowerCase(
   el.innerHTML=html;
 }
 
-function addPaymentLine(i){
+function addPaymentLine(id){
   const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
-  const container=document.getElementById(`rdv-payments-${i}`);
+  const container=document.getElementById(`rdv-payments-${id}`);
   const line=document.createElement('div');
   line.className='rdv-payment-line';
   line.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:6px';
   line.innerHTML=`
-    <input type="number" placeholder="Montant €" step="0.01" class="rdv-mnt" style="flex:1;padding:6px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:12px" oninput="updateRdvTotal(${i})">
+    <input type="number" placeholder="Montant €" step="0.01" class="rdv-mnt" style="flex:1;padding:6px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:12px" oninput="updateRdvTotal('${id}')">
     <select class="rdv-mode" style="padding:6px 10px;border:1.5px solid #ddd;border-radius:6px;font-size:12px">
       ${modes.map(m=>`<option>${m}</option>`).join('')}
     </select>
-    <button onclick="this.closest('.rdv-payment-line').remove();updateRdvTotal(${i})" style="background:none;border:none;cursor:pointer;color:var(--mut);font-size:16px">✕</button>`;
+    <button onclick="this.closest('.rdv-payment-line').remove();updateRdvTotal('${id}')" style="background:none;border:none;cursor:pointer;color:var(--mut);font-size:16px">✕</button>`;
   container.appendChild(line);
 }
 
-function updateRdvTotal(i){
-  const lines=document.querySelectorAll(`#rdv-payments-${i} .rdv-mnt`);
+function updateRdvTotal(id){
+  const lines=document.querySelectorAll(`#rdv-payments-${id} .rdv-mnt`);
   const total=[...lines].reduce((s,inp)=>s+(parseFloat(inp.value)||0),0);
-  const el=document.getElementById(`rdv-total-${i}`);
+  const el=document.getElementById(`rdv-total-${id}`);
   if(el) el.textContent=`Total : ${total.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})} €`;
 }
 
@@ -2646,12 +2646,10 @@ function supprimerRdv(id){
 async function encaisserRdv(id){
   const r=agendaRdvs.find(x=>x._id===id);
   if(!r) return;
-  const i=agendaRdvs.findIndex(x=>x._id===id);
-  const pratId=document.getElementById(`rdv-prat-${i}`)?.value||'';
-  const lines=document.querySelectorAll(`#rdv-payments-${i} .rdv-payment-line`);
+  const pratId=document.getElementById(`rdv-prat-${id}`)?.value||'';
+  const lines=document.querySelectorAll(`#rdv-payments-${id} .rdv-payment-line`);
   const today=document.getElementById('agenda-date')?.value||new Date().toISOString().split('T')[0];
   let count=0;
-
   for(const line of lines){
     const mnt=parseFloat(line.querySelector('.rdv-mnt')?.value)||0;
     const mode=line.querySelector('.rdv-mode')?.value||'ESP';
@@ -2667,10 +2665,9 @@ async function encaisserRdv(id){
     });
     count++;
   }
-
   if(!count){toast('⚠ Saisis au moins un montant');return;}
   await saveAll();
-  agendaRdvs.splice(i,1);
+  agendaRdvs=agendaRdvs.filter(x=>x._id!==id);
   localStorage.setItem('solia_agenda',JSON.stringify({date:today,rdvs:agendaRdvs}));
   renderAgendaResult();
   toast(`✓ ${r.nom} encaissé(e) — ${count} ligne${count>1?'s':''} !`);
