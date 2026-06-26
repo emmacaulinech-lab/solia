@@ -2906,6 +2906,7 @@ function renderImportBanqueResult(){
           <th>Libellé</th>
           <th style="text-align:right">Montant</th>
           <th>Catégorie</th>
+          <th style="text-align:right">TVA collectée</th>
           <th>Rapprocher avec</th>
           <th></th>
         </tr></thead>
@@ -2917,6 +2918,9 @@ function renderImportBanqueResult(){
               <td class="td-mut">${dlbl(m.date)}</td>
               <td style="font-weight:500;font-size:12px">${m.libelle}</td>
               <td class="${m.montant>=0?'td-green':'td-red'}" style="text-align:right">${fm(m.montant,m.montant>0)}</td>
+              <td style="text-align:right;color:#92400e;font-family:'DM Mono',monospace;font-size:12px">
+  ${!isDup&&m.montant>0&&CONFIG.tva?fa(Math.round(m.montant/（1+CONFIG.tva)*CONFIG.tva*100)/100):'—'}
+</td>
               <td>${isDup?'—':`<select id="cat-${i}" style="padding:4px 6px;border:1.5px solid #ddd;border-radius:6px;font-size:11px;max-width:130px">
                 <option value="">— Catégorie —</option>
                 ${categories.map(c=>`<option value="${c}" ${c===autocat?'selected':''}>${c}</option>`).join('')}
@@ -2938,19 +2942,12 @@ async function importerMouvement(i){
   const m=importedMouvements[i];
   const cat=document.getElementById(`cat-${i}`)?.value||'Autre';
   const rapId=document.getElementById(`rap-${i}`)?.value||'';
-
-  DB.banque.push({id:genId(),date:m.date,nom:m.libelle,montant:m.montant,categorie:cat});
-
-  // Rapprochement avec charge prévue
+  const tva=m.montant>0&&CONFIG.tva?Math.round(m.montant/(1+CONFIG.tva)*CONFIG.tva*100)/100:0;
+  DB.banque.push({id:genId(),date:m.date,nom:m.libelle,montant:m.montant,categorie:cat,tva});
   if(rapId){
     const charge=[...DB.fixes,...DB.variables].find(f=>f.id===rapId);
-    if(charge){
-      charge.montant=m.montant;
-      charge.rapproche=true;
-      charge.paye=true;
-    }
+    if(charge){charge.montant=m.montant;charge.rapproche=true;charge.paye=true;}
   }
-
   await saveAll();
   importedMouvements.splice(i,1);
   renderImportBanqueResult();
@@ -2958,14 +2955,14 @@ async function importerMouvement(i){
 }
 
 async function importerTousMouvements(){
-  const moisActuel=new Date().toISOString().slice(0,7);
   let count=0;
   importedMouvements.forEach((m,i)=>{
     const isDup=DB.banque.some(b=>b.date===m.date&&Math.abs(b.montant-m.montant)<0.01&&b.nom.toLowerCase()===m.libelle.toLowerCase());
     if(isDup) return;
     const cat=document.getElementById(`cat-${i}`)?.value||'Autre';
     const rapId=document.getElementById(`rap-${i}`)?.value||'';
-    DB.banque.push({id:genId(),date:m.date,nom:m.libelle,montant:m.montant,categorie:cat});
+    const tva=m.montant>0&&CONFIG.tva?Math.round(m.montant/(1+CONFIG.tva)*CONFIG.tva*100)/100:0;
+    DB.banque.push({id:genId(),date:m.date,nom:m.libelle,montant:m.montant,categorie:cat,tva});
     if(rapId){
       const charge=[...DB.fixes,...DB.variables].find(f=>f.id===rapId);
       if(charge){charge.montant=m.montant;charge.rapproche=true;charge.paye=true;}
@@ -2976,17 +2973,6 @@ async function importerTousMouvements(){
   importedMouvements=[];
   renderImportBanqueResult();
   toast(`✓ ${count} mouvements importés !`);
-}
-
-async function importerTousMouvements(){
-  const nouveaux=importedMouvements.filter(m=>{
-    return !DB.banque.some(b=>b.date===m.date&&Math.abs(b.montant-m.montant)<0.01&&b.nom.toLowerCase()===m.libelle.toLowerCase());
-  });
-  nouveaux.forEach(m=>DB.banque.push({id:genId(),date:m.date,nom:m.libelle,montant:m.montant}));
-  await saveAll();
-  importedMouvements=[];
-  renderImportBanqueResult();
-  toast(`✓ ${nouveaux.length} mouvements importés !`);
 }
 
 async function importBanqueImage(event){
