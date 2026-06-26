@@ -1888,16 +1888,14 @@ function renderRecap(){
   const now=new Date();
   const mois=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
+  const collabs=CONFIG.praticiennes||[];
 
   // Générer les semaines du mois
   const firstDay=new Date(now.getFullYear(),now.getMonth(),1);
   const lastDay=new Date(now.getFullYear(),now.getMonth()+1,0);
-
-  // Trouver le lundi de la première semaine
   let start=new Date(firstDay);
   const dayOfWeek=start.getDay();
   start.setDate(start.getDate()-(dayOfWeek===0?6:dayOfWeek-1));
-
   const semaines=[];
   while(start<=lastDay){
     const lundi=new Date(start);
@@ -1907,79 +1905,147 @@ function renderRecap(){
     start.setDate(start.getDate()+7);
   }
 
-  // CA total du mois
+  // Fonction CA net société pour une liste de prestations
+  function caNet(rows){
+    return rows.reduce((s,t)=>{
+      if(!t.praticien||t.praticien===''){
+        return s+t.montant;
+      }
+      const collab=collabs.find(c=>c.id===t.praticien);
+      const taux=(collab?.taux||40)/100;
+      return s+t.montant*taux;
+    },0);
+  }
+
+  // Toutes les prestations du mois
   const caisseM=DB.caisse.filter(t=>inM(t.date,mois)&&t.montant>0);
-  const caTotal=caisseM.reduce((s,t)=>s+t.montant,0);
-  const chargesTotal=[...DB.fixes,...DB.variables].filter(f=>f.mois===mois).reduce((s,f)=>s+(f.montant||0),0);
-  const maxCA=Math.max(...semaines.map(s=>{
+  const caBrut=caisseM.reduce((s,t)=>s+t.montant,0);
+  const caNetSoc=caNet(caisseM);
+
+  // CA net par mode
+  const caNetParMode={};
+  modes.forEach(m=>{
+    const rows=caisseM.filter(t=>t.reglement===m);
+    caNetParMode[m]=caNet(rows);
+  });
+
+  // ESP net = ESP perso + ESP versé par collabs (selon règles)
+  const espNet=caNet(caisseM.filter(t=>t.reglement==='ESP'));
+
+  // Charges
+  const fixes=DB.fixes.filter(f=>f.mois===mois);
+  const variables=DB.variables.filter(f=>f.mois===mois);
+  const totalFixes=fixes.reduce((s,f)=>s+(f.montant||0),0);
+  const totalVariables=variables.reduce((s,f)=>s+(f.montant||0),0);
+  const totalCharges=totalFixes+totalVariables;
+
+  // Achats réels banque
+  const achats=DB.banque.filter(b=>inM(b.date,mois)&&b.montant<0&&['Matériel','Achat'].includes(b.categorie));
+  const totalAchats=achats.reduce((s,b)=>s+b.montant,0);
+
+  // Trésorerie ESP
+  const espEncaisse=caisseM.filter(t=>t.reglement==='ESP').reduce((s,t)=>s+t.montant,0);
+  const espDepose=DB.banque.filter(b=>inM(b.date,mois)&&b.montant>0&&b.categorie==="Chiffre d'affaires").reduce((s,b)=>s+b.montant,0);
+  const espADeposer=espEncaisse-espDepose;
+  const ecartESP=espDepose-espEncaisse;
+
+  // Redevance
+  const redevance=calculerRedevance(mois);
+
+  // Résultat
+  const resultat=caNetSoc+totalCharges+totalAchats-(redevance||0);
+
+  // Semaines
+  const totauxSemaines=semaines.map(s=>{
     const d1=s.lundi.toISOString().split('T')[0];
     const d2=s.dimanche.toISOString().split('T')[0];
-    return DB.caisse.filter(t=>t.date>=d1&&t.date<=d2&&t.montant>0).reduce((s,t)=>s+t.montant,0);
-  }),1);
+    const rows=DB.caisse.filter(t=>t.date>=d1&&t.date<=d2&&t.montant>0);
+    const caNetS=caNet(rows);
+    const parMode={};
+    modes.forEach(m=>parMode[m]=caNet(rows.filter(t=>t.reglement===m)));
+    const achatsS=DB.banque.filter(b=>b.date>=d1&&b.date<=d2&&b.montant<0&&['Matériel','Achat'].includes(b.categorie)).reduce((s,b)=>s+b.montant,0);
+    const espDeposeS=DB.banque.filter(b=>b.date>=d1&&b.date<=d2&&b.montant>0&&b.categorie==="Chiffre d'affaires").reduce((s,b=>s+b.montant,0);
+    const espEncaisseS=rows.filter(t=>t.reglement==='ESP').reduce((s,t)=>s+t.montant,0);
+    return{d1,d2,caNetS,parMode,achatsS,espDeposeS,espEncaisseS};
+  });
 
-  let html=`
-    <!-- Résumé mensuel -->
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">📊 ${mf(mois)}</span></div>
-      <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-        <div style="text-align:center">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">CA Total</div>
-          <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--mint)">${fa(caTotal)}</div>
-        </div>
-        <div style="text-align:center">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">Charges</div>
-          <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--red)">${fm(chargesTotal)}</div>
-        </div>
-        <div style="text-align:center">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:6px">Résultat</div>
-          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:${caTotal+chargesTotal>=0?'var(--mint)':'var(--red)'}">${fm(caTotal+chargesTotal,true)}</div>
-        </div>
-      </div>
-    </div>
+  const labelS=(s,i)=>{
+    const l=s.lundi.toLocaleDateString('fr-FR',{day:'numeric',month:'2-digit'});
+    const d=s.dimanche.toLocaleDateString('fr-FR',{day:'numeric',month:'2-digit'});
+    return`S${i+1}<br><span style="font-size:9px;font-weight:400">${l}→${d}</span>`;
+  };
 
-    <!-- Semaines -->
-    ${semaines.map((s,i)=>{
-      const d1=s.lundi.toISOString().split('T')[0];
-      const d2=s.dimanche.toISOString().split('T')[0];
-      const prestations=DB.caisse.filter(t=>t.date>=d1&&t.date<=d2&&t.montant>0);
-      const ca=prestations.reduce((s,t)=>s+t.montant,0);
-      const barW=ca>0?Math.round(ca/maxCA*100):0;
-      const isCurrentWeek=new Date()>=s.lundi&&new Date()<=s.dimanche;
+  const row=(label,vals,total,color='',bold=false,bg='')=>{
+    const style=`${bold?'font-weight:700;':''}${color?`color:${color};`:''}${bg?`background:${bg};`:''}`;
+    return`<tr style="${bg?`background:${bg};`:''}">
+      <td style="padding:8px 12px;font-size:12px;${bold?'font-weight:700;':''}${color?`color:${color};`:''}">${label}</td>
+      ${vals.map(v=>`<td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;${style}">${v===0?`<span style="color:#ccc">0,00 €</span>`:fm(v,v>0)}</td>`).join('')}
+      <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:13px;${bold?'font-weight:700;':''}${color?`color:${color};`:''}">${total===0?`<span style="color:#ccc">0,00 €</span>`:fm(total,total>0)}</td>
+    </tr>`;
+  };
 
-      const labelLundi=s.lundi.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
-      const labelDim=s.dimanche.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+  const sVals=(fn)=>totauxSemaines.map(fn);
 
-      return`<div class="card" style="margin-bottom:12px${isCurrentWeek?';border:1.5px solid #c47a4a':''}">
-        <div class="card-header">
-          <span class="card-title">Semaine ${i+1} <span style="font-size:11px;color:var(--mut);font-weight:400">${labelLundi} → ${labelDim}</span></span>
-          ${isCurrentWeek?'<span style="font-size:10px;background:#c47a4a;color:white;padding:2px 8px;border-radius:99px;font-weight:600">Cette semaine</span>':''}
-          <span style="font-family:'Playfair Display',serif;font-size:18px;color:var(--mint)">${fa(ca)}</span>
-        </div>
-        ${ca>0?`
-        <div style="padding:12px 16px">
-          <!-- Barre de progression -->
-          <div style="background:#f0e8e0;border-radius:99px;height:6px;margin-bottom:12px">
-            <div style="background:#c47a4a;border-radius:99px;height:6px;width:${barW}%;transition:width .3s"></div>
-          </div>
-          <!-- Détail par mode -->
-          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-            ${modes.map(m=>{
-              const v=prestations.filter(t=>t.reglement===m).reduce((s,t)=>s+t.montant,0);
-              return v>0?`<div style="display:flex;align-items:center;gap:6px">
-                ${bdg(m)}
-                <span style="font-family:'Playfair Display',serif;font-size:14px;color:var(--mint)">${fa(v)}</span>
-              </div>`:'';
-            }).join('')}
-          </div>
-          <!-- Prestations -->
-          <div style="font-size:11px;color:var(--mut)">${prestations.length} prestation${prestations.length>1?'s':''} · Panier moyen ${fa(ca/prestations.length)}</div>
-        </div>`:`<div style="padding:12px 16px;font-size:13px;color:var(--mut)">Aucune prestation</div>`}
-      </div>`;
-    }).join('')}`;
+  el.innerHTML=`
+  <div class="card" style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;min-width:700px">
+      <thead>
+        <tr style="background:#1a0f0a;color:white">
+          <th style="padding:10px 12px;text-align:left;font-size:11px;font-weight:600;min-width:180px"></th>
+          ${semaines.map((s,i)=>`<th style="padding:10px 8px;text-align:right;font-size:10px;font-weight:600">${labelS(s,i)}</th>`).join('')}
+          <th style="padding:10px 12px;text-align:right;font-size:11px;font-weight:700">TOTAL</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- CA NET SOCIÉTÉ -->
+        <tr style="background:#f0fdf4">
+          <td colspan="${semaines.length+2}" style="padding:8px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#065f46;font-weight:700">CA NET SOCIÉTÉ</td>
+        </tr>
+        ${modes.map(m=>row(
+          `→ ${m==='ESP'?'ESP (net)':m}`,
+          sVals(s=>s.parMode[m]||0),
+          caNetParMode[m]||0,
+          'var(--mint)'
+        )).join('')}
+        ${row('✅ CA NET TOTAL',sVals(s=>s.caNetS),caNetSoc,'var(--mint)',true,'#f0fdf4')}
 
-  el.innerHTML=html;
+        <!-- CHARGES -->
+        <tr style="background:#fff7ed">
+          <td colspan="${semaines.length+2}" style="padding:8px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#92400e;font-weight:700">CHARGES</td>
+        </tr>
+        ${row('🗓 Ch. fixes+var. estimées',semaines.map(()=>totalCharges/semaines.length),totalCharges,'var(--red)')}
+        ${row('🛒 Achats réels',sVals(s=>s.achatsS),totalAchats,'var(--red)')}
+        ${row('💸 CHARGES TOTALES',semaines.map((_,i)=>(totalCharges/semaines.length)+(totauxSemaines[i].achatsS||0)),totalCharges+totalAchats,'var(--red)',true,'#fff7ed')}
+
+        <!-- TRÉSORERIE -->
+        <tr style="background:#eff6ff">
+          <td colspan="${semaines.length+2}" style="padding:8px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#1d4ed8;font-weight:700">TRÉSORERIE</td>
+        </tr>
+        ${row('💰 ESP à déposer (cumulatif)',sVals(s=>-(s.espEncaisseS-s.espDeposeS)),-(espEncaisse-espDepose),'#92400e')}
+        ${row('→ ESP déposées',sVals(s=>s.espDeposeS),espDepose,'var(--mint)')}
+        ${row('→ Écart ESP',sVals(s=>s.espDeposeS-s.espEncaisseS),ecartESP,ecartESP>=0?'var(--mint)':'var(--red)')}
+
+        ${CONFIG.franchise?`
+        <!-- REDEVANCE -->
+        <tr style="background:#faf5ff">
+          <td colspan="${semaines.length+2}" style="padding:8px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#7e22ce;font-weight:700">REDEVANCE (${CONFIG.franchiseTaux||10}%)</td>
+        </tr>
+        ${row(`→ ${CONFIG.franchiseNom||'Franchise'}`,semaines.map(()=>-redevance/semaines.length),-redevance,'#7e22ce')}
+        `:''}
+
+        <!-- RÉSULTAT -->
+        <tr style="background:#1a0f0a">
+          <td style="padding:10px 12px;font-size:13px;font-weight:700;color:white">RÉSULTAT NET</td>
+          ${totauxSemaines.map(s=>{
+            const r=s.caNetS+(totalCharges/semaines.length)+s.achatsS-(redevance/semaines.length);
+            return`<td style="padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${r>=0?'#86efac':'#fca5a5'}">${fm(r,r>0)}</td>`;
+          }).join('')}
+          <td style="padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:${resultat>=0?'#86efac':'#fca5a5'}">${fm(resultat,resultat>0)}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>`;
 }
-
 // ══════════════════════════════════════
 // CLIENTES
 // ══════════════════════════════════════
