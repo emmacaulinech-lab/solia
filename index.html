@@ -1964,7 +1964,7 @@ function renderRecap(){
     const parMode={};
     modes.forEach(m=>parMode[m]=caNet(rows.filter(t=>t.reglement===m)));
     const achatsS=DB.banque.filter(b=>b.date>=d1&&b.date<=d2&&b.montant<0&&['Matériel','Achat'].includes(b.categorie)).reduce((s,b)=>s+b.montant,0);
-    const espDeposeS=DB.banque.filter(b=>b.date>=d1&&b.date<=d2&&b.montant>0&&b.categorie==="Chiffre d'affaires").reduce((s,b=>s+b.montant,0);
+    const espDeposeS=DB.banque.filter(b=>b.date>=d1&&b.date<=d2&&b.montant>0&&b.categorie==="Chiffre d'affaires").reduce((s,b)=>s+b.montant,0);
     const espEncaisseS=rows.filter(t=>t.reglement==='ESP').reduce((s,t)=>s+t.montant,0);
     return{d1,d2,caNetS,parMode,achatsS,espDeposeS,espEncaisseS};
   });
