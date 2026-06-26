@@ -1746,8 +1746,8 @@ function renderBanque(){
     ${['avance','complet'].includes(CONFIG.plan)
       ?`<button class="btn btn-outline btn-sm" onclick="goView('import-banque')">📥 Import relevé</button>
         <button class="btn btn-outline btn-sm" onclick="goView('factures')">🧾 Factures</button>`
-      :`<button class="btn btn-ghost btn-sm" onclick="toast('⬆️ Fonctionnalité Avancé')">📥 Import relevé 🔒</button>`}`;
-  <button class="btn btn-outline btn-sm" onclick="calculerTVA()">🧾 Calculer TVA</button>
+      :`<button class="btn btn-ghost btn-sm" onclick="toast('⬆️ Fonctionnalité Avancé')">📥 Import relevé 🔒</button>`}
+    <button class="btn btn-outline btn-sm" onclick="calculerTVA()">🧾 Calculer TVA</button>`;
   const s=(document.getElementById('bs')?.value||'').toLowerCase();
   const fm_=document.getElementById('bm')?.value||'';
   let rows=[...DB.banque].sort((a,b)=>b.date.localeCompare(a.date));
@@ -3777,6 +3777,14 @@ function ouvrirRapprochementCaisse(banqueId){
   const b=DB.banque.find(x=>x.id===banqueId);
   if(!b) return;
 
+  // Détecter automatiquement le mode selon le libellé
+  const libelle=b.nom.toLowerCase();
+  let modeAuto='';
+  if(libelle.includes('planity')) modeAuto='PLANITY';
+  else if(libelle.includes('vir')||libelle.includes('virement')) modeAuto='VIR';
+  else if(libelle.includes('cheque')||libelle.includes('chèque')||libelle.includes('chq')) modeAuto='CHQ';
+  else if(libelle.includes('esp')||libelle.includes('espece')||libelle.includes('espèce')) modeAuto='ESP';
+
   document.getElementById('mTitle').textContent='🔗 Rapprocher avec des prestations';
   document.getElementById('mBody').innerHTML=`
     <div style="background:var(--fog);border-radius:10px;padding:12px 14px;margin-bottom:16px">
@@ -3788,23 +3796,25 @@ function ouvrirRapprochementCaisse(banqueId){
       <select id="rap-type" onchange="updateRapprochementList('${banqueId}')">
         <option value="">— Choisir le type —</option>
         ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>{
-  const modesTypes=CONFIG.modesTypes||{};
-  const type=modesTypes[m]||(['ESP','CHQ'].includes(m)?'physique':'virement');
-  const icon=type==='physique'?'💵':'🏦';
-  return`<option value="${m}">${icon} ${m}</option>`;
-}).join('')}
-<option value="AUTRE">➕ Autre / Manuel</option>
+          const modesTypes=CONFIG.modesTypes||{};
+          const type=modesTypes[m]||(['ESP','CHQ'].includes(m)?'physique':'virement');
+          const icon=type==='physique'?'💵':'🏦';
+          return`<option value="${m}" ${m===modeAuto?'selected':''}>${icon} ${m}</option>`;
+        }).join('')}
+        <option value="AUTRE">➕ Autre / Manuel</option>
       </select>
     </div>
     <div id="rap-list"></div>
     <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-top:8px">
       Total sélectionné : <span id="rdepot-total" style="font-weight:700;color:var(--accent)">0,00 €</span>
     </div>`;
-
   document.querySelector('#mainModal .modal-footer').innerHTML=`
     <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>
     <button class="btn btn-primary" onclick="validerRapprochementCaisse('${banqueId}')">✓ Valider</button>`;
   document.getElementById('mainModal').classList.add('open');
+
+  // Charger automatiquement la liste si mode détecté
+  if(modeAuto) updateRapprochementList(banqueId);
 }
 
 function updateRapprochementList(banqueId){
