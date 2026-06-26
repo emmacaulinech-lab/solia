@@ -1747,6 +1747,7 @@ function renderBanque(){
       ?`<button class="btn btn-outline btn-sm" onclick="goView('import-banque')">📥 Import relevé</button>
         <button class="btn btn-outline btn-sm" onclick="goView('factures')">🧾 Factures</button>`
       :`<button class="btn btn-ghost btn-sm" onclick="toast('⬆️ Fonctionnalité Avancé')">📥 Import relevé 🔒</button>`}`;
+  <button class="btn btn-outline btn-sm" onclick="calculerTVA()">🧾 Calculer TVA</button>
   const s=(document.getElementById('bs')?.value||'').toLowerCase();
   const fm_=document.getElementById('bm')?.value||'';
   let rows=[...DB.banque].sort((a,b)=>b.date.localeCompare(a.date));
@@ -1782,6 +1783,70 @@ function renderBanque(){
   }
   html+='</tbody></table>';
   document.getElementById('banqueTable').innerHTML=html;
+}
+
+async function calculerTVA(){
+  const mois=document.getElementById('bm')?.value||new Date().toISOString().slice(0,7);
+  if(!mois){toast('⚠ Sélectionne un mois d\'abord');return;}
+
+  // TVA collectée = toutes les rentrées du mois
+  const credits=DB.banque.filter(b=>inM(b.date,mois)&&b.montant>0);
+  const tvaCollectee=credits.reduce((s,b)=>s+(b.tva||Math.round(b.montant/(1+CONFIG.tva)*CONFIG.tva*100)/100),0);
+
+  // TVA déductible = TVA sur les factures fournisseurs du mois
+  const tvaDeductible=DB_FACTURES.filter(f=>inM(f.date,mois)&&f.rapprochee).reduce((s,f)=>s+f.tva,0);
+
+  const tvaNette=Math.round((tvaCollectee-tvaDeductible)*100)/100;
+
+  // Calculer le mois suivant
+  const [y,m]=mois.split('-').map(Number);
+  let sy=y, sm=m+1;
+  if(sm>12){sm=1;sy++;}
+  const moisSuivant=`${sy}-${String(sm).padStart(2,'0')}`;
+
+  document.getElementById('mTitle').textContent='🧾 Déclaration TVA';
+  document.getElementById('mBody').innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="background:#f9f6f4;border-radius:10px;padding:14px 16px">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:4px">Période</div>
+        <div style="font-size:15px;font-weight:600">${mf(mois)}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div style="background:#d1fae5;border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:#065f46;margin-bottom:4px">TVA collectée</div>
+          <div style="font-family:'Playfair Display',serif;font-size:18px;color:#065f46">${fa(tvaCollectee)}</div>
+        </div>
+        <div style="background:#fee2e2;border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:var(--red);margin-bottom:4px">TVA déductible</div>
+          <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--red)">${fa(tvaDeductible)}</div>
+        </div>
+        <div style="background:#fef3c7;border-radius:10px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:#92400e;margin-bottom:4px">TVA à reverser</div>
+          <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#92400e">${fa(tvaNette)}</div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:#555">Une charge <strong>TVA ${mf(mois)}</strong> de <strong>${fa(tvaNette)}</strong> sera créée dans <strong>${mf(moisSuivant)}</strong>.</div>
+    </div>`;
+  document.querySelector('#mainModal .modal-footer').innerHTML=`
+    <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>
+    <button class="btn btn-primary" onclick="validerDeclarationTVA(${tvaNette},'${mois}','${moisSuivant}')">✓ Créer la charge</button>`;
+  document.getElementById('mainModal').classList.add('open');
+}
+
+async function validerDeclarationTVA(tvaNette, moisRef, moisSuivant){
+  const existe=DB.fixes.some(f=>f.mois===moisSuivant&&f.nom===`TVA ${mf(moisRef)}`);
+  if(existe){toast('⚠ Charge TVA déjà créée pour ce mois');closeMo('mainModal');return;}
+  DB.fixes.push({
+    id:genId(),
+    mois:moisSuivant,
+    nom:`TVA ${mf(moisRef)}`,
+    montant:-tvaNette,
+    rapproche:false,
+    paye:false
+  });
+  await saveAll();
+  closeMo('mainModal');
+  toast(`✓ Charge TVA ${fa(tvaNette)} créée dans ${mf(moisSuivant)}`);
 }
 
 // ══════════════════════════════════════
@@ -2919,7 +2984,7 @@ function renderImportBanqueResult(){
               <td style="font-weight:500;font-size:12px">${m.libelle}</td>
               <td class="${m.montant>=0?'td-green':'td-red'}" style="text-align:right">${fm(m.montant,m.montant>0)}</td>
               <td style="text-align:right;color:#92400e;font-family:'DM Mono',monospace;font-size:12px">
-  ${!isDup&&m.montant>0&&CONFIG.tva?fa(Math.round(m.montant/（1+CONFIG.tva)*CONFIG.tva*100)/100):'—'}
+  ${!isDup&&m.montant>0&&CONFIG.tva?fa(Math.round(m.montant/(1+CONFIG.tva)*CONFIG.tva*100)/100):'—'}
 </td>
               <td>${isDup?'—':`<select id="cat-${i}" style="padding:4px 6px;border:1.5px solid #ddd;border-radius:6px;font-size:11px;max-width:130px">
                 <option value="">— Catégorie —</option>
