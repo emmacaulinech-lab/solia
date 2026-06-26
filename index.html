@@ -2847,6 +2847,23 @@ async function importBanqueCSV(event){
   event.target.value='';
 }
 
+function detecterCategorie(libelle, montant){
+  if(montant>0) return "Chiffre d'affaires";
+  const l=libelle.toLowerCase();
+  if(l.includes('loyer')||l.includes('bail')) return 'Loyer';
+  if(l.includes('edf')||l.includes('engie')||l.includes('electricit')||l.includes('energie')) return 'EDF';
+  if(l.includes('tel')||l.includes('sfr')||l.includes('orange')||l.includes('bouygues')||l.includes('free')) return 'Téléphone';
+  if(l.includes('planity')||l.includes('solia')||l.includes('abonnement')||l.includes('subscription')) return 'Abonnements';
+  if(l.includes('assur')) return 'Assurance';
+  if(l.includes('urssaf')||l.includes('cotis')) return 'URSSAF';
+  if(l.includes('salaire')||l.includes('virement salaire')) return 'Salaires';
+  if(l.includes('comptable')||l.includes('expert')) return 'Comptable';
+  if(l.includes('tva')) return 'TVA';
+  if(l.includes('formation')) return 'Formation';
+  if(l.includes('materiel')||l.includes('achat')||l.includes('amazon')||l.includes('fourniture')) return 'Matériel';
+  return 'Autre';
+}
+
 function renderImportBanqueResult(){
   const el=document.getElementById('importBanqueResult');
   if(!importedMouvements.length){
@@ -2895,7 +2912,7 @@ function renderImportBanqueResult(){
         <tbody>
           ${importedMouvements.map((m,i)=>{
             const isDup=doublons.has(i);
-            const autocat=m.montant>0?'Chiffre d\'affaires':'';
+            const autocat=detecterCategorie(m.libelle, m.montant);
             return`<tr style="opacity:${isDup?0.4:1}">
               <td class="td-mut">${dlbl(m.date)}</td>
               <td style="font-weight:500;font-size:12px">${m.libelle}</td>
