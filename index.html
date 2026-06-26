@@ -2465,18 +2465,24 @@ function buildForm(ctx,editId=null){
     return`
       <div class="g2">
         <div class="field"><label>Mois</label><input type="month" id="fMois" value="${t?.mois||thisMonth}"></div>
-        <div class="field"><label>Montant (€)</label><input type="number" id="fMnt" value="${t?.montant||''}" placeholder="-1200" step="0.01"></div>
+        <div class="field"><label>Nom</label><input type="text" id="fNom" value="${t?.nom||''}" placeholder="LOYER, URSSAF..."></div>
       </div>
-      <div class="field"><label>Nom</label><input type="text" id="fNom" value="${t?.nom||''}" placeholder="LOYER, URSSAF..."></div>`;
+      <div class="g2">
+        <div class="field"><label>Montant prévu (€)</label><input type="number" id="fPrev" value="${t?.prev||''}" placeholder="-1200" step="0.01"></div>
+        <div class="field"><label>Montant réel (€)</label><input type="number" id="fMnt" value="${t?.montant||''}" placeholder="Laisser vide si pas encore payé" step="0.01"></div>
+      </div>`;
   }
   if(ctx==='variables'){
     const t=editId?DB.variables.find(x=>x.id===editId):null;
     return`
       <div class="g2">
         <div class="field"><label>Mois</label><input type="month" id="fMois" value="${t?.mois||thisMonth}"></div>
-        <div class="field"><label>Montant (€)</label><input type="number" id="fMnt" value="${t?.montant||''}" step="0.01"></div>
+        <div class="field"><label>Catégorie</label><input type="text" id="fNom" value="${t?.nom||''}" placeholder="EDF, ACHAT..."></div>
       </div>
-      <div class="field"><label>Catégorie</label><input type="text" id="fNom" value="${t?.nom||''}" placeholder="EDF, ACHAT..."></div>`;
+      <div class="g2">
+        <div class="field"><label>Montant prévu (€)</label><input type="number" id="fPrev" value="${t?.prev||''}" placeholder="-500" step="0.01"></div>
+        <div class="field"><label>Montant réel (€)</label><input type="number" id="fMnt" value="${t?.montant||''}" placeholder="Laisser vide si pas encore payé" step="0.01"></div>
+      </div>`;
   }
   return '';
 }
@@ -2540,11 +2546,11 @@ rapprocheBanque:false
         await saveFacture(facture);
       }
     } else if(mCtx==='fixes'){
-      const t={id,mois:g('fMois'),nom:g('fNom'),montant:parseFloat(g('fMnt'))||0};
+      const t={id,mois:g('fMois'),nom:g('fNom'),prev:parseFloat(g('fPrev'))||0,montant:parseFloat(g('fMnt'))||0};
       if(mEditId){const i=DB.fixes.findIndex(x=>x.id===mEditId);DB.fixes[i]=t;}
       else DB.fixes.push(t);
     } else if(mCtx==='variables'){
-      const t={id,mois:g('fMois'),nom:g('fNom'),montant:parseFloat(g('fMnt'))||0};
+      const t={id,mois:g('fMois'),nom:g('fNom'),prev:parseFloat(g('fPrev'))||0,montant:parseFloat(g('fMnt'))||0};
       if(mEditId){const i=DB.variables.findIndex(x=>x.id===mEditId);DB.variables[i]=t;}
       else DB.variables.push(t);
     }
