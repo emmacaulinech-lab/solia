@@ -2026,7 +2026,7 @@ function renderRecap(){
 
  // ── Trésorerie ESP — logique EMMA ──
 const espDeposeesW=semaines.map(s=>
-  DB.banque.filter(b=>inSem(b.date,s)&&b.categorie==="Chiffre d'affaires"&&b.montant>0&&b.nom.toUpperCase().includes('DÉPÔT')&&!b.nom.toUpperCase().includes('CHQ')&&!b.nom.toUpperCase().includes('CHÈQUES')).reduce((s,b)=>s+b.montant,0)
+  DB.caisse.filter(t=>inSem(t.date,s)&&t.reglement==='ESP'&&t.montant>0&&t.depose===true).reduce((s,t)=>s+t.montant,0)
 );
 const espDeposesTot=espDeposeesW.reduce((s,v)=>s+v,0);
 
