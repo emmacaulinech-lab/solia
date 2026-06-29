@@ -1710,7 +1710,15 @@ let html='<table><thead><tr><th>Date</th><th>Nom</th><th>Prestation</th><th styl
     const tot=mrows.reduce((s,t)=>s+t.montant,0);
     html+=`<tr class="tr-sum"><td colspan="3" style="padding:8px 14px">▾ ${mf(mois)} <span style="font-size:11px;color:var(--mut);font-weight:400">${mrows.filter(t=>t.montant>0).length} prestations</span></td><td class="td-green" style="text-align:right;padding:8px 14px">${fa(tot)}</td><td colspan="3"></td></tr>`;
     for(const t of mrows){
-      html+=`<tr style="background:${t.paye||t.depose?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)'}">
+      html+=`<tr style="background:${
+  t.reglement==='ESP'
+    ?(t.depose?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
+    :t.reglement==='CHQ'
+      ?((t.depose||t.chqDepose)?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
+      :(t.reglement==='VIR'||t.reglement==='PLANITY')
+        ?(t.rapprocheBanque?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
+        :'rgba(245,158,11,.06)'
+}">
         <td class="td-mut">${dlbl(t.date)}</td>
         <td style="font-weight:600">${t.nom||'—'}</td>
         <td class="td-mut">${t.prestation||'—'}</td>
