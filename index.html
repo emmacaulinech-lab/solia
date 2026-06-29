@@ -2103,27 +2103,32 @@ function renderClients(){
 // ══════════════════════════════════════
 function renderSettings(){
   const planNames={'simple':'🌱 Simple — 9€/mois','avance':'⚡ Avancé — 19€/mois','complet':'✨ Complet — 29€/mois'};
+
   document.getElementById('settingsContent').innerHTML=`
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">🏪 Mon salon</span></div>
-      <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
-        <div class="field"><label>Nom du salon</label><input type="text" id="set-salon" value="${CONFIG.salonNom||''}" onchange="CONFIG.salonNom=this.value"></div>
-        <div class="field"><label>Votre prénom</label><input type="text" id="set-prenom" value="${CONFIG.proprietaire||''}" onchange="CONFIG.proprietaire=this.value"></div>
+
+    <!-- ── MON SALON ── -->
+    <details open style="margin-bottom:12px">
+      <summary style="cursor:pointer;padding:14px 18px;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);border-radius:14px;font-weight:700;font-size:13px;color:#1a0f0a;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        🏪 Mon salon & objectifs <span style="font-size:11px;color:var(--mut);font-weight:400">▾</span>
+      </summary>
+      <div style="background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);border-radius:0 0 14px 14px;padding:16px;margin-top:-4px">
+        <div class="field"><label>Nom du salon</label><input type="text" id="set-salon" value="${CONFIG.salonNom||''}" onchange="CONFIG.salonNom=this.value" style="color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px"></div>
+        <div class="field"><label>Votre prénom</label><input type="text" id="set-prenom" value="${CONFIG.proprietaire||''}" onchange="CONFIG.proprietaire=this.value" style="color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px"></div>
         <div class="g2">
-          <div class="field"><label>Objectif mensuel (€)</label><input type="number" id="set-obj" value="${CONFIG.objectif}" onchange="CONFIG.objectif=parseFloat(this.value)||5000"></div>
-          <div class="field"><label>Solde initial (€)</label><input type="number" id="set-solde" value="${CONFIG.soldeInit}" onchange="CONFIG.soldeInit=parseFloat(this.value)||0"></div>
+          <div class="field"><label>Objectif mensuel (€)</label><input type="number" id="set-obj" value="${CONFIG.objectif||5000}" onchange="CONFIG.objectif=parseFloat(this.value)||5000" style="color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px"></div>
+          <div class="field"><label>Solde initial banque (€)</label><input type="number" id="set-solde" value="${CONFIG.soldeInit||0}" onchange="CONFIG.soldeInit=parseFloat(this.value)||0" style="color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px"></div>
         </div>
         <button class="btn btn-primary" onclick="saveSettings()">Sauvegarder</button>
       </div>
-    </div>
+    </details>
 
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">🎨 Logo & Identité visuelle</span></div>
-      <div style="padding:16px">
-        ${CONFIG.logo?`
-        <div style="margin-bottom:16px;text-align:center">
-          <img src="${CONFIG.logo}" style="max-height:80px;max-width:200px;object-fit:contain;border-radius:8px;border:1px solid #eee;padding:8px;background:#f9f6f4">
-        </div>`:''}
+    <!-- ── IDENTITÉ VISUELLE ── -->
+    <details style="margin-bottom:12px">
+      <summary style="cursor:pointer;padding:14px 18px;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);border-radius:14px;font-weight:700;font-size:13px;color:#1a0f0a;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        🎨 Logo & identité visuelle <span style="font-size:11px;color:var(--mut);font-weight:400">▾</span>
+      </summary>
+      <div style="background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);border-radius:0 0 14px 14px;padding:16px;margin-top:-4px">
+        ${CONFIG.logo?`<div style="margin-bottom:16px;text-align:center"><img src="${CONFIG.logo}" style="max-height:80px;max-width:200px;object-fit:contain;border-radius:8px;border:1px solid #eee;padding:8px;background:#f9f6f4"></div>`:''}
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
           <label style="display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:white;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">
             📤 ${CONFIG.logo?'Changer le logo':'Importer un logo'}
@@ -2145,137 +2150,78 @@ function renderSettings(){
           </div>
           <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="reinitialiserPalette()">↺ Réinitialiser les couleurs</button>
         </div>`:''}
-        <div style="font-size:11px;color:#888;margin-top:8px">Le logo apparaîtra dans votre interface et celle de vos collaborateurs.</div>
       </div>
-    </div>
+    </details>
 
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-header">
-        <span class="card-title">🏪 Franchise</span>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-          <span style="font-size:12px;color:var(--mut)">${CONFIG.franchise?'Activée':'Désactivée'}</span>
-          <div onclick="toggleFranchise()" style="width:40px;height:22px;border-radius:99px;background:${CONFIG.franchise?'var(--accent)':'#ddd'};cursor:pointer;position:relative;transition:background .2s">
-            <div style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:2px;${CONFIG.franchise?'right:2px':'left:2px'};transition:all .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>
-          </div>
-        </label>
-      </div>
-      ${CONFIG.franchise?`
-      <div style="padding:16px">
-        <div id="franchise-config-settings">${renderFranchiseConfigHTML()}</div>
-        <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="saveFranchiseSettings()">Sauvegarder</button>
-      </div>`:'<div style="padding:14px 16px;font-size:12px;color:var(--mut)">Activez si vous êtes sous contrat de franchise.</div>'}
-    </div>
+    <!-- ── ÉQUIPE & ACCÈS ── -->
+    <details style="margin-bottom:12px">
+      <summary style="cursor:pointer;padding:14px 18px;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);border-radius:14px;font-weight:700;font-size:13px;color:#1a0f0a;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        👥 Équipe, modes & prestations <span style="font-size:11px;color:var(--mut);font-weight:400">▾</span>
+      </summary>
+      <div style="background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);border-radius:0 0 14px 14px;padding:16px;margin-top:-4px">
 
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">🏠 Sous-location</span>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-          <span style="font-size:12px;color:var(--mut)">Activer</span>
-          <div onclick="toggleSousLocation()" style="width:40px;height:22px;border-radius:99px;background:${CONFIG.sousLocationActive?'var(--accent)':'#ddd'};cursor:pointer;position:relative;transition:background .2s">
-            <div style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:2px;${CONFIG.sousLocationActive?'right:2px':'left:2px'};transition:all .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>
-          </div>
-        </label>
-      </div>
-      ${CONFIG.sousLocationActive?`<div style="padding:14px 16px;font-size:13px;color:var(--mut)">
-        Gérez vos sous-locataires depuis le menu <strong>🏠 Sous-location</strong>.
-      </div>`:'<div style="padding:14px 16px;font-size:12px;color:var(--mut)">Activez si vous sous-louez une partie de votre local.</div>'}
-    </div>
-
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-header">
-        <span class="card-title">💵 Caisse de monnaie</span>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-          <span style="font-size:12px;color:var(--mut)">${CONFIG.caisseMonnaieActive?'Activée':'Désactivée'}</span>
-          <div onclick="toggleCaisseMonnaie()" style="width:40px;height:22px;border-radius:99px;background:${CONFIG.caisseMonnaieActive?'#c47a4a':'#ddd'};cursor:pointer;position:relative;transition:background .2s">
-            <div style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:2px;${CONFIG.caisseMonnaieActive?'right:2px':'left:2px'};transition:all .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>
-          </div>
-        </label>
-      </div>
-      ${CONFIG.caisseMonnaieActive?`
-      <div style="padding:16px">
-        <div class="field"><label>Fond de caisse initial (€)</label>
-          <input type="number" id="set-fond-caisse" value="${CONFIG.fondCaisse||0}" placeholder="0" step="0.01">
+        <!-- Équipe -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:12px;font-weight:700;color:#444">👤 Mon équipe</div>
+          <button class="btn btn-primary btn-sm" onclick="openAddCollab()">+ Ajouter</button>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="saveFondCaisse()">Sauvegarder</button>
-      </div>`:'<div style="padding:14px 16px;font-size:12px;color:var(--mut)">Activez pour suivre votre caisse physique en espèces.</div>'}
-    </div>
-
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-header">
-        <span class="card-title">👥 Mon équipe</span>
-        <button class="btn btn-primary btn-sm" onclick="openAddCollab()">+ Ajouter</button>
-      </div>
-      <div id="equipeList" style="padding:0">
-        ${(CONFIG.praticiennes||[]).length?
-          (CONFIG.praticiennes||[]).map((p,i)=>`
-            <div style="padding:14px 18px;border-bottom:1px solid var(--fog)">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-                <div>
-                  <div style="font-weight:700;font-size:14px">${p.nom}</div>
-                  <div style="font-size:11px;color:var(--mut)">${p.statut||'Auto-entrepreneur'} · ${p.taux||40}% société</div>
+        <div id="equipeList" style="margin-bottom:16px">
+          ${(CONFIG.praticiennes||[]).length?
+            (CONFIG.praticiennes||[]).map((p,i)=>`
+              <div style="padding:12px;background:#f9f6f4;border-radius:10px;margin-bottom:8px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                  <div>
+                    <div style="font-weight:700;font-size:14px">${p.nom}</div>
+                    <div style="font-size:11px;color:var(--mut)">${p.statut||'Auto-entrepreneur'} · ${p.taux||40}% société</div>
+                  </div>
+                  <div style="display:flex;gap:6px">
+                    <button class="btn btn-ghost btn-sm" onclick="openEditCollab(${i})">✏️</button>
+                    <button class="btn btn-danger btn-sm" onclick="delCollab(${i})">✕</button>
+                  </div>
                 </div>
-                <div style="display:flex;gap:6px">
-                  <button class="btn btn-ghost btn-sm" onclick="openEditCollab(${i})">✏️</button>
-                  <button class="btn btn-danger btn-sm" onclick="delCollab(${i})">✕</button>
+                <div style="font-size:11px;font-weight:600;color:#444;margin-bottom:6px">Règles d'encaissement :</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                  ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>{
+                    const regle=(p.regles||{})[m]||'societe';
+                    return`<div onclick="toggleRegleCollab(${i},'${m}')" style="cursor:pointer;padding:4px 10px;border-radius:20px;border:1.5px solid ${regle==='societe'?'var(--accent)':'#ddd'};background:${regle==='societe'?'rgba(196,122,74,.1)':'#f9f6f4'};font-size:11px;font-weight:600;color:${regle==='societe'?'var(--accent)':'#888'}">
+                      ${m} → ${regle==='societe'?'Société':'Collaborateur'}
+                    </div>`;
+                  }).join('')}
                 </div>
-              </div>
-              <div style="font-size:11px;font-weight:600;color:#444;margin-bottom:6px">Règles d'encaissement :</div>
-              <div style="display:flex;flex-wrap:wrap;gap:6px">
-                ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>{
-                  const regle=(p.regles||{})[m]||'societe';
-                  return`<div onclick="toggleRegleCollab(${i},'${m}')" style="cursor:pointer;padding:5px 10px;border-radius:20px;border:1.5px solid ${regle==='societe'?'var(--accent)':'#ddd'};background:${regle==='societe'?'rgba(196,122,74,.1)':'#f9f6f4'};font-size:11px;font-weight:600;color:${regle==='societe'?'var(--accent)':'#888'}">
-                    ${m} → ${regle==='societe'?'Société':'Collaborateur'}
-                  </div>`;
-                }).join('')}
-              </div>
-            </div>`).join('')
-          :`<div style="padding:20px;text-align:center;font-size:13px;color:var(--mut)">Aucun collaborateur — ajoutez votre équipe</div>`}
-      </div>
-    </div>
+              </div>`).join('')
+            :`<div style="padding:16px;text-align:center;font-size:13px;color:var(--mut)">Aucun collaborateur</div>`}
+        </div>
 
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">💳 Ma formule</span></div>
-      <div style="padding:16px">
-        <div style="font-size:14px;font-weight:600;margin-bottom:8px">${planNames[CONFIG.plan]||CONFIG.plan}</div>
-        <div style="font-size:13px;color:var(--mut);margin-bottom:16px">Pour changer de formule, contactez le support.</div>
-      </div>
-    </div>
-
-<div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">💳 Modes de règlement</span></div>
-      <div style="padding:16px">
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+        <!-- Modes de règlement -->
+        <div style="font-size:12px;font-weight:700;color:#444;margin-bottom:10px">💳 Modes de règlement</div>
+        <div style="margin-bottom:12px">
           ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map((m,i)=>{
-  const type=(CONFIG.modesTypes||{})[m]||(['ESP','CHQ'].includes(m)?'physique':'virement');
-  return`<div style="display:flex;align-items:center;gap:8px;background:#f9f6f4;border:1.5px solid #ddd;border-radius:12px;padding:8px 12px;margin-bottom:6px">
-    <span style="font-size:13px;font-weight:600;color:#1a0f0a;min-width:80px">${m}</span>
-    <div style="display:flex;border-radius:6px;overflow:hidden;border:1.5px solid #ddd">
-      <button onclick="setModeType('${m}','physique')" style="padding:4px 10px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${type==='physique'?'var(--accent)':'#f9f6f4'};color:${type==='physique'?'white':'#888'}">💵 Physique</button>
-      <button onclick="setModeType('${m}','virement')" style="padding:4px 10px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${type==='virement'?'#1a0f0a':'#f9f6f4'};color:${type==='virement'?'white':'#888'}">🏦 Virement</button>
-    </div>
-    <button onclick="delMode(${i})" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:16px;margin-left:auto">✕</button>
-  </div>`;
-}).join('')}
+            const type=(CONFIG.modesTypes||{})[m]||(['ESP','CHQ'].includes(m)?'physique':'virement');
+            return`<div style="display:flex;align-items:center;gap:8px;background:#f9f6f4;border:1.5px solid #ddd;border-radius:10px;padding:8px 12px;margin-bottom:6px">
+              <span style="font-size:13px;font-weight:600;color:#1a0f0a;min-width:80px">${m}</span>
+              <div style="display:flex;border-radius:6px;overflow:hidden;border:1.5px solid #ddd">
+                <button onclick="setModeType('${m}','physique')" style="padding:4px 10px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${type==='physique'?'var(--accent)':'#f9f6f4'};color:${type==='physique'?'white':'#888'}">💵 Physique</button>
+                <button onclick="setModeType('${m}','virement')" style="padding:4px 10px;border:none;font-size:11px;font-weight:600;cursor:pointer;background:${type==='virement'?'#1a0f0a':'#f9f6f4'};color:${type==='virement'?'white':'#888'}">🏦 Virement</button>
+              </div>
+              <button onclick="delMode(${i})" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:16px;margin-left:auto">✕</button>
+            </div>`;
+          }).join('')}
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input type="text" id="newMode" placeholder="ex: CB, Lydia..." class="fi" style="flex:1;color:#1a0f0a">
+            <button class="btn btn-primary btn-sm" onclick="addMode()">+ Ajouter</button>
+          </div>
         </div>
-        <div style="display:flex;gap:8px">
-          <input type="text" id="newMode" placeholder="ex: CB, Lydia, Virement..." class="fi" style="flex:1;color:#1a0f0a">
-          <button class="btn btn-primary btn-sm" onclick="addMode()">+ Ajouter</button>
-          <div style="margin-top:16px;padding-top:16px;border-top:1px solid #eee">
-  <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#888;font-weight:600;margin-bottom:10px">Modes "en attente de réception"</div>
-  <div style="font-size:12px;color:#555;margin-bottom:10px">Ces modes s'affichent dans le widget "en attente" du dashboard.</div>
-  <div style="display:flex;flex-wrap:wrap;gap:8px">
-    ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>`
-      <div onclick="toggleModeAttente('${m}')" style="cursor:pointer;padding:6px 14px;border-radius:20px;border:1.5px solid ${(CONFIG.modesAttente||['VIR']).includes(m)?'var(--accent)':'#ddd'};background:${(CONFIG.modesAttente||['VIR']).includes(m)?'rgba(196,122,74,.1)':'#f9f6f4'};font-size:12px;font-weight:600;color:${(CONFIG.modesAttente||['VIR']).includes(m)?'var(--accent)':'#888'}">${m}</div>
-    `).join('')}
-  </div>
-</div>
-        </div>
-        <div style="font-size:11px;color:#888;margin-top:8px">💡 Personnalisez librement vos modes de règlement.</div>
-      </div>
-    </div>
 
-    <div class="card">
-      <div class="card-header"><span class="card-title">💅 Prestations</span></div>
-      <div style="padding:16px">
+        <!-- Modes en attente -->
+        <div style="font-size:11px;font-weight:600;color:#444;margin-bottom:8px">⏳ Modes "en attente de réception"</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+          ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>`
+            <div onclick="toggleModeAttente('${m}')" style="cursor:pointer;padding:6px 14px;border-radius:20px;border:1.5px solid ${(CONFIG.modesAttente||['VIR']).includes(m)?'var(--accent)':'#ddd'};background:${(CONFIG.modesAttente||['VIR']).includes(m)?'rgba(196,122,74,.1)':'#f9f6f4'};font-size:12px;font-weight:600;color:${(CONFIG.modesAttente||['VIR']).includes(m)?'var(--accent)':'#888'}">${m}</div>
+          `).join('')}
+        </div>
+
+        <!-- Prestations -->
+        <div style="font-size:12px;font-weight:700;color:#444;margin-bottom:10px">💅 Prestations</div>
         ${CONFIG.prestations.map((p,i)=>`
           <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--fog)">
             <span style="font-size:13px">${p}</span>
@@ -2283,32 +2229,172 @@ function renderSettings(){
           </div>`).join('')}
         <div style="display:flex;gap:8px;margin-top:12px">
           <input type="text" id="newPrest" placeholder="Nouvelle prestation..." class="fi" style="flex:1">
-         <button class="btn btn-primary btn-sm" onclick="addPrest()">+ Ajouter</button>
+          <button class="btn btn-primary btn-sm" onclick="addPrest()">+ Ajouter</button>
         </div>
       </div>
-    </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">🤖 Intelligence artificielle</span></div>
-      <div style="padding:16px">
-        <div style="font-size:13px;color:#555;margin-bottom:12px">Nécessaire pour l'import agenda et l'analyse de documents. Créez votre clé sur <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent)">console.anthropic.com</a> — elle reste stockée uniquement sur votre appareil.</div>
+    </details>
+
+    <!-- ── RÉGLAGES FINANCIERS ── -->
+    <details style="margin-bottom:12px">
+      <summary style="cursor:pointer;padding:14px 18px;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);border-radius:14px;font-weight:700;font-size:13px;color:#1a0f0a;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        ⚙️ Réglages financiers <span style="font-size:11px;color:var(--mut);font-weight:400">▾</span>
+      </summary>
+      <div style="background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);border-radius:0 0 14px 14px;padding:16px;margin-top:-4px">
+
+        <!-- Forme juridique & taux -->
+        <div style="font-size:12px;font-weight:700;color:#444;margin-bottom:10px">📊 Fiscalité</div>
+        <div class="g2" style="margin-bottom:12px">
+          <div class="field">
+            <label>Forme juridique</label>
+            <select id="set-forme" onchange="CONFIG.formeJuridique=this.value;saveSettings();renderSettings()" style="color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px">
+              <option value="auto" ${CONFIG.formeJuridique==='auto'?'selected':''}>Auto-entrepreneur</option>
+              <option value="eurl" ${CONFIG.formeJuridique==='eurl'?'selected':''}>EURL</option>
+              <option value="sasu" ${CONFIG.formeJuridique==='sasu'?'selected':''}>SASU</option>
+              <option value="sas" ${CONFIG.formeJuridique==='sas'?'selected':''}>SAS</option>
+              <option value="sarl" ${CONFIG.formeJuridique==='sarl'?'selected':''}>SARL</option>
+            </select>
+          </div>
+          ${CONFIG.formeJuridique==='auto'?`
+          <div class="field">
+            <label>Taux URSSAF (%)</label>
+            <input type="number" value="${CONFIG.urssaf||21.2}" step="0.1" onchange="CONFIG.urssaf=parseFloat(this.value);saveSettings()" style="color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px">
+          </div>`:`
+          <div class="field">
+            <label>Taux TVA (%)</label>
+            <input type="number" value="${CONFIG.tva?(CONFIG.tva*100):20}" step="1" onchange="CONFIG.tva=parseFloat(this.value)/100;saveSettings()" style="color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px">
+          </div>`}
+        </div>
+
+        <!-- Mode récap -->
+        <div style="font-size:12px;font-weight:700;color:#444;margin-bottom:10px">📋 Récapitulatif hebdomadaire</div>
+
+        <div class="field" style="margin-bottom:12px">
+          <label>Répartition des charges</label>
+          <div style="display:flex;border-radius:8px;overflow:hidden;border:1.5px solid #ddd">
+            <button onclick="CONFIG.recapModeCharges='estime';saveSettings();renderSettings()" style="flex:1;padding:9px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:${!CONFIG.recapModeCharges||CONFIG.recapModeCharges==='estime'?'var(--accent)':'#f9f6f4'};color:${!CONFIG.recapModeCharges||CONFIG.recapModeCharges==='estime'?'white':'#888'}">
+              📊 Estimé / nb semaines
+            </button>
+            <button onclick="CONFIG.recapModeCharges='reel';saveSettings();renderSettings()" style="flex:1;padding:9px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:${CONFIG.recapModeCharges==='reel'?'var(--accent)':'#f9f6f4'};color:${CONFIG.recapModeCharges==='reel'?'white':'#888'}">
+              💳 Réel (depuis banque)
+            </button>
+          </div>
+          <div style="font-size:11px;color:#888;margin-top:6px">
+            ${!CONFIG.recapModeCharges||CONFIG.recapModeCharges==='estime'?'Les charges sont réparties également sur les semaines, avec ajustement sur la dernière.':'Les charges réelles sont calculées depuis les mouvements bancaires.'}
+          </div>
+        </div>
+
+        <div class="field" style="margin-bottom:12px">
+          <label>Semaine d'ajustement</label>
+          <div style="display:flex;border-radius:8px;overflow:hidden;border:1.5px solid #ddd">
+            <button onclick="CONFIG.recapAjustement='derniere';saveSettings();renderSettings()" style="flex:1;padding:9px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:${!CONFIG.recapAjustement||CONFIG.recapAjustement==='derniere'?'var(--accent)':'#f9f6f4'};color:${!CONFIG.recapAjustement||CONFIG.recapAjustement==='derniere'?'white':'#888'}">
+              🔚 Dernière semaine
+            </button>
+            <button onclick="CONFIG.recapAjustement='courante';saveSettings();renderSettings()" style="flex:1;padding:9px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:${CONFIG.recapAjustement==='courante'?'var(--accent)':'#f9f6f4'};color:${CONFIG.recapAjustement==='courante'?'white':'#888'}">
+              📍 Semaine en cours
+            </button>
+          </div>
+          <div style="font-size:11px;color:#888;margin-top:6px">
+            ${!CONFIG.recapAjustement||CONFIG.recapAjustement==='derniere'?'L\'ajustement réel est appliqué sur la dernière semaine du mois.':'L\'ajustement est appliqué sur la semaine en cours.'}
+          </div>
+        </div>
+
+        <div class="field" style="margin-bottom:12px">
+          <label>Montants prévisionnels sur les charges</label>
+          <div style="display:flex;border-radius:8px;overflow:hidden;border:1.5px solid #ddd">
+            <button onclick="CONFIG.recapPrevisions=true;saveSettings();renderSettings()" style="flex:1;padding:9px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:${CONFIG.recapPrevisions!==false?'var(--accent)':'#f9f6f4'};color:${CONFIG.recapPrevisions!==false?'white':'#888'}">
+              ✅ Oui — prévu vs réel
+            </button>
+            <button onclick="CONFIG.recapPrevisions=false;saveSettings();renderSettings()" style="flex:1;padding:9px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:${CONFIG.recapPrevisions===false?'var(--accent)':'#f9f6f4'};color:${CONFIG.recapPrevisions===false?'white':'#888'}">
+              ❌ Non — montant unique
+            </button>
+          </div>
+          <div style="font-size:11px;color:#888;margin-top:6px">
+            ${CONFIG.recapPrevisions!==false?'Chaque charge a un montant prévu et un montant réel. Le récap utilise le prévu jusqu\'au paiement.':'Un seul montant par charge — pas de distinction prévu/réel.'}
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="saveSettings()">Sauvegarder</button>
+      </div>
+    </details>
+
+    <!-- ── FRANCHISE & OPTIONS ── -->
+    <details style="margin-bottom:12px">
+      <summary style="cursor:pointer;padding:14px 18px;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);border-radius:14px;font-weight:700;font-size:13px;color:#1a0f0a;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        🏪 Franchise, sous-location & options <span style="font-size:11px;color:var(--mut);font-weight:400">▾</span>
+      </summary>
+      <div style="background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);border-radius:0 0 14px 14px;padding:16px;margin-top:-4px">
+
+        <!-- Franchise -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${CONFIG.franchise?'12px':'0'}">
+          <div style="font-size:12px;font-weight:700;color:#444">🏪 Franchise</div>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <span style="font-size:12px;color:var(--mut)">${CONFIG.franchise?'Activée':'Désactivée'}</span>
+            <div onclick="toggleFranchise()" style="width:40px;height:22px;border-radius:99px;background:${CONFIG.franchise?'var(--accent)':'#ddd'};cursor:pointer;position:relative;transition:background .2s">
+              <div style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:2px;${CONFIG.franchise?'right:2px':'left:2px'};transition:all .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>
+            </div>
+          </label>
+        </div>
+        ${CONFIG.franchise?`
+        <div id="franchise-config-settings">${renderFranchiseConfigHTML()}</div>
+        <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="saveFranchiseSettings()">Sauvegarder</button>
+        `:''}
+
+        <div style="height:1px;background:#eee;margin:16px 0"></div>
+
+        <!-- Sous-location -->
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:12px;font-weight:700;color:#444">🏠 Sous-location</div>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <span style="font-size:12px;color:var(--mut)">${CONFIG.sousLocationActive?'Activée':'Désactivée'}</span>
+            <div onclick="toggleSousLocation()" style="width:40px;height:22px;border-radius:99px;background:${CONFIG.sousLocationActive?'var(--accent)':'#ddd'};cursor:pointer;position:relative;transition:background .2s">
+              <div style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:2px;${CONFIG.sousLocationActive?'right:2px':'left:2px'};transition:all .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>
+            </div>
+          </label>
+        </div>
+
+        <div style="height:1px;background:#eee;margin:16px 0"></div>
+
+        <!-- Caisse de monnaie -->
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:12px;font-weight:700;color:#444">💵 Caisse de monnaie</div>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <span style="font-size:12px;color:var(--mut)">${CONFIG.caisseMonnaieActive?'Activée':'Désactivée'}</span>
+            <div onclick="toggleCaisseMonnaie()" style="width:40px;height:22px;border-radius:99px;background:${CONFIG.caisseMonnaieActive?'var(--accent)':'#ddd'};cursor:pointer;position:relative;transition:background .2s">
+              <div style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:2px;${CONFIG.caisseMonnaieActive?'right:2px':'left:2px'};transition:all .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>
+            </div>
+          </label>
+        </div>
+        ${CONFIG.caisseMonnaieActive?`
+        <div class="field" style="margin-top:12px"><label>Fond de caisse initial (€)</label>
+          <input type="number" id="set-fond-caisse" value="${CONFIG.fondCaisse||0}" placeholder="0" step="0.01" style="color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="saveFondCaisse()">Sauvegarder</button>`:''}
+      </div>
+    </details>
+
+    <!-- ── IA & DANGER ── -->
+    <details style="margin-bottom:12px">
+      <summary style="cursor:pointer;padding:14px 18px;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);border-radius:14px;font-weight:700;font-size:13px;color:#1a0f0a;list-style:none;display:flex;justify-content:space-between;align-items:center">
+        🤖 IA & compte <span style="font-size:11px;color:var(--mut);font-weight:400">▾</span>
+      </summary>
+      <div style="background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);border-radius:0 0 14px 14px;padding:16px;margin-top:-4px">
+        <div style="font-size:13px;color:#555;margin-bottom:12px">Nécessaire pour l'import agenda et l'analyse de documents. Créez votre clé sur <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent)">console.anthropic.com</a></div>
         <div class="field">
           <label>Clé API Anthropic</label>
-          <input type="password" id="set-apikey" placeholder="sk-ant-..." value="${localStorage.getItem('solia_apikey')||''}">
+          <input type="password" id="set-apikey" placeholder="sk-ant-..." value="${localStorage.getItem('solia_apikey')||''}" style="color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px">
         </div>
-        <div style="display:flex;align-items:center;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
           <button class="btn btn-primary btn-sm" onclick="saveApiKey()">Sauvegarder</button>
           ${localStorage.getItem('solia_apikey')?'<span style="font-size:12px;color:#00c896">✅ Clé configurée</span>':'<span style="font-size:12px;color:#888">⚠️ Non configurée</span>'}
         </div>
-      </div>
-    </div>
-  <div class="card" style="margin-bottom:16px;border-color:#fca5a5">
-      <div class="card-header"><span class="card-title" style="color:var(--red)">⚠️ Zone dangereuse</span></div>
-      <div style="padding:16px">
-        <div style="font-size:13px;color:#555;margin-bottom:16px">La suppression de votre compte est irréversible. Toutes vos données seront définitivement effacées.</div>
+
+        <div style="height:1px;background:#eee;margin-bottom:16px"></div>
+
+        <div style="font-size:13px;color:#555;margin-bottom:12px">La suppression de votre compte est irréversible.</div>
         <button class="btn btn-danger" onclick="deleteAccount()">Supprimer mon compte</button>
       </div>
-    </div>
-    </div>`;
+    </details>
+  `;
 }
 
 async function toggleModeAttente(m){
