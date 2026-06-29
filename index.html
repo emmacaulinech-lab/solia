@@ -1606,19 +1606,7 @@ document.getElementById('dashModes').innerHTML=modes.map(m=>`
     </div>`).join(''):'<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Aucune cliente</div></div>';
 
 // VIR en attente
-  // Modes — net société
-const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
-const modeVals={};
-modes.forEach(m=>{
-  if(m==='ESP') modeVals[m]=espNet;
-  else modeVals[m]=cM.filter(t=>t.reglement===m).reduce((s,t)=>s+t.montant,0);
-});
-console.log('espNet au moment du rendu modes:', espNet);
-document.getElementById('dashModes').innerHTML=modes.map(m=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--fog)">
-      ${bdg(m)}
-      <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--ink)">${fa(modeVals[m])}</span>
-    </div>`).join('');Attente=CONFIG.modesAttente||['VIR'];
+  const modesAttente=CONFIG.modesAttente||['VIR'];
 const virAttente=DB.caisse.filter(t=>modesAttente.includes(t.reglement)&&!t.paye&&t.montant>0&&inM(t.date,mois));
   const virEl=document.getElementById('dashVir');
   if(!virAttente.length){
