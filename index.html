@@ -1582,6 +1582,9 @@ modes.forEach(m=>{
   if(m==='ESP') modeVals[m]=espNet;
   else modeVals[m]=cM.filter(t=>t.reglement===m).reduce((s,t)=>s+t.montant,0);
 });
+  console.log('espNet au moment du rendu modes:', espNet);
+// Modes — net société
+const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
 document.getElementById('dashModes').innerHTML=modes.map(m=>`
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--fog)">
       ${bdg(m)}
