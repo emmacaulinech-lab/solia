@@ -4051,9 +4051,9 @@ function ouvrirRapprochementBanque(banqueId){
   if(!b) return;
   const mois=b.date.slice(0,7);
   const chargesDispos=[
-    ...DB.fixes.filter(f=>f.mois===mois),
-    ...DB.variables.filter(f=>f.mois===mois)
-  ].filter(f=>!f.banqueId); // pas encore rapprochées
+  ...DB.fixes.filter(f=>f.mois===mois),
+  ...DB.variables.filter(f=>f.mois===mois)
+]; // pas encore rapprochées
 
   document.getElementById('mTitle').textContent='🔗 Rapprocher un débit';
   document.getElementById('mBody').innerHTML=`
@@ -4161,9 +4161,9 @@ async function validerRapprochementDebit(banqueId){
     const table=DB.fixes.find(x=>x.id===chargeId)?'fixes':'variables';
     const charge=DB[table].find(x=>x.id===chargeId);
     if(charge){
-      charge.montant=-montantReel; // négatif car charge
-      charge.banqueId=banqueId;
-      charge.paye=true;
+      charge.montant=(charge.montant||0)-montantReel;
+charge.banqueId=banqueId;
+charge.paye=true;
       if(tva) b.tva=-tva;
       b.factureId=chargeId;
     }
