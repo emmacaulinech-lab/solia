@@ -3300,14 +3300,6 @@ function renderImportBanqueResult(){
   const totalCredit=nouveaux.filter(m=>m.montant>0).reduce((s,m)=>s+m.montant,0);
   const totalDebit=nouveaux.filter(m=>m.montant<0).reduce((s,m)=>s+m.montant,0);
 
-  // Charges prévues pour rapprochement
-  const moisActuel=new Date().toISOString().slice(0,7);
-  const chargesNonRaprochees=[...DB.fixes,...DB.variables].filter(f=>f.mois===moisActuel&&!f.rapproche);
-
-  const categories=CONFIG.formeJuridique==='auto'
-    ?['Chiffre d\'affaires','Matériel','Loyer','EDF','Téléphone','Abonnements','Assurance','Formation','Autre']
-    :['Chiffre d\'affaires','Matériel','Loyer','EDF','Téléphone','Abonnements','Assurance','Salaires','Comptable','TVA','Autre'];
-
   let html=`
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
       <div class="kpi"><div class="kpi-label">Mouvements</div><div class="kpi-value">${importedMouvements.length}</div></div>
@@ -3324,31 +3316,34 @@ function renderImportBanqueResult(){
           <th>Date</th>
           <th>Libellé</th>
           <th style="text-align:right">Montant</th>
-          <th>Catégorie</th>
-          <th style="text-align:right">TVA collectée</th>
-          <th>Rapprocher avec</th>
+          <th>Rapproché avec</th>
           <th></th>
         </tr></thead>
         <tbody>
           ${importedMouvements.map((m,i)=>{
             const isDup=doublons.has(i);
-            const autocat=detecterCategorie(m.libelle, m.montant);
-            return`<tr style="opacity:${isDup?0.4:1}">
+            const rap=m.rapprochement;
+            return`<tr style="opacity:${isDup?0.4:1};background:${rap?'rgba(0,200,150,.04)':''}">
               <td class="td-mut">${dlbl(m.date)}</td>
               <td style="font-weight:500;font-size:12px">${m.libelle}</td>
               <td class="${m.montant>=0?'td-green':'td-red'}" style="text-align:right">${fm(m.montant,m.montant>0)}</td>
-              <td style="text-align:right;color:#92400e;font-family:'DM Mono',monospace;font-size:12px">
-  ${!isDup&&m.montant>0&&CONFIG.tva?fa(Math.round(m.montant/(1+CONFIG.tva)*CONFIG.tva*100)/100):'—'}
-</td>
-              <td>${isDup?'—':`<select id="cat-${i}" style="padding:4px 6px;border:1.5px solid #ddd;border-radius:6px;font-size:11px;max-width:130px">
-                <option value="">— Catégorie —</option>
-                ${categories.map(c=>`<option value="${c}" ${c===autocat?'selected':''}>${c}</option>`).join('')}
-              </select>`}</td>
-              <td>${isDup||m.montant>0?'—':`<select id="rap-${i}" style="padding:4px 6px;border:1.5px solid #ddd;border-radius:6px;font-size:11px;max-width:130px">
-                <option value="">— Aucun —</option>
-                ${chargesNonRaprochees.map(c=>`<option value="${c.id}">${c.nom} (${fa(Math.abs(c.prev||c.montant||0))})</option>`).join('')}
-              </select>`}</td>
-              <td>${isDup?`<span style="font-size:11px;color:var(--mut)">Déjà importé</span>`:`<button class="btn btn-primary btn-sm" onclick="importerMouvement(${i})">+ Banque</button>`}</td>
+              <td>
+                ${isDup
+                  ?'<span style="font-size:11px;color:var(--mut)">Déjà importé</span>'
+                  :rap
+                    ?`<div style="display:flex;align-items:center;gap:8px">
+                        <span style="font-size:12px;color:var(--mint)">✅ ${rap.label}</span>
+                        <button onclick="ouvrirRapprochementImport(${i})" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--mut)">✏️</button>
+                      </div>`
+                    :`<button class="btn btn-outline btn-sm" onclick="ouvrirRapprochementImport(${i})">
+                        ${m.montant>0?'🔗 Lier une cliente':'🔗 Lier une charge'}
+                      </button>`
+                }
+              </td>
+              <td>${isDup
+                ?''
+                :`<button class="btn btn-primary btn-sm" onclick="importerMouvement(${i})">+ Banque</button>`
+              }</td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -3357,16 +3352,161 @@ function renderImportBanqueResult(){
   el.innerHTML=html;
 }
 
+function ouvrirRapprochementImport(i){
+  const m=importedMouvements[i];
+  const isCredit=m.montant>0;
+  const mois=m.date.slice(0,7);
+
+  document.getElementById('mTitle').textContent=isCredit?'🔗 Lier une cliente':'🔗 Lier une charge';
+  document.getElementById('mBody').innerHTML=`
+    <div style="background:var(--fog);border-radius:10px;padding:12px 14px;margin-bottom:16px">
+      <div style="font-weight:700">${m.libelle}</div>
+      <div style="font-size:12px;color:var(--mut)">${dlbl(m.date)}</div>
+      <div style="font-family:'Playfair Display',serif;font-size:18px;color:${isCredit?'var(--mint)':'var(--red)'};margin-top:4px">${fm(m.montant,m.montant>0)}</div>
+    </div>
+
+    ${isCredit?`
+      <div class="field">
+        <label>Type de règlement</label>
+        <select id="imp-type" onchange="updateImportClienteList(${i})" style="font-size:14px;padding:10px">
+          <option value="">— Choisir —</option>
+          ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(mo=>`<option value="${mo}" ${m.rapprochement?.mode===mo?'selected':''}>${mo}</option>`).join('')}
+        </select>
+      </div>
+      <div id="imp-liste"></div>
+    `:`
+      <div class="field">
+        <label>Charge correspondante</label>
+        <select id="imp-charge" style="font-size:14px;padding:10px">
+          <option value="">— Choisir une charge —</option>
+          ${[...DB.fixes,...DB.variables].filter(f=>f.mois===mois).map(f=>`
+            <option value="${f.id}" ${m.rapprochement?.chargeId===f.id?'selected':''}>${f.nom} — prévu : ${f.prev?fm(f.prev):'—'}</option>
+          `).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label>Montant réel (€)</label>
+        <input type="number" id="imp-montant" value="${Math.abs(m.montant)}" step="0.01" style="font-size:14px;padding:10px">
+      </div>
+    `}
+  `;
+
+  document.querySelector('#mainModal .modal-footer').innerHTML=`
+    <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>
+    <button class="btn btn-primary" onclick="validerRapprochementImport(${i})">✓ Valider</button>`;
+  document.getElementById('mainModal').classList.add('open');
+
+  // Auto-charger la liste si mode déjà sélectionné
+  if(isCredit&&m.rapprochement?.mode) updateImportClienteList(i);
+}
+
+function updateImportClienteList(i){
+  const m=importedMouvements[i];
+  const type=document.getElementById('imp-type')?.value;
+  const el=document.getElementById('imp-liste');
+  if(!el||!type) return;
+
+  const mois=m.date.slice(0,7);
+  const dejaSel=m.rapprochement?.caisseIds||[];
+
+  // Prestations du même mois avec ce mode, pas encore rapprochées
+  const prestations=DB.caisse.filter(t=>
+    t.reglement===type&&
+    t.montant>0&&
+    t.date.slice(0,7)===mois&&
+    !t.rapprocheBanque
+  );
+
+  if(!prestations.length){
+    el.innerHTML=`<div style="font-size:12px;color:var(--mut);padding:10px;background:var(--fog);border-radius:8px">Aucune prestation ${type} non rapprochée pour ce mois.</div>`;
+    return;
+  }
+
+  el.innerHTML=`
+    <div class="field">
+      <label>Clientes associées</label>
+      <div style="max-height:200px;overflow-y:auto;border:1.5px solid #ddd;border-radius:8px;padding:8px">
+        ${prestations.map(t=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--fog)">
+            <input type="checkbox" id="imp-cli-${t.id}" value="${t.id}" ${dejaSel.includes(t.id)?'checked':''} style="accent-color:var(--accent);width:15px;height:15px">
+            <label for="imp-cli-${t.id}" style="cursor:pointer;flex:1;font-size:12px">
+              ${dlbl(t.date)} — <strong>${t.nom}</strong> — ${t.prestation||'—'}
+            </label>
+            <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--mint)">${fa(t.montant)}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function validerRapprochementImport(i){
+  const m=importedMouvements[i];
+  const isCredit=m.montant>0;
+
+  if(isCredit){
+    const type=document.getElementById('imp-type')?.value;
+    if(!type){toast('⚠ Choisis un type');return;}
+    const checks=[...document.querySelectorAll('[id^="imp-cli-"]:checked')];
+    const caisseIds=checks.map(c=>c.value);
+    const noms=caisseIds.map(id=>DB.caisse.find(t=>t.id===id)?.nom||'').filter(Boolean);
+    m.rapprochement={
+      type:'caisse',
+      mode:type,
+      caisseIds,
+      label:noms.length?noms.join(', '):type,
+      categorie:"Chiffre d'affaires"
+    };
+  } else {
+    const chargeId=document.getElementById('imp-charge')?.value;
+    if(!chargeId){toast('⚠ Choisis une charge');return;}
+    const montantReel=parseFloat(document.getElementById('imp-montant')?.value)||Math.abs(m.montant);
+    const charge=[...DB.fixes,...DB.variables].find(f=>f.id===chargeId);
+    m.rapprochement={
+      type:'charge',
+      chargeId,
+      montantReel,
+      label:charge?.nom||'Charge',
+      categorie:charge?.nom||'Autre'
+    };
+  }
+
+  closeMo('mainModal');
+  renderImportBanqueResult();
+  toast('✓ Rapprochement enregistré');
+}
+
 async function importerMouvement(i){
   const m=importedMouvements[i];
-  const cat=document.getElementById(`cat-${i}`)?.value||'Autre';
-  const rapId=document.getElementById(`rap-${i}`)?.value||'';
-  const tva=m.montant>0&&CONFIG.tva?Math.round(m.montant/(1+CONFIG.tva)*CONFIG.tva*100)/100:0;
-  DB.banque.push({id:genId(),date:m.date,nom:m.libelle,montant:m.montant,categorie:cat,tva});
-  if(rapId){
-    const charge=[...DB.fixes,...DB.variables].find(f=>f.id===rapId);
-    if(charge){charge.montant=m.montant;charge.rapproche=true;charge.paye=true;}
+  const rap=m.rapprochement;
+  const tva=m.montant>0&&CONFIG.tva?Math.round(m.montant/(1+(CONFIG.tva||0.2))*(CONFIG.tva||0.2)*100)/100:0;
+  const banqueId=genId();
+
+  DB.banque.push({
+    id:banqueId,
+    date:m.date,
+    nom:m.libelle,
+    montant:m.montant,
+    categorie:rap?.categorie||(m.montant>0?"Chiffre d'affaires":'Autre'),
+    tva,
+    caisseIds:rap?.caisseIds||[],
+    factureId:null
+  });
+
+  if(rap?.type==='caisse'&&rap.caisseIds?.length){
+    for(const id of rap.caisseIds){
+      const t=DB.caisse.find(x=>x.id===id);
+      if(t){t.rapprocheBanque=true;t.banqueId=banqueId;}
+    }
   }
+
+  if(rap?.type==='charge'){
+    const charge=[...DB.fixes,...DB.variables].find(f=>f.id===rap.chargeId);
+    if(charge){
+      charge.montant=-rap.montantReel;
+      charge.banqueId=banqueId;
+      charge.paye=true;
+    }
+  }
+
   await saveAll();
   importedMouvements.splice(i,1);
   renderImportBanqueResult();
@@ -3375,19 +3515,30 @@ async function importerMouvement(i){
 
 async function importerTousMouvements(){
   let count=0;
-  importedMouvements.forEach((m,i)=>{
+  for(let i=0;i<importedMouvements.length;i++){
+    const m=importedMouvements[i];
     const isDup=DB.banque.some(b=>b.date===m.date&&Math.abs(b.montant-m.montant)<0.01&&b.nom.toLowerCase()===m.libelle.toLowerCase());
-    if(isDup) return;
-    const cat=document.getElementById(`cat-${i}`)?.value||'Autre';
-    const rapId=document.getElementById(`rap-${i}`)?.value||'';
-    const tva=m.montant>0&&CONFIG.tva?Math.round(m.montant/(1+CONFIG.tva)*CONFIG.tva*100)/100:0;
-    DB.banque.push({id:genId(),date:m.date,nom:m.libelle,montant:m.montant,categorie:cat,tva});
-    if(rapId){
-      const charge=[...DB.fixes,...DB.variables].find(f=>f.id===rapId);
-      if(charge){charge.montant=m.montant;charge.rapproche=true;charge.paye=true;}
+    if(isDup) continue;
+    const rap=m.rapprochement;
+    const tva=m.montant>0&&CONFIG.tva?Math.round(m.montant/(1+(CONFIG.tva||0.2))*(CONFIG.tva||0.2)*100)/100:0;
+    const banqueId=genId();
+    DB.banque.push({
+      id:banqueId,date:m.date,nom:m.libelle,montant:m.montant,
+      categorie:rap?.categorie||(m.montant>0?"Chiffre d'affaires":'Autre'),
+      tva,caisseIds:rap?.caisseIds||[],factureId:null
+    });
+    if(rap?.type==='caisse'&&rap.caisseIds?.length){
+      for(const id of rap.caisseIds){
+        const t=DB.caisse.find(x=>x.id===id);
+        if(t){t.rapprocheBanque=true;t.banqueId=banqueId;}
+      }
+    }
+    if(rap?.type==='charge'){
+      const charge=[...DB.fixes,...DB.variables].find(f=>f.id===rap.chargeId);
+      if(charge){charge.montant=-rap.montantReel;charge.banqueId=banqueId;charge.paye=true;}
     }
     count++;
-  });
+  }
   await saveAll();
   importedMouvements=[];
   renderImportBanqueResult();
