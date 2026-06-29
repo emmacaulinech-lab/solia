@@ -1872,7 +1872,7 @@ function renderCharges(){
     const fixes=DB.fixes.filter(f=>f.mois===mois);
     const vars=DB.variables.filter(f=>f.mois===mois);
     const rows=[...fixes.map(f=>({...f,type:'Fixe'})),...vars.map(f=>({...f,type:'Variable'}))];
-    const totReel=rows.reduce((s,f)=>s+(f.montant||0),0);
+    const totReel=rows.reduce((s,f)=>s+(f.banqueId?f.montant||0:0),0);
     const totPrev=rows.reduce((s,f)=>s+(f.prev||0),0);
 
     html+=`<div class="card" style="margin-bottom:16px">
@@ -1896,7 +1896,7 @@ function renderCharges(){
       </tr></thead><tbody>
       ${rows.map(f=>{
         const prev=f.prev||0;
-        const reel=f.montant||0;
+        const reel=f.banqueId?(f.montant||0):0;
         const ecart=reel-prev;
         const nonPaye=reel===0&&prev!==0;
         return`<tr style="background:${nonPaye?'rgba(245,158,11,.04)':''}">
@@ -1905,7 +1905,7 @@ function renderCharges(){
           </td>
           <td><span class="badge" style="background:${f.type==='Fixe'?'rgba(196,122,74,.1)':'var(--amber-pale)'};color:${f.type==='Fixe'?'var(--violet)':'#92400e'}">${f.type}</span></td>
           ${avecPrevisions?`<td class="td-mono" style="text-align:right;color:var(--mut)">${prev?fm(prev):'—'}</td>`:''}
-          <td class="td-red" style="text-align:right">${reel?fm(reel):'<span style="color:#ccc">0,00 €</span>'}</td>
+          <td class="td-red" style="text-align:right">${f.banqueId?fm(f.montant):'<span style="color:#ccc">⏳ en attente</span>'}</td>
           ${avecPrevisions?`<td style="text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:${Math.abs(ecart)<0.01?'var(--mut)':ecart>0?'var(--red)':'var(--mint)'}">${Math.abs(ecart)<0.01?'—':fm(ecart,true)}</td>`:''}
           <td style="white-space:nowrap">
             <button class="btn btn-ghost btn-sm" onclick="editEntry('${f.type==='Fixe'?'fixes':'variables'}','${f.id}')">✏️</button>
