@@ -1905,7 +1905,7 @@ function renderCharges(){
           </td>
           <td><span class="badge" style="background:${f.type==='Fixe'?'rgba(196,122,74,.1)':'var(--amber-pale)'};color:${f.type==='Fixe'?'var(--violet)':'#92400e'}">${f.type}</span></td>
           ${avecPrevisions?`<td class="td-mono" style="text-align:right;color:var(--mut)">${prev?fm(prev):'—'}</td>`:''}
-          <td class="td-red" style="text-align:right">${reel?fm(reel):<span style="color:#ccc">0,00 €</span>}</td>
+          <td class="td-red" style="text-align:right">${reel?fm(reel):'<span style="color:#ccc">0,00 €</span>'}</td>
           ${avecPrevisions?`<td style="text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:${Math.abs(ecart)<0.01?'var(--mut)':ecart>0?'var(--red)':'var(--mint)'}">${Math.abs(ecart)<0.01?'—':fm(ecart,true)}</td>`:''}
           <td style="white-space:nowrap">
             <button class="btn btn-ghost btn-sm" onclick="editEntry('${f.type==='Fixe'?'fixes':'variables'}','${f.id}')">✏️</button>
