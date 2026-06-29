@@ -2024,15 +2024,40 @@ function renderRecap(){
   const espDeposeTotal=semData.reduce((s,d)=>s+d.espDeposeS,0);
   const redevTotal=semData.reduce((s,d)=>s+d.redevS,0);
 
-  // ── Trésorerie ESP cumulée ──
-  let cumul=0;
-  const espCumulW=semData.map(d=>{
-    cumul+=d.espEncaisseS+d.chargeS+d.redevS;
-    const avant=cumul;
-    cumul-=d.espDeposeS;
-    return avant;
-  });
-  const espEcartW=espCumulW.map((v,i)=>v-semData[i].espDeposeS);
+ // ── Trésorerie ESP — logique EMMA ──
+const espDeposeesW=semaines.map(s=>
+  DB.banque.filter(b=>inSem(b.date,s)&&b.categorie==="Chiffre d'affaires"&&b.montant>0&&b.nom.toUpperCase().includes('DÉPÔT')&&!b.nom.toUpperCase().includes('CHQ')&&!b.nom.toUpperCase().includes('CHÈQUES')).reduce((s,b)=>s+b.montant,0)
+);
+const espDeposesTot=espDeposeesW.reduce((s,v)=>s+v,0);
+
+let reportPrec=0;
+const espWCorr=semaines.map((s,i)=>{
+  const chq=DB.caisse.filter(t=>inSem(t.date,s)&&t.reglement==='CHQ'&&t.montant>0).reduce((s,t)=>s+t.montant,0);
+  const vir=DB.caisse.filter(t=>inSem(t.date,s)&&t.reglement==='VIR'&&t.montant>0).reduce((s,t)=>s+t.montant,0);
+  const plan=DB.caisse.filter(t=>inSem(t.date,s)&&t.reglement==='PLANITY'&&t.montant>0).reduce((s,t)=>s+t.montant,0);
+  const val=reportPrec+chq+vir+plan+semData[i].chargeS;
+  reportPrec=val-espDeposeesW[i];
+  return val;
+});
+const espEcartW=espWCorr.map((v,i)=>v-espDeposeesW[i]);
+const espEcartTot=espWCorr[nw-1]-espDeposesTot;
+
+let cumulEspNet=0;
+const espNetCumulW=semaines.map((s,i)=>{
+  let v=0;
+  for(const collab of collabs){
+    const pr=DB.caisse.filter(t=>inSem(t.date,s)&&t.praticien===collab.id&&t.montant>0);
+    if(!pr.length) continue;
+    const ca=pr.reduce((s,t)=>s+t.montant,0);
+    const plan=pr.filter(t=>t.reglement==='PLANITY').reduce((s,t)=>s+t.montant,0);
+    const chqvir=pr.filter(t=>['CHQ','VIR'].includes(t.reglement)).reduce((s,t)=>s+t.montant,0);
+    const taux=(collab.taux||40)/100;
+    v+=Math.max(0,ca*taux-(plan+chqvir));
+  }
+  v+=DB.caisse.filter(t=>inSem(t.date,s)&&(!t.praticien||t.praticien==='')&&t.reglement==='ESP'&&t.montant>0).reduce((s,t)=>s+t.montant,0);
+  cumulEspNet+=v;
+  return cumulEspNet;
+});
 
   // ── Résultat ──
   const resultat=caNetTotal+totalReel+achatsTotal+redevTotal;
@@ -2103,11 +2128,21 @@ function renderRecap(){
         </tr>
 
         ${section('TRÉSORERIE','#1d4ed8','#eff6ff')}
-        ${row('💰 ESP à déposer (cumulatif)',espCumulW,espCumulW[nw-1],'#92400e')}
-        ${row('→ ESP déposées',semData.map(d=>d.espDeposeS),espDeposeTotal,'var(--mint)')}
-        ${row('→ Écart ESP',espEcartW,espCumulW[nw-1]-espDeposeTotal,
-          espCumulW[nw-1]-espDeposeTotal>0?'var(--red)':'var(--mint)'
-        )}
+<tr>
+  <td style="padding:8px 12px;font-size:12px;color:#92400e">💰 ESP à déposer (cumulatif)</td>
+  ${espWCorr.map((v,i)=>`<td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:${Math.abs(v)>espNetCumulW[i]?'var(--red)':'var(--mint)'}">${fm(v,v>0)}</td>`).join('')}
+  <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${Math.abs(espWCorr[nw-1])>espNetCumulW[nw-1]?'var(--red)':'var(--mint)'}">${fm(espWCorr[nw-1],espWCorr[nw-1]>0)}</td>
+</tr>
+<tr>
+  <td style="padding:8px 12px;font-size:12px;color:var(--mint)">→ ESP déposées</td>
+  ${espDeposeesW.map(v=>`<td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:${v>0?'var(--mint)':'var(--mut)'}">${v===0?'<span style="color:#ccc">0,00 €</span>':fa(v)}</td>`).join('')}
+  <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--mint)">${fa(espDeposesTot)}</td>
+</tr>
+<tr>
+  <td style="padding:8px 12px;font-size:12px">→ Écart ESP</td>
+  ${espEcartW.map(v=>`<td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:${Math.abs(v)<0.01?'var(--mut)':v>0?'var(--amber)':'var(--mint)'}">${Math.abs(v)<0.01?'<span style="color:#ccc">0,00 €</span>':fm(v,true)}</td>`).join('')}
+  <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:13px;font-weight:700">${fm(espEcartTot,true)}</td>
+</tr>
 
         ${CONFIG.franchise?`
         ${section(`REDEVANCE (${CONFIG.franchiseTaux||10}%)`,'#7e22ce','#faf5ff')}
