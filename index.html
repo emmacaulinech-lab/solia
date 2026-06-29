@@ -1539,10 +1539,10 @@ for(const collab of collabs){
   espNet+=Math.max(0,cap*taux-(plan+chqvir));
 }
 espNet+=cM.filter(t=>(!t.praticien||t.praticien==='')&&t.reglement==='ESP').reduce((s,t)=>s+t.montant,0);
-const vir=cM.filter(t=>t.reglement==='VIR').reduce((s,t)=>s+t.montant,0);
-const chq=cM.filter(t=>t.reglement==='CHQ').reduce((s,t)=>s+t.montant,0);
-const plan=cM.filter(t=>t.reglement==='PLANITY').reduce((s,t)=>s+t.montant,0);
-const caNet=espNet+vir+chq+plan;
+const virM=cM.filter(t=>t.reglement==='VIR').reduce((s,t)=>s+t.montant,0);
+const chqM=cM.filter(t=>t.reglement==='CHQ').reduce((s,t)=>s+t.montant,0);
+const planM=cM.filter(t=>t.reglement==='PLANITY').reduce((s,t)=>s+t.montant,0);
+const caNet=espNet+virM+chqM+planM;
 
 const nb=cM.filter(t=>!t.nom?.startsWith('DÉPÔT')).length;
 const pan=nb?caNet/nb:0;
