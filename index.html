@@ -4092,12 +4092,8 @@ function setRapTab(tab, banqueId){
 }
 
 function updateMontantRap(sel, banqueId){
-  const b=DB.banque.find(x=>x.id===banqueId);
-  const opt=sel.options[sel.selectedIndex];
-  const type=opt.dataset.type||'';
-  // Afficher le bloc TVA si charge variable ou achat
   const tvaBlock=document.getElementById('rap-tva-block');
-  if(tvaBlock) tvaBlock.style.display=type==='variables'?'block':'none';
+  if(tvaBlock) tvaBlock.style.display=sel.value?'block':'none';
 }
 
 function setRapTVA(oui){
