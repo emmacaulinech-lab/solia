@@ -1575,10 +1575,13 @@ const proj=dayN?caNet/dayN*dInM:0;
       <div class="kpi-sub">Reste ${fa(Math.max(0,obj-caNet))}</div>
     </div>`;
 
-  // Modes
-  const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
+  // Modes — net société
+const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
 const modeVals={};
-modes.forEach(m=>modeVals[m]=cM.filter(t=>t.reglement===m).reduce((s,t)=>s+t.montant,0));
+modes.forEach(m=>{
+  if(m==='ESP') modeVals[m]=espNet;
+  else modeVals[m]=cM.filter(t=>t.reglement===m).reduce((s,t)=>s+t.montant,0);
+});
 document.getElementById('dashModes').innerHTML=modes.map(m=>`
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--fog)">
       ${bdg(m)}
