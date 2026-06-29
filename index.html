@@ -2807,14 +2807,31 @@ rapprocheBanque:false
         await saveFacture(facture);
       }
     } else if(mCtx==='fixes'){
-      const t={id,mois:g('fMois'),nom:g('fNom'),prev:parseFloat(g('fPrev'))||0,montant:parseFloat(g('fMnt'))||0};
-      if(mEditId){const i=DB.fixes.findIndex(x=>x.id===mEditId);DB.fixes[i]=t;}
-      else DB.fixes.push(t);
-    } else if(mCtx==='variables'){
-      const t={id,mois:g('fMois'),nom:g('fNom'),prev:parseFloat(g('fPrev'))||0,montant:parseFloat(g('fMnt'))||0};
-      if(mEditId){const i=DB.variables.findIndex(x=>x.id===mEditId);DB.variables[i]=t;}
-      else DB.variables.push(t);
-    }
+  const existing=DB.fixes.find(x=>x.id===id);
+  const t={
+    id,
+    mois:g('fMois'),
+    nom:g('fNom'),
+    prev:parseFloat(g('fPrev'))||0,
+    montant:parseFloat(g('fMnt'))||0,
+    banqueId:existing?.banqueId||null,
+    paye:existing?.paye||false
+  };
+  if(mEditId){const i=DB.fixes.findIndex(x=>x.id===mEditId);DB.fixes[i]=t;}
+  else DB.fixes.push(t);
+} else if(mCtx==='variables'){
+  const existing=DB.variables.find(x=>x.id===id);
+  const t={
+    id,
+    mois:g('fMois'),
+    nom:g('fNom'),
+    prev:parseFloat(g('fPrev'))||0,
+    montant:parseFloat(g('fMnt'))||0,
+    banqueId:existing?.banqueId||null
+  };
+  if(mEditId){const i=DB.variables.findIndex(x=>x.id===mEditId);DB.variables[i]=t;}
+  else DB.variables.push(t);
+}
     await saveAll();
     closeMo('mainModal');
     popSelects();
