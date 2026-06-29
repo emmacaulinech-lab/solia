@@ -1524,19 +1524,38 @@ function renderDash(){
   document.getElementById('dashMonthLabel').textContent=MOIS[dashM]+' '+dashY;
 
   const cM=DB.caisse.filter(t=>inM(t.date,mois)&&t.montant>0);
-  const ca=cM.reduce((s,t)=>s+t.montant,0);
-  const nb=cM.filter(t=>!t.nom?.startsWith('DÉPÔT')).length;
-  const pan=nb?ca/nb:0;
-  const obj=CONFIG.objectif||5000;
-  const pct=Math.min(100,ca/obj*100);
-  const dInM=new Date(dashY,dashM+1,0).getDate();
-  const dayN=(NOW.getMonth()===dashM&&NOW.getFullYear()===dashY)?NOW.getDate():dInM;
-  const proj=dayN?ca/dayN*dInM:0;
+const ca=cM.reduce((s,t)=>s+t.montant,0);
+
+// CA net société = ESP net + VIR + CHQ + PLANITY
+const collabs=CONFIG.praticiennes||[];
+let espNet=0;
+for(const collab of collabs){
+  const pr=cM.filter(t=>t.praticien===collab.id&&t.montant>0);
+  if(!pr.length) continue;
+  const cap=pr.reduce((s,t)=>s+t.montant,0);
+  const plan=pr.filter(t=>t.reglement==='PLANITY').reduce((s,t)=>s+t.montant,0);
+  const chqvir=pr.filter(t=>['CHQ','VIR'].includes(t.reglement)).reduce((s,t)=>s+t.montant,0);
+  const taux=(collab.taux||40)/100;
+  espNet+=Math.max(0,cap*taux-(plan+chqvir));
+}
+espNet+=cM.filter(t=>(!t.praticien||t.praticien==='')&&t.reglement==='ESP').reduce((s,t)=>s+t.montant,0);
+const vir=cM.filter(t=>t.reglement==='VIR').reduce((s,t)=>s+t.montant,0);
+const chq=cM.filter(t=>t.reglement==='CHQ').reduce((s,t)=>s+t.montant,0);
+const plan=cM.filter(t=>t.reglement==='PLANITY').reduce((s,t)=>s+t.montant,0);
+const caNet=espNet+vir+chq+plan;
+
+const nb=cM.filter(t=>!t.nom?.startsWith('DÉPÔT')).length;
+const pan=nb?caNet/nb:0;
+const obj=CONFIG.objectif||5000;
+const pct=Math.min(100,caNet/obj*100);
+const dInM=new Date(dashY,dashM+1,0).getDate();
+const dayN=(NOW.getMonth()===dashM&&NOW.getFullYear()===dashY)?NOW.getDate():dInM;
+const proj=dayN?caNet/dayN*dInM:0;
 
   document.getElementById('dashKpis').innerHTML=`
     <div class="kpi accent">
       <div class="kpi-label">CA du mois</div>
-      <div class="kpi-value">${fa(ca)}</div>
+      <div class="kpi-value">${fa(caNet)}</div>
       <div class="kpi-sub">Objectif ${fa(obj)}</div>
       <div class="kpi-bar"><div class="kpi-bar-fill" style="width:${pct}%;background:rgba(255,255,255,.4)"></div></div>
     </div>
@@ -1553,7 +1572,7 @@ function renderDash(){
     <div class="kpi mint">
       <div class="kpi-label">Objectif</div>
       <div class="kpi-value">${pct.toFixed(0)}%</div>
-      <div class="kpi-sub">Reste ${fa(Math.max(0,obj-ca))}</div>
+      <div class="kpi-sub">Reste ${fa(Math.max(0,obj-caNet))}</div>
     </div>`;
 
   // Modes
