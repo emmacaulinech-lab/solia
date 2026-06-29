@@ -1601,15 +1601,15 @@ document.getElementById('dashModes').innerHTML=modes.map(m=>`
       <span class="td-violet">${fa(d.total)}</span>
     </div>`).join(''):'<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">Aucune cliente</div></div>';
 
-  // VIR en attente
+// VIR en attente
   const modesAttente=CONFIG.modesAttente||['VIR'];
-const vir=DB.caisse.filter(t=>modesAttente.includes(t.reglement)&&!t.paye&&t.montant>0&&inM(t.date,mois));
+const virAttente=DB.caisse.filter(t=>modesAttente.includes(t.reglement)&&!t.paye&&t.montant>0&&inM(t.date,mois));
   const virEl=document.getElementById('dashVir');
-  if(!vir.length){
+  if(!virAttente.length){
     virEl.innerHTML='<div style="padding:16px 18px;font-size:13px;color:var(--mut)">✅ Aucun paiement en attente</div>';
   } else {
     virEl.innerHTML=`<div style="padding:0"><table>
-      <tbody>${vir.map(t=>`<tr>
+      <tbody>${virAttente.map(t=>`<tr>
         <td>${dlbl(t.date)}</td>
         <td style="font-weight:600">${t.nom}</td>
         <td>${t.prestation||'—'}</td>
