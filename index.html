@@ -2007,7 +2007,7 @@ function renderRecap(){
     }
 
     // ESP déposées
-    const espDeposeS=DB.banque.filter(b=>inSem(b.date,s)&&b.montant>0&&b.categorie==="Chiffre d'affaires").reduce((s,b)=>s+b.montant,0);
+    const espDeposeS=DB.banque.filter(b=>inSem(b.date,s)&&b.montant>0&&b.categorie==="Chiffre d'affaires"&&(b.nom.toUpperCase().includes('DÉPÔT')||b.nom.toUpperCase().includes('DEPOT')||b.nom.toUpperCase().includes('ESP'))).reduce((s,b)=>s+b.montant,0);
     const espEncaisseS=espNet;
 
     // Redevance
