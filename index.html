@@ -1907,14 +1907,9 @@ async function validerFactureTVA(banqueId){
 async function calculerTVA(){
   const mois=document.getElementById('bm')?.value||new Date().toISOString().slice(0,7);
   if(!mois){toast('⚠ Sélectionne un mois d\'abord');return;}
-
-  // TVA collectée = toutes les rentrées du mois
-  const credits=DB.banque.filter(b=>inM(b.date,mois)&&b.montant>0);
-  const tvaCollectee=credits.reduce((s,b)=>s+(b.tva||Math.round(b.montant/(1+CONFIG.tva)*CONFIG.tva*100)/100),0);
-
-  // TVA déductible = TVA sur les factures fournisseurs du mois
+  const credits=DB.banque.filter(b=>inM(b.date,mois)&&b.montant>0&&b.categorie==="Chiffre d'affaires");
+  const tvaCollectee=Math.round(credits.reduce((s,b)=>s+(b.tva||0),0)*100)/100;
   const tvaDeductible=DB_FACTURES.filter(f=>inM(f.date,mois)&&f.rapprochee).reduce((s,f)=>s+f.tva,0);
-
   const tvaNette=Math.round((tvaCollectee-tvaDeductible)*100)/100;
 
   // Calculer le mois suivant
