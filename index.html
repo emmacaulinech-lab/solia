@@ -2737,6 +2737,9 @@ function openModal(ctx,editId=null){
   const titles={caisse:editId?'Modifier prestation':'Nouvelle prestation',banque:editId?'Modifier mouvement':'Nouveau mouvement',fixes:editId?'Modifier charge fixe':'Nouvelle charge fixe',variables:editId?'Modifier charge variable':'Nouvelle charge variable'};
   document.getElementById('mTitle').textContent=titles[ctx]||'—';
   document.getElementById('mBody').innerHTML=buildForm(ctx,editId);
+  document.querySelector('#mainModal .modal-footer').innerHTML=`
+    <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>
+    <button class="btn btn-primary" onclick="saveEntry()">Valider</button>`;
   document.getElementById('mainModal').classList.add('open');
 }
 
