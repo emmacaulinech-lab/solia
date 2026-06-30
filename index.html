@@ -1801,7 +1801,7 @@ function renderBanque(){
   html+=`<tr style="background:${
   t.montant>0
     ?(t.caisseIds?.length?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
-    :([...DB.fixes,...DB.variables].some(f=>f.banqueId===t.id)?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
+    :([...DB.fixes,...DB.variables].some(f=>f.banqueIds?.includes(t.id)||f.banqueId===t.id)?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
 }">
       <td class="td-mut">${dlbl(t.date)}</td>
       <td style="font-weight:500">${t.nom}</td>
@@ -3062,7 +3062,7 @@ function buildForm(ctx,editId=null){
     const mois=t?.date?.slice(0,7)||today.slice(0,7);
 
     const prestationsLiees=t?DB.caisse.filter(x=>x.banqueId===t.id):[];
-    const chargeLiee=t?[...DB.fixes,...DB.variables].find(f=>f.banqueId===t.id):null;
+    const chargeLiee=t?[...DB.fixes,...DB.variables].find(f=>f.banqueIds?.includes(t.id)||f.banqueId===t.id):null;
     const factureLiee=t?DB_FACTURES.find(f=>f.operationBanqueId===t.id):null;
 
     return`
