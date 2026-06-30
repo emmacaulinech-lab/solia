@@ -1912,6 +1912,9 @@ async function calculerTVA(){
   const tvaDeductible=DB_FACTURES.filter(f=>inM(f.date,mois)&&f.rapprochee).reduce((s,f)=>s+f.tva,0);
   const tvaNette=Math.round((tvaCollectee-tvaDeductible)*100)/100;
 
+  // Débits du mois sans facture associée
+  const debitsSansFacture=DB.banque.filter(b=>inM(b.date,mois)&&b.montant<0&&!b.factureId);
+
   // Calculer le mois suivant
   const [y,m]=mois.split('-').map(Number);
   let sy=y, sm=m+1;
@@ -1925,6 +1928,25 @@ async function calculerTVA(){
         <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:4px">Période</div>
         <div style="font-size:15px;font-weight:600">${mf(mois)}</div>
       </div>
+
+      ${debitsSansFacture.length?`
+      <div style="background:#fff7ed;border:1.5px solid #f0c040;border-radius:10px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:10px">⚠️ ${debitsSansFacture.length} débit${debitsSansFacture.length>1?'s':''} sans facture — TVA potentiellement manquée</div>
+        <div style="max-height:220px;overflow-y:auto">
+          ${debitsSansFacture.map(b=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0e0c0">
+              <div>
+                <div style="font-size:12px;font-weight:600">${b.nom}</div>
+                <div style="font-size:11px;color:var(--mut)">${dlbl(b.date)}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red)">${fm(b.montant)}</span>
+                <button class="btn btn-primary btn-sm" onclick="closeMo('mainModal');setTimeout(()=>ajouterFactureTVA('${b.id}'),100)">🧾 Ajouter</button>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`:''}
+
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
         <div style="background:#d1fae5;border-radius:10px;padding:12px;text-align:center">
           <div style="font-size:10px;color:#065f46;margin-bottom:4px">TVA collectée</div>
