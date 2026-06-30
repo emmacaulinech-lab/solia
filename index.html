@@ -3235,6 +3235,18 @@ async function ajouterPrestationListe(){
   await saveSettings();
   document.getElementById('add-prest-btn').innerHTML=`<span style="font-size:12px;color:var(--mint)">✅ Ajoutée à la liste</span>`;
   toast('✓ Prestation ajoutée aux paramètres');
+
+  if(CONFIG.franchise){
+    if(!CONFIG.franchisePrestations) CONFIG.franchisePrestations=[];
+    if(!CONFIG.franchisePrestations.includes(val)){
+      const ajouter=confirm(`Tu es en franchise. Veux-tu que "${val}" soit aussi soumise à la redevance franchise ?`);
+      if(ajouter){
+        CONFIG.franchisePrestations.push(val);
+        await saveSettings();
+        toast('✓ Ajoutée à la franchise aussi');
+      }
+    }
+  }
 }
 
 function openPrestationsNonListees(){
@@ -3270,6 +3282,18 @@ async function ajouterPrestationDepuisListe(nom){
   if(CONFIG.prestations.includes(nom)) return;
   CONFIG.prestations.push(nom);
   await saveSettings();
+
+  if(CONFIG.franchise){
+    if(!CONFIG.franchisePrestations) CONFIG.franchisePrestations=[];
+    if(!CONFIG.franchisePrestations.includes(nom)){
+      const ajouter=confirm(`Tu es en franchise. Veux-tu que "${nom}" soit aussi soumise à la redevance franchise ?`);
+      if(ajouter){
+        CONFIG.franchisePrestations.push(nom);
+        await saveSettings();
+      }
+    }
+  }
+
   openPrestationsNonListees();
   toast(`✓ "${nom}" ajoutée à la liste`);
 }
