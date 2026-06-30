@@ -1786,11 +1786,12 @@ if(cmoEl){
   cmoEl.value=curVal;
 }
   const actionsEl=document.getElementById('caisse-actions');
-  if(actionsEl) actionsEl.innerHTML=`
+if(actionsEl) actionsEl.innerHTML=`
     <button class="btn btn-primary" onclick="openModal('caisse')">+ Ajouter</button>
     ${CONFIG.plan==='complet'
       ?`<button class="btn btn-outline btn-sm" onclick="goView('agenda')">📸 Import agenda</button>`
-      :`<button class="btn btn-ghost btn-sm" onclick="toast('⬆️ Fonctionnalité Complet')">📸 Import agenda 🔒</button>`}`;
+      :`<button class="btn btn-ghost btn-sm" onclick="toast('⬆️ Fonctionnalité Complet')">📸 Import agenda 🔒</button>`}
+    <button class="btn btn-outline btn-sm" onclick="openPrestationsNonListees()">📋 Prestations non listées</button>`;
   const s=(document.getElementById('cs')?.value||'').toLowerCase();
   const fm_=document.getElementById('cm')?.value||'';
   const fmo=document.getElementById('cmo')?.value||'';
@@ -3182,6 +3183,43 @@ async function ajouterPrestationListe(){
   await saveSettings();
   document.getElementById('add-prest-btn').innerHTML=`<span style="font-size:12px;color:var(--mint)">✅ Ajoutée à la liste</span>`;
   toast('✓ Prestation ajoutée aux paramètres');
+}
+
+function openPrestationsNonListees(){
+  const nonListees={};
+  for(const t of DB.caisse){
+    if(t.prestation&&!CONFIG.prestations.includes(t.prestation)){
+      if(!nonListees[t.prestation]) nonListees[t.prestation]={nom:t.prestation,nb:0,ids:[]};
+      nonListees[t.prestation].nb++;
+      nonListees[t.prestation].ids.push(t.id);
+    }
+  }
+  const liste=Object.values(nonListees).sort((a,b)=>b.nb-a.nb);
+
+  document.getElementById('mTitle').textContent='📋 Prestations non listées';
+  document.getElementById('mBody').innerHTML=liste.length?`
+    <div style="font-size:12px;color:var(--mut);margin-bottom:14px">${liste.length} prestation${liste.length>1?'s sont utilisées':' est utilisée'} dans Caisse mais ${liste.length>1?'ne figurent':'ne figure'} pas dans ta liste de paramètres. Ça peut fausser certains calculs (redevance, stats).</div>
+    ${liste.map(p=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--fog)">
+        <div>
+          <div style="font-weight:600;font-size:13px">${p.nom}</div>
+          <div style="font-size:11px;color:var(--mut)">${p.nb} prestation${p.nb>1?'s':''} concernée${p.nb>1?'s':''}</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="ajouterPrestationDepuisListe('${p.nom.replace(/'/g,"\\'")}')">+ Ajouter</button>
+      </div>`).join('')}
+  `:`<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Tout est à jour</div><div class="empty-sub">Toutes les prestations utilisées sont bien dans ta liste.</div></div>`;
+
+  document.querySelector('#mainModal .modal-footer').innerHTML=`
+    <button class="btn btn-ghost" onclick="closeMo('mainModal')">Fermer</button>`;
+  document.getElementById('mainModal').classList.add('open');
+}
+
+async function ajouterPrestationDepuisListe(nom){
+  if(CONFIG.prestations.includes(nom)) return;
+  CONFIG.prestations.push(nom);
+  await saveSettings();
+  openPrestationsNonListees();
+  toast(`✓ "${nom}" ajoutée à la liste`);
 }
 
 function buildForm(ctx,editId=null){
