@@ -2010,7 +2010,11 @@ async function calculerTVA(){
   if(!mois){toast('⚠ Sélectionne un mois d\'abord');return;}
   const credits=DB.banque.filter(b=>inM(b.date,mois)&&b.montant>0&&b.categorie==="Chiffre d'affaires");
   const tvaCollectee=Math.round(credits.reduce((s,b)=>s+(b.tva||0),0)*100)/100;
-  const tvaDeductible=DB_FACTURES.filter(f=>inM(f.date,mois)&&f.rapprochee).reduce((s,f)=>s+f.tva,0);
+  const tvaDeductible=DB_FACTURES.filter(f=>{
+  if(!f.rapprochee||!f.banqueId) return false;
+  const b=DB.banque.find(x=>x.id===f.banqueId);
+  return b&&inM(b.date,mois);
+}).reduce((s,f)=>s+f.tva,0);
   const tvaNette=Math.round((tvaCollectee-tvaDeductible)*100)/100;
 
   // Débits du mois sans facture associée
