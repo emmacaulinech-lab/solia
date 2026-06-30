@@ -2406,6 +2406,7 @@ function renderCharges(){
           ${avecPrevisions&&totPrev!==0?`<span style="font-size:11px;color:${totReel>totPrev?'var(--red)':'var(--mint)'}">
             ${totReel>totPrev?'▲':'▼'} ${fm(Math.abs(totReel-totPrev))}
           </span>`:''}
+          <button class="btn btn-ghost btn-sm" onclick="dupliquerChargesVersMoisSuivant('${mois}')">📋 Dupliquer →</button>
         </div>
       </div>
       <table><thead><tr>
@@ -2439,6 +2440,57 @@ function renderCharges(){
     </div>`;
   }
   document.getElementById('chargesContent').innerHTML=html||`<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Aucune charge</div></div>`;
+}
+
+async function dupliquerChargesVersMoisSuivant(mois){
+  const [y,m]=mois.split('-').map(Number);
+  let ny=y,nm=m+1;
+  if(nm>12){nm=1;ny++;}
+  const moisSuivant=`${ny}-${String(nm).padStart(2,'0')}`;
+
+  const dejaExiste=DB.fixes.some(f=>f.mois===moisSuivant)||DB.variables.some(f=>f.mois===moisSuivant);
+  if(dejaExiste){
+    if(!confirm(`Des charges existent déjà pour ${mf(moisSuivant)}. Continuer quand même ?`)) return;
+  }
+
+  const fixesMois=DB.fixes.filter(f=>f.mois===mois);
+  const varsMois=DB.variables.filter(f=>f.mois===mois);
+  let count=0;
+
+  for(const f of fixesMois){
+    const existeDeja=DB.fixes.some(x=>x.mois===moisSuivant&&x.nom===f.nom);
+    if(existeDeja) continue;
+    const nouvelleCharge={
+      id:genId(),
+      mois:moisSuivant,
+      nom:f.nom,
+      prev:f.montant||f.prev||0,
+      montant:0,
+      banqueId:null,
+      paye:false
+    };
+    DB.fixes.push(nouvelleCharge);
+    count++;
+  }
+
+  for(const f of varsMois){
+    const existeDeja=DB.variables.some(x=>x.mois===moisSuivant&&x.nom===f.nom);
+    if(existeDeja) continue;
+    const nouvelleCharge={
+      id:genId(),
+      mois:moisSuivant,
+      nom:f.nom,
+      prev:f.montant||f.prev||0,
+      montant:0,
+      banqueId:null
+    };
+    DB.variables.push(nouvelleCharge);
+    count++;
+  }
+
+  await saveAll();
+  renderCharges();
+  toast(`✓ ${count} charge${count>1?'s':''} dupliquée${count>1?'s':''} vers ${mf(moisSuivant)}`);
 }
 
 // ══════════════════════════════════════
