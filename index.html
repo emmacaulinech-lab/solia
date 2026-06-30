@@ -1765,7 +1765,10 @@ let html='<table><thead><tr><th>Date</th><th>Nom</th><th>Prestation</th><th styl
         <td class="td-mut">${getPratNom(t.praticien)}</td>
         <td>${bdg(t.reglement)}</td>
         <td style="text-align:center">
-          ${t.reglement==='ESP'?`<span style="cursor:pointer" onclick="togPaye('${t.id}')">${t.paye?'✅':'⬜'}</span>`:`<span>${['CHQ','PLANITY','VIR'].includes(t.reglement)&&t.paye?'✅':'⏳'}</span>`}
+          ${t.reglement==='ESP'?`<span style="cursor:pointer" onclick="togPaye('${t.id}')">${t.paye?'✅':'⬜'}</span>`
+  :t.reglement==='CHQ'?`<span>${(t.depose||t.chqDepose)?'✅':'⏳'}</span>`
+  :['VIR','PLANITY'].includes(t.reglement)?`<span>${t.rapprocheBanque?'✅':'⏳'}</span>`
+  :`<span>${t.paye?'✅':'⏳'}</span>`}
         </td>
         <td style="white-space:nowrap">
           <button class="btn btn-ghost btn-sm" onclick="toggleExclureRapprochement('${t.id}')" title="${t.exclureRapprochement?'Réactiver le rapprochement':'Ne pas rapprocher'}">${t.exclureRapprochement?'↩️':'🚫'}</button>
