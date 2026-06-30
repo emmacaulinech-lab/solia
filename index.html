@@ -587,11 +587,7 @@ select option{color:#1a0f0a;background:white}
           <option value="oui">✅ Rapprochés</option>
           <option value="non">⏳ Non rapprochés</option>
         </select>
-        <select class="fi" id="bmode" onchange="renderBanque()">
-          <option value="">Tous modes/charges</option>
-          ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>`<option value="mode-${m}">${m}</option>`).join('')}
-          ${[...new Set([...DB.fixes,...DB.variables].map(f=>f.nom))].map(n=>`<option value="charge-${n}">${n}</option>`).join('')}
-        </select>
+        <select class="fi" id="bmode" onchange="renderBanque()"><option value="">Tous modes/charges</option></select>
       </div>
       <div class="card" id="banqueTable"></div>
     </div>
@@ -1785,6 +1781,14 @@ async function togPaye(id){
 // BANQUE
 // ══════════════════════════════════════
 function renderBanque(){
+  const bmodeEl=document.getElementById('bmode');
+if(bmodeEl){
+  const curVal=bmodeEl.value;
+  bmodeEl.innerHTML=`<option value="">Tous modes/charges</option>
+    ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>`<option value="mode-${m}">${m}</option>`).join('')}
+    ${[...new Set([...DB.fixes,...DB.variables].map(f=>f.nom))].map(n=>`<option value="charge-${n}">${n}</option>`).join('')}`;
+  bmodeEl.value=curVal;
+}
   const banqueActionsEl=document.getElementById('banque-actions');
   if(banqueActionsEl) banqueActionsEl.innerHTML=`
     <button class="btn btn-primary" onclick="openModal('banque')">+ Ajouter</button>
