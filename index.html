@@ -1833,8 +1833,7 @@ function renderBanque(){
 function ajouterFactureTVA(banqueId){
   const b=DB.banque.find(x=>x.id===banqueId);
   if(!b) return;
-  const tvaAuto=Math.round(Math.abs(b.montant)/(1+(CONFIG.tva||0.2))*(CONFIG.tva||0.2)*100)/100;
-  document.getElementById('mTitle').textContent='🧾 Facture TVA';
+  document.getElementById('mTitle').textContent='🧾 Facture(s) TVA';
   document.getElementById('mBody').innerHTML=`
     <div style="background:var(--fog);border-radius:10px;padding:12px 14px;margin-bottom:16px">
       <div style="font-weight:700">${b.nom}</div>
@@ -1842,66 +1841,168 @@ function ajouterFactureTVA(banqueId){
       <div style="font-size:18px;color:var(--red);margin-top:4px">${fm(b.montant)}</div>
     </div>
     <div class="field">
-      <label>Fournisseur</label>
-      <input type="text" id="ftva-fourn" value="${b.nom}" style="font-size:14px;padding:10px">
+      <label>Importer une ou plusieurs factures (PDF ou photo)</label>
+      <label style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--accent);color:white;border-radius:10px;padding:14px;font-size:13px;font-weight:600;cursor:pointer">
+        📤 Choisir des fichiers
+        <input type="file" id="ftva-files" accept=".pdf,image/*" multiple onchange="analyserFacturesTVA('${banqueId}')" style="display:none">
+      </label>
     </div>
-    <div class="field">
-      <label>Numéro de facture <span style="font-size:10px;color:var(--mut)">(optionnel)</span></label>
-      <input type="text" id="ftva-num" placeholder="FA-2026-001" style="font-size:14px;padding:10px">
-    </div>
-    <div class="g2">
-      <div class="field">
-        <label>Montant HT (€)</label>
-        <input type="number" id="ftva-ht" value="${(Math.abs(b.montant)-tvaAuto).toFixed(2)}" step="0.01" style="font-size:14px;padding:10px" oninput="updateTVACalc()">
-      </div>
-      <div class="field">
-        <label>TVA déductible (€)</label>
-        <input type="number" id="ftva-tva" value="${tvaAuto}" step="0.01" style="font-size:14px;padding:10px" oninput="updateTVACalc()">
-      </div>
-    </div>
-    <div style="background:#eff6ff;border-radius:10px;padding:10px 14px;font-size:12px;color:#1d4ed8">
-      TTC : <strong id="ftva-ttc">${fa(Math.abs(b.montant))}</strong>
-    </div>`;
+    <div id="ftva-result"></div>`;
   document.querySelector('#mainModal .modal-footer').innerHTML=`
-    <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>
-    <button class="btn btn-primary" onclick="validerFactureTVA('${banqueId}')">✓ Enregistrer</button>`;
+    <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>`;
   document.getElementById('mainModal').classList.add('open');
 }
 
-function updateTVACalc(){
-  const ht=parseFloat(document.getElementById('ftva-ht')?.value)||0;
-  const tva=parseFloat(document.getElementById('ftva-tva')?.value)||0;
-  const ttcEl=document.getElementById('ftva-ttc');
-  if(ttcEl) ttcEl.textContent=fa(ht+tva);
+async function analyserFacturesTVA(banqueId){
+  const input=document.getElementById('ftva-files');
+  const files=[...input.files];
+  if(!files.length) return;
+  const apiKey=localStorage.getItem('solia_apikey');
+  if(!apiKey){toast('⚠ Configure ta clé API dans les paramètres');return;}
+
+  const resultEl=document.getElementById('ftva-result');
+  resultEl.innerHTML=`<div style="text-align:center;padding:24px">
+    <div class="spinner" style="margin:0 auto 12px"></div>
+    <div style="font-size:13px;color:#888">Analyse de ${files.length} facture${files.length>1?'s':''}...</div>
+  </div>`;
+
+  const facturesExtraites=[];
+
+  try{
+    for(const file of files){
+      let content;
+      if(file.type==='application/pdf'){
+        if(!window.pdfjsLib){
+          await new Promise((res,rej)=>{
+            const s=document.createElement('script');
+            s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            s.onload=res;s.onerror=rej;
+            document.head.appendChild(s);
+          });
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+        const arrayBuffer=await file.arrayBuffer();
+        const pdf=await window.pdfjsLib.getDocument({data:arrayBuffer}).promise;
+        let fullText='';
+        for(let i=1;i<=Math.min(pdf.numPages,5);i++){
+          const page=await pdf.getPage(i);
+          const tc=await page.getTextContent();
+          fullText+=tc.items.map(x=>x.str).join(' ')+'\n';
+        }
+        content=[{type:'text',text:`Voici le texte extrait d'une facture :\n${fullText.slice(0,6000)}`}];
+      } else {
+        const base64=await new Promise((res,rej)=>{
+          const reader=new FileReader();
+          reader.onload=()=>res(reader.result.split(',')[1]);
+          reader.onerror=rej;
+          reader.readAsDataURL(file);
+        });
+        content=[{type:'image',source:{type:'base64',media_type:file.type,data:base64}}];
+      }
+
+      content.push({type:'text',text:`Analyse cette facture et extrais : fournisseur, numéro de facture, date (YYYY-MM-DD), montant HT, montant TVA, montant TTC.
+Réponds UNIQUEMENT en JSON valide sans backticks :
+{"fournisseur":"...","numeroFacture":"...","date":"2026-01-15","montantHT":100,"tva":20,"montantTTC":120}`});
+
+      const response=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-api-key':apiKey,
+          'anthropic-version':'2023-06-01',
+          'anthropic-dangerous-direct-browser-access':'true'
+        },
+        body:JSON.stringify({
+          model:'claude-sonnet-4-6',
+          max_tokens:1000,
+          messages:[{role:'user',content}]
+        })
+      });
+
+      const data=await response.json();
+      if(data.error) throw new Error(data.error.message);
+      const text=data.content.map(x=>x.text||'').join('');
+      const match=text.match(/\{[\s\S]*\}/);
+      if(match) facturesExtraites.push(JSON.parse(match[0]));
+    }
+
+    afficherFacturesExtraites(banqueId, facturesExtraites);
+  }catch(e){
+    resultEl.innerHTML=`<div style="padding:16px;text-align:center;color:var(--red)">⚠️ Erreur : ${e.message}</div>`;
+  }
 }
 
-async function validerFactureTVA(banqueId){
+function afficherFacturesExtraites(banqueId, factures){
+  window._facturesTemp=factures;
+  const totalTVA=factures.reduce((s,f)=>s+(f.tva||0),0);
+
+  document.getElementById('ftva-result').innerHTML=`
+    <div style="font-size:12px;font-weight:700;color:var(--mut);margin:16px 0 8px">✅ ${factures.length} facture${factures.length>1?'s':''} détectée${factures.length>1?'s':''}</div>
+    ${factures.map((f,i)=>`
+      <div style="background:#f9f6f4;border-radius:10px;padding:12px 14px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <strong style="font-size:13px">${f.fournisseur||'—'}</strong>
+          <span style="font-size:11px;color:var(--mut)">${f.numeroFacture||''}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:12px">
+          <div>HT: <input type="number" id="ftva-ht-${i}" value="${f.montantHT||0}" step="0.01" style="width:70px;padding:4px;border:1px solid #ddd;border-radius:6px" oninput="updateFactureExtraite(${i})"></div>
+          <div>TVA: <input type="number" id="ftva-tva-${i}" value="${f.tva||0}" step="0.01" style="width:70px;padding:4px;border:1px solid #ddd;border-radius:6px" oninput="updateFactureExtraite(${i})"></div>
+          <div>TTC: <span id="ftva-ttc-${i}" style="font-weight:600">${fa(f.montantTTC||0)}</span></div>
+        </div>
+      </div>`).join('')}
+    <div style="background:#dbeafe;border-radius:10px;padding:10px 14px;margin-top:8px;font-size:13px">
+      TVA totale déductible : <strong id="ftva-total-tva">${fa(totalTVA)}</strong>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeMo('mainModal')">Annuler</button>
+      <button class="btn btn-primary" style="flex:1" onclick="validerFacturesTVA('${banqueId}')">✓ Enregistrer</button>
+    </div>`;
+}
+
+function updateFactureExtraite(i){
+  const ht=parseFloat(document.getElementById(`ftva-ht-${i}`)?.value)||0;
+  const tva=parseFloat(document.getElementById(`ftva-tva-${i}`)?.value)||0;
+  window._facturesTemp[i].montantHT=ht;
+  window._facturesTemp[i].tva=tva;
+  window._facturesTemp[i].montantTTC=ht+tva;
+  document.getElementById(`ftva-ttc-${i}`).textContent=fa(ht+tva);
+  const totalTva=window._facturesTemp.reduce((s,f)=>s+f.tva,0);
+  document.getElementById('ftva-total-tva').textContent=fa(totalTva);
+}
+
+async function validerFacturesTVA(banqueId){
   const b=DB.banque.find(x=>x.id===banqueId);
   if(!b) return;
-  const fourn=document.getElementById('ftva-fourn')?.value?.trim()||b.nom;
-  const num=document.getElementById('ftva-num')?.value?.trim()||'';
-  const ht=parseFloat(document.getElementById('ftva-ht')?.value)||0;
-  const tva=parseFloat(document.getElementById('ftva-tva')?.value)||0;
-  const factureId=genId();
-  const facture={
-    id:factureId,
-    fournisseur:fourn,
-    numeroFacture:num||`FA-${b.date.slice(0,7)}-${factureId.slice(-4)}`,
-    date:b.date,
-    montantHT:ht,
-    tva,
-    montantTTC:ht+tva,
-    rapprochee:true,
-    banqueId
-  };
-  DB_FACTURES.push(facture);
-  b.factureId=factureId;
-  b.tva=-tva;
+  const factures=window._facturesTemp||[];
+  if(!factures.length){toast('⚠ Aucune facture à enregistrer');return;}
+
+  let totalTva=0;
+  let dernierFactureId=null;
+  for(const f of factures){
+    const factureId=genId();
+    const facture={
+      id:factureId,
+      fournisseur:f.fournisseur||'Fournisseur',
+      numeroFacture:f.numeroFacture||`FA-${b.date.slice(0,7)}-${factureId.slice(-4)}`,
+      date:f.date||b.date,
+      montantHT:f.montantHT||0,
+      tva:f.tva||0,
+      montantTTC:f.montantTTC||0,
+      rapprochee:true,
+      banqueId
+    };
+    DB_FACTURES.push(facture);
+    await saveFacture(facture);
+    totalTva+=f.tva||0;
+    dernierFactureId=factureId;
+  }
+
+  b.factureId=dernierFactureId;
+  b.tva=-totalTva;
   await saveAll();
-  await saveFacture(facture);
   closeMo('mainModal');
   renderBanque();
-  toast('✓ Facture TVA enregistrée');
+  toast(`✓ ${factures.length} facture(s) enregistrée(s)`);
 }
 
 async function calculerTVA(){
