@@ -3229,12 +3229,13 @@ async function delEntry(table,id){
 
   if(table==='banque'){
     // Nettoyer les charges rapprochées avec ce mouvement
-    const chargesLiees=[...DB.fixes,...DB.variables].filter(f=>f.banqueId===id);
-    for(const charge of chargesLiees){
-      charge.montant=0;
-      charge.banqueId=null;
-      charge.paye=false;
-    }
+    const chargesLiees=[...DB.fixes,...DB.variables].filter(f=>f.banqueIds?.includes(id)||f.banqueId===id);
+for(const charge of chargesLiees){
+  charge.banqueIds=(charge.banqueIds||[]).filter(bid=>bid!==id);
+  charge.montant=recalculerMontantCharge(charge);
+  charge.paye=charge.banqueIds.length>0;
+  if(charge.banqueId===id) charge.banqueId=charge.banqueIds[charge.banqueIds.length-1]||null;
+}
     // Nettoyer les prestations rapprochées avec ce mouvement
     const prestationsLiees=DB.caisse.filter(t=>t.banqueId===id);
     for(const p of prestationsLiees){
@@ -4667,30 +4668,34 @@ function renderRapChargeHTML(charges, b){
     </div>`;
 }
 
-  async function validerRapprochementDebit(banqueId){
+ async function validerRapprochementDebit(banqueId){
   const b=DB.banque.find(x=>x.id===banqueId);
   if(!b) return;
   const chargeId=document.getElementById('rap-charge-id')?.value;
   const montantReel=parseFloat(document.getElementById('rap-montant')?.value)||0;
-
   if(!chargeId){
     toast('⚠ Sélectionne une charge');
     return;
   }
 
-  // Nettoyer l'ancien rapprochement de cette ligne banque s'il existe
-  const ancienneCharge=[...DB.fixes,...DB.variables].find(f=>f.banqueId===banqueId);
-  if(ancienneCharge&&ancienneCharge.id!==chargeId){
-    ancienneCharge.montant=0;
-    ancienneCharge.banqueId=null;
-    ancienneCharge.paye=false;
+  // Retirer cette ligne banque de toute autre charge où elle était précédemment rapprochée
+  for(const charge of [...DB.fixes,...DB.variables]){
+    if(charge.banqueIds?.includes(banqueId)&&charge.id!==chargeId){
+      charge.banqueIds=charge.banqueIds.filter(id=>id!==banqueId);
+      charge.montant=recalculerMontantCharge(charge);
+      charge.paye=charge.banqueIds.length>0;
+    }
   }
 
   const table=DB.fixes.find(x=>x.id===chargeId)?'fixes':'variables';
   const charge=DB[table].find(x=>x.id===chargeId);
   if(charge){
-    charge.montant=(charge.montant||0)-montantReel;
-    charge.banqueId=banqueId;
+    if(!charge.banqueIds) charge.banqueIds=[];
+    if(!charge.banqueIds.includes(banqueId)){
+      charge.banqueIds.push(banqueId);
+    }
+    charge.montant=recalculerMontantCharge(charge);
+    charge.banqueId=banqueId; // garde le dernier pour compat affichage
     charge.paye=true;
   }
 
@@ -4698,6 +4703,14 @@ function renderRapChargeHTML(charges, b){
   closeMo('mainModal');
   renderAll();
   toast('✓ Rapprochement enregistré — montant réel mis à jour');
+}
+
+function recalculerMontantCharge(charge){
+  if(!charge.banqueIds||!charge.banqueIds.length) return 0;
+  return -charge.banqueIds.reduce((s,id)=>{
+    const b=DB.banque.find(x=>x.id===id);
+    return s+(b?Math.abs(b.montant):0);
+  },0);
 }
 
 async function validerRapprochementBanque(banqueId){
