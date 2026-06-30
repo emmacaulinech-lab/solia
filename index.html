@@ -560,10 +560,7 @@ select option{color:#1a0f0a;background:white}
       <div class="filters">
         <input class="fi" id="cs" placeholder="🔍 Rechercher..." oninput="renderCaisse()" style="min-width:180px">
         <select class="fi" id="cm" onchange="renderCaisse()"><option value="">Tous les mois</option></select>
-        <select class="fi" id="cmo" onchange="renderCaisse()">
-  <option value="">Tous modes</option>
-  ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>`<option>${m}</option>`).join('')}
-</select>
+        <select class="fi" id="cmo" onchange="renderCaisse()"><option value="">Tous modes</option></select>
       </div>
       <div class="card" id="caisseTable"></div>
       <div id="caisse-actions" style="display:flex;gap:8px;margin-bottom:12px"></div>
@@ -1718,11 +1715,11 @@ const virAttente=DB.caisse.filter(t=>modesAttente.includes(t.reglement)&&!t.paye
 // ══════════════════════════════════════
 function renderCaisse(){
   const cmoEl=document.getElementById('cmo');
-  if(cmoEl&&cmoEl.options.length<=1){
-    const curVal=cmoEl.value;
-    cmoEl.innerHTML=`<option value="">Tous modes</option>${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>`<option>${m}</option>`).join('')}`;
-    cmoEl.value=curVal;
-  }
+if(cmoEl){
+  const curVal=cmoEl.value;
+  cmoEl.innerHTML=`<option value="">Tous modes</option>${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>`<option>${m}</option>`).join('')}`;
+  cmoEl.value=curVal;
+}
   const actionsEl=document.getElementById('caisse-actions');
   if(actionsEl) actionsEl.innerHTML=`
     <button class="btn btn-primary" onclick="openModal('caisse')">+ Ajouter</button>
