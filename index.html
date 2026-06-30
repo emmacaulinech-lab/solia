@@ -1736,12 +1736,10 @@ function renderCaisse(){
   if(s) rows=rows.filter(t=>t.nom?.toLowerCase().includes(s)||(t.prestation||'').toLowerCase().includes(s));
   if(fm_) rows=rows.filter(t=>inM(t.date,fm_));
   if(fmo) rows=rows.filter(t=>t.reglement===fmo);
-
   if(!rows.length){
     document.getElementById('caisseTable').innerHTML=`<div class="empty"><div class="empty-icon">🧳</div><div class="empty-title">Aucune prestation</div><div class="empty-sub">Cliquez sur "+ Ajouter" pour enregistrer votre première prestation.</div></div>`;
     return;
   }
-
   const byM={};
   for(const t of rows){const m=dm(t.date);if(!byM[m])byM[m]=[];byM[m].push(t);}
 let html='<table><thead><tr><th>Date</th><th>Nom</th><th>Prestation</th><th style="text-align:right">Montant</th><th>Praticienne</th><th>Mode</th><th style="text-align:center">Payé</th><th></th></tr></thead><tbody>';
@@ -1750,16 +1748,18 @@ let html='<table><thead><tr><th>Date</th><th>Nom</th><th>Prestation</th><th styl
     html+=`<tr class="tr-sum"><td colspan="3" style="padding:8px 14px">▾ ${mf(mois)} <span style="font-size:11px;color:var(--mut);font-weight:400">${mrows.filter(t=>t.montant>0).length} prestations</span></td><td class="td-green" style="text-align:right;padding:8px 14px">${fa(tot)}</td><td colspan="3"></td></tr>`;
     for(const t of mrows){
       html+=`<tr style="background:${
-  t.reglement==='ESP'
-    ?(t.depose?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
-    :t.reglement==='CHQ'
-      ?((t.depose||t.chqDepose)?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
-      :(t.reglement==='VIR'||t.reglement==='PLANITY')
-        ?(t.rapprocheBanque?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
-        :'rgba(245,158,11,.06)'
+  t.exclureRapprochement
+    ?'rgba(220,38,38,.07)'
+    :t.reglement==='ESP'
+      ?(t.depose?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
+      :t.reglement==='CHQ'
+        ?((t.depose||t.chqDepose)?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
+        :(t.reglement==='VIR'||t.reglement==='PLANITY')
+          ?(t.rapprocheBanque?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
+          :'rgba(245,158,11,.06)'
 }">
         <td class="td-mut">${dlbl(t.date)}</td>
-        <td style="font-weight:600">${t.nom||'—'}</td>
+        <td style="font-weight:600">${t.nom||'—'}${t.exclureRapprochement?` <span style="font-size:10px;color:var(--red);font-weight:700">🚫</span>`:''}</td>
         <td class="td-mut">${t.prestation||'—'}</td>
         <td class="${t.montant>=0?'td-green':'td-red'}" style="text-align:right">${fa(t.montant)}</td>
         <td class="td-mut">${getPratNom(t.praticien)}</td>
@@ -1768,6 +1768,7 @@ let html='<table><thead><tr><th>Date</th><th>Nom</th><th>Prestation</th><th styl
           ${t.reglement==='ESP'?`<span style="cursor:pointer" onclick="togPaye('${t.id}')">${t.paye?'✅':'⬜'}</span>`:`<span>${['CHQ','PLANITY','VIR'].includes(t.reglement)&&t.paye?'✅':'⏳'}</span>`}
         </td>
         <td style="white-space:nowrap">
+          <button class="btn btn-ghost btn-sm" onclick="toggleExclureRapprochement('${t.id}')" title="${t.exclureRapprochement?'Réactiver le rapprochement':'Ne pas rapprocher'}">${t.exclureRapprochement?'↩️':'🚫'}</button>
           <button class="btn btn-ghost btn-sm" onclick="editEntry('caisse','${t.id}')">✏️</button>
           <button class="btn btn-danger btn-sm" onclick="delEntry('caisse','${t.id}')">✕</button>
         </td>
@@ -1776,6 +1777,15 @@ let html='<table><thead><tr><th>Date</th><th>Nom</th><th>Prestation</th><th styl
   }
   html+='</tbody></table>';
   document.getElementById('caisseTable').innerHTML=html;
+}
+
+async function toggleExclureRapprochement(id){
+  const t=DB.caisse.find(x=>x.id===id);
+  if(!t) return;
+  t.exclureRapprochement=!t.exclureRapprochement;
+  await saveAll();
+  renderCaisse();
+  toast(t.exclureRapprochement?'🚫 Exclue du rapprochement':'↩️ Réactivée pour le rapprochement');
 }
 
 async function togPaye(id){
@@ -4900,6 +4910,7 @@ function updateRapprochementList(banqueId){
   const prestations=DB.caisse.filter(t=>{
     if(t.montant<=0) return false;
     if(t.reglement!==type) return false;
+    if(t.exclureRapprochement) return false;
     if(typeMode==='physique') return !t.depose;
     return !t.rapprocheBanque;
   }).sort((a,b)=>b.date.localeCompare(a.date));
