@@ -3089,6 +3089,28 @@ function editEntry(table,id){openModal(table,id);}
 
 async function delEntry(table,id){
   if(!confirm('Supprimer ?')) return;
+
+  if(table==='banque'){
+    // Nettoyer les charges rapprochées avec ce mouvement
+    const chargesLiees=[...DB.fixes,...DB.variables].filter(f=>f.banqueId===id);
+    for(const charge of chargesLiees){
+      charge.montant=0;
+      charge.banqueId=null;
+      charge.paye=false;
+    }
+    // Nettoyer les prestations rapprochées avec ce mouvement
+    const prestationsLiees=DB.caisse.filter(t=>t.banqueId===id);
+    for(const p of prestationsLiees){
+      p.rapprocheBanque=false;
+      p.banqueId=null;
+    }
+    // Supprimer les factures liées
+    const facturesLiees=DB_FACTURES.filter(f=>f.operationBanqueId===id);
+    for(const f of facturesLiees){
+      await deleteFacture(f.id);
+    }
+  }
+
   DB[table]=DB[table].filter(t=>t.id!==id);
   await saveAll();
   if(table==='caisse') renderCaisse();
@@ -4474,9 +4496,9 @@ function ouvrirRapprochementBanque(banqueId){
   if(!b) return;
   const mois=b.date.slice(0,7);
   const chargesDispos=[
-  ...DB.fixes.filter(f=>f.mois===mois),
-  ...DB.variables.filter(f=>f.mois===mois)
-]; // pas encore rapprochées
+    ...DB.fixes.filter(f=>f.mois===mois),
+    ...DB.variables.filter(f=>f.mois===mois)
+  ];
 
   document.getElementById('mTitle').textContent='🔗 Rapprocher un débit';
   document.getElementById('mBody').innerHTML=`
@@ -4485,18 +4507,7 @@ function ouvrirRapprochementBanque(banqueId){
       <div style="font-size:12px;color:var(--mut)">${dlbl(b.date)}</div>
       <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--red);margin-top:4px">${fm(b.montant)}</div>
     </div>
-
-    <div class="field" style="margin-bottom:16px">
-      <label>Type de rapprochement</label>
-      <div style="display:flex;border-radius:8px;overflow:hidden;border:1.5px solid #ddd">
-        <button id="rap-tab-charge" onclick="setRapTab('charge','${banqueId}')" style="flex:1;padding:9px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:var(--accent);color:white">📋 Charge</button>
-        <button id="rap-tab-facture" onclick="setRapTab('facture','${banqueId}')" style="flex:1;padding:9px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:#f9f6f4;color:#888">🧾 Facture fournisseur</button>
-      </div>
-    </div>
-
-    <div id="rap-content">
-      ${renderRapChargeHTML(chargesDispos, b)}
-    </div>`;
+    ${renderRapChargeHTML(chargesDispos, b)}`;
 
   document.querySelector('#mainModal .modal-footer').innerHTML=`
     <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>
@@ -4505,102 +4516,45 @@ function ouvrirRapprochementBanque(banqueId){
 }
 
 function renderRapChargeHTML(charges, b){
-  if(!charges.length) return`<div style="text-align:center;padding:16px;font-size:13px;color:var(--mut)">Aucune charge non rapprochée pour ${mf(b.date.slice(0,7))}</div>`;
+  if(!charges.length) return`<div style="text-align:center;padding:16px;font-size:13px;color:var(--mut)">Aucune charge pour ${mf(b.date.slice(0,7))}. <a href="#" onclick="closeMo('mainModal');goView('charges');return false">Crée-la d'abord</a></div>`;
   return`
     <div class="field"><label>Charge correspondante</label>
-      <select id="rap-charge-id" onchange="updateMontantRap(this,'${b.id}')">
+      <select id="rap-charge-id">
         <option value="">— Choisir une charge —</option>
-        ${charges.map(f=>`<option value="${f.id}" data-prev="${f.prev||0}" data-type="${DB.fixes.find(x=>x.id===f.id)?'fixes':'variables'}">${f.nom} — prévu : ${f.prev?fm(f.prev):'—'}</option>`).join('')}
+        ${charges.map(f=>`<option value="${f.id}">${f.nom} — prévu : ${f.prev?fm(f.prev):'—'}</option>`).join('')}
       </select>
     </div>
     <div class="field">
       <label>Montant réel (€) <span style="font-size:10px;color:var(--mut)">pré-rempli avec le montant banque</span></label>
       <input type="number" id="rap-montant" value="${Math.abs(b.montant)}" step="0.01" style="color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px">
-    </div>
-    <div id="rap-tva-block" style="display:none">
-      <div style="background:#eff6ff;border-radius:10px;padding:12px 14px;margin-top:8px">
-        <div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:8px">🧾 Facture TVA associée ?</div>
-        <div style="display:flex;gap:8px">
-          <button onclick="setRapTVA(true)" id="tva-oui" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid #ddd;background:#f9f6f4;font-size:12px;font-weight:600;cursor:pointer">✅ Oui — avec facture</button>
-          <button onclick="setRapTVA(false)" id="tva-non" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid #ddd;background:#f9f6f4;font-size:12px;font-weight:600;cursor:pointer">❌ Non — sans facture</button>
-        </div>
-        <div id="rap-tva-montant" style="display:none;margin-top:10px">
-          <div class="field"><label>Montant TVA déductible (€)</label>
-            <input type="number" id="rap-tva" value="${(Math.abs(b.montant)/(1+(CONFIG.tva||0.2))*((CONFIG.tva||0.2))).toFixed(2)}" step="0.01" style="color:#1a0f0a;background:#f9f6f4;border:1.5px solid #ddd;border-radius:8px">
-          </div>
-        </div>
-      </div>
     </div>`;
 }
 
-function setRapTab(tab, banqueId){
-  const b=DB.banque.find(x=>x.id===banqueId);
-  const mois=b.date.slice(0,7);
-  const charges=[...DB.fixes,...DB.variables].filter(f=>f.mois===mois&&!f.banqueId);
-  const facturesDispos=DB_FACTURES.filter(f=>!f.rapprochee);
-
-  document.getElementById('rap-tab-charge').style.background=tab==='charge'?'var(--accent)':'#f9f6f4';
-  document.getElementById('rap-tab-charge').style.color=tab==='charge'?'white':'#888';
-  document.getElementById('rap-tab-facture').style.background=tab==='facture'?'var(--accent)':'#f9f6f4';
-  document.getElementById('rap-tab-facture').style.color=tab==='facture'?'white':'#888';
-
-  document.getElementById('rap-content').innerHTML=tab==='charge'
-    ?renderRapChargeHTML(charges,b)
-    :(facturesDispos.length
-      ?`<div class="field"><label>Facture correspondante</label>
-          <select id="rap-facture-id">
-            <option value="">— Choisir une facture —</option>
-            ${facturesDispos.map(f=>`<option value="${f.id}">${f.fournisseur} — ${dlbl(f.date)} — ${fa(f.montantTTC)}</option>`).join('')}
-          </select>
-        </div>`
-      :`<div style="text-align:center;padding:16px;font-size:13px;color:var(--mut)">Aucune facture disponible.</div>`);
-}
-
-function updateMontantRap(sel, banqueId){
-  const tvaBlock=document.getElementById('rap-tva-block');
-  if(tvaBlock) tvaBlock.style.display=sel.value?'block':'none';
-}
-
-function setRapTVA(oui){
-  document.getElementById('tva-oui').style.background=oui?'#dbeafe':'#f9f6f4';
-  document.getElementById('tva-oui').style.borderColor=oui?'#1d4ed8':'#ddd';
-  document.getElementById('tva-non').style.background=!oui?'#fee2e2':'#f9f6f4';
-  document.getElementById('tva-non').style.borderColor=!oui?'#dc2626':'#ddd';
-  document.getElementById('rap-tva-montant').style.display=oui?'block':'none';
-}
-
-async function validerRapprochementDebit(banqueId){
+  async function validerRapprochementDebit(banqueId){
   const b=DB.banque.find(x=>x.id===banqueId);
   if(!b) return;
-
   const chargeId=document.getElementById('rap-charge-id')?.value;
-  const factureId=document.getElementById('rap-facture-id')?.value;
   const montantReel=parseFloat(document.getElementById('rap-montant')?.value)||0;
-  const tvaEl=document.getElementById('rap-tva');
-  const tva=tvaEl?parseFloat(tvaEl.value)||0:0;
 
-  if(chargeId){
-    // Rapprocher avec une charge
-    const table=DB.fixes.find(x=>x.id===chargeId)?'fixes':'variables';
-    const charge=DB[table].find(x=>x.id===chargeId);
-    if(charge){
-      charge.montant=(charge.montant||0)-montantReel;
-charge.banqueId=banqueId;
-charge.paye=true;
-      if(tva) b.tva=-tva;
-      b.factureId=chargeId;
-    }
-  } else if(factureId){
-    // Rapprocher avec une facture
-    const facture=DB_FACTURES.find(x=>x.id===factureId);
-    if(facture){
-      facture.rapprochee=true;
-      facture.banqueId=banqueId;
-      b.factureId=factureId;
-    }
-  } else {
-    toast('⚠ Sélectionne une charge ou une facture');
+  if(!chargeId){
+    toast('⚠ Sélectionne une charge');
     return;
+  }
+
+  // Nettoyer l'ancien rapprochement de cette ligne banque s'il existe
+  const ancienneCharge=[...DB.fixes,...DB.variables].find(f=>f.banqueId===banqueId);
+  if(ancienneCharge&&ancienneCharge.id!==chargeId){
+    ancienneCharge.montant=0;
+    ancienneCharge.banqueId=null;
+    ancienneCharge.paye=false;
+  }
+
+  const table=DB.fixes.find(x=>x.id===chargeId)?'fixes':'variables';
+  const charge=DB[table].find(x=>x.id===chargeId);
+  if(charge){
+    charge.montant=(charge.montant||0)-montantReel;
+    charge.banqueId=banqueId;
+    charge.paye=true;
   }
 
   await saveAll();
