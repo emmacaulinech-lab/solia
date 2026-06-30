@@ -2467,7 +2467,7 @@ function renderRecap(){
   const redevAutoEstim=CONFIG.franchise?-calculerRedevance(pm):0;
 
   const totalEstim=fixEstim+varEstim+redevAutoEstim-achatEstim;
-  const chargeParSemaine=nw>0?totalEstim/nw:0;
+  const chargeParSemaine=totalEstim/4;
 
   // Total réel charges
   const fixReel=fixes.reduce((s,f)=>s+(f.montant||0),0);
