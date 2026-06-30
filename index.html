@@ -3493,7 +3493,6 @@ function updateImportClienteList(i){
   const mois=m.date.slice(0,7);
   const dejaSel=m.rapprochement?.caisseIds||[];
 
-  // Prestations du même mois avec ce mode, pas encore rapprochées
   const prestations=DB.caisse.filter(t=>
     t.reglement===type&&
     t.montant>0&&
@@ -3508,20 +3507,56 @@ function updateImportClienteList(i){
 
   el.innerHTML=`
     <div class="field">
-      <label>Clientes associées</label>
-      <div style="max-height:200px;overflow-y:auto;border:1.5px solid #ddd;border-radius:8px;padding:8px">
+      <label>${prestations.length} prestation${prestations.length>1?'s':''} ${type} en attente
+        <span style="float:right;cursor:pointer;color:var(--accent);font-weight:600" onclick="toggleAllImportCli(${i})">Tout sélectionner</span>
+      </label>
+      <div style="max-height:280px;overflow-y:auto;border:1.5px solid #ddd;border-radius:8px;padding:8px">
         ${prestations.map(t=>`
-          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--fog)">
-            <input type="checkbox" id="imp-cli-${t.id}" value="${t.id}" ${dejaSel.includes(t.id)?'checked':''} style="accent-color:var(--accent);width:15px;height:15px">
-            <label for="imp-cli-${t.id}" style="cursor:pointer;flex:1;font-size:12px">
-              ${dlbl(t.date)} — <strong>${t.nom}</strong> — ${t.prestation||'—'}
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid var(--fog)">
+            <input type="checkbox" class="imp-cli-check" id="imp-cli-${t.id}" value="${t.id}" ${dejaSel.includes(t.id)?'checked':''} onchange="updateImportTotal(${i})" style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer">
+            <label for="imp-cli-${t.id}" style="cursor:pointer;flex:1;font-size:13px">
+              <strong>${dlbl(t.date)}</strong> — ${t.nom} — ${t.prestation||'—'}
             </label>
-            <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--mint)">${fa(t.montant)}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:13px;color:var(--mint);font-weight:600">${fa(t.montant)}</span>
           </div>`).join('')}
       </div>
-    </div>`;
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--fog);border-radius:8px;margin-top:8px">
+      <span style="font-size:12px;color:var(--mut)">Total sélectionné</span>
+      <span id="imp-total" style="font-family:'DM Mono',monospace;font-weight:700;color:var(--accent);font-size:14px">0,00 €</span>
+    </div>
+    <div id="imp-ecart" style="font-size:12px;margin-top:6px"></div>`;
+
+  updateImportTotal(i);
 }
 
+function updateImportTotal(i){
+  const m=importedMouvements[i];
+  const checks=[...document.querySelectorAll('.imp-cli-check:checked')];
+  const total=checks.reduce((s,c)=>{
+    const t=DB.caisse.find(x=>x.id===c.value);
+    return s+(t?.montant||0);
+  },0);
+  const totalEl=document.getElementById('imp-total');
+  if(totalEl) totalEl.textContent=fa(total);
+
+  const ecart=Math.round((total-m.montant)*100)/100;
+  const ecartEl=document.getElementById('imp-ecart');
+  if(ecartEl){
+    if(Math.abs(ecart)<0.01){
+      ecartEl.innerHTML=`<span style="color:var(--mint)">✅ Montant exact</span>`;
+    } else {
+      ecartEl.innerHTML=`<span style="color:var(--red)">⚠️ Écart : ${fm(ecart,true)}</span>`;
+    }
+  }
+}
+
+function toggleAllImportCli(i){
+  const checks=[...document.querySelectorAll('.imp-cli-check')];
+  const allChecked=checks.every(c=>c.checked);
+  checks.forEach(c=>c.checked=!allChecked);
+  updateImportTotal(i);
+}
 function validerRapprochementImport(i){
   const m=importedMouvements[i];
   const isCredit=m.montant>0;
