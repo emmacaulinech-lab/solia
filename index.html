@@ -2897,37 +2897,48 @@ function buildForm(ctx,editId=null){
         </div>
       </div>`;
   }
-  if(ctx==='banque'){
+ if(ctx==='banque'){
     const t=editId?DB.banque.find(x=>x.id===editId):null;
-    const isAuto=CONFIG.formeJuridique==='auto';
-    const cats=isAuto
-      ?["Chiffre d'affaires",'Achat','Loyer','EDF','Téléphone','Abonnements','Assurance','URSSAF','Formation','Autre']
-      :["Chiffre d'affaires",'Achat','Loyer','EDF','Téléphone','Abonnements','Assurance','Salaires','TVA','Comptable','Autre'];
+    const isCredit=t?t.montant>0:true;
+    const mois=t?.date?.slice(0,7)||today.slice(0,7);
+
+    // Trouver le rapprochement actuel
+    const prestationsLiees=t?DB.caisse.filter(x=>x.banqueId===t.id):[];
+    const chargeLiee=t?[...DB.fixes,...DB.variables].find(f=>f.banqueId===t.id):null;
+
     return`
       <div class="g2">
         <div class="field"><label>Date</label><input type="date" id="fDate" value="${t?.date||today}"></div>
         <div class="field"><label>Montant (€)</label><input type="number" id="fMnt" value="${t?.montant||''}" placeholder="-1200 ou +500" step="0.01"></div>
       </div>
       <div class="field"><label>Libellé</label><input type="text" id="fNom" value="${t?.nom||''}" placeholder="LOYER, EDF..."></div>
-      <div class="field"><label>Catégorie</label>
-        <select id="fCat" onchange="checkDepot()">
-          <option value="">— Choisir —</option>
-          ${cats.map(c=>`<option value="${c}" ${t?.categorie===c?'selected':''}>${c}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field" id="depot-field" style="display:none"><label>Rapprocher avec des prestations caisse <span style="font-size:10px;color:var(--mut)">(dépôt ESP ou CHQ)</span></label>
-        <div id="depot-list" style="max-height:200px;overflow-y:auto;border:1.5px solid #ddd;border-radius:8px;padding:8px"></div>
-        <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--mut)">
-          Total sélectionné : <span id="depot-total" style="font-weight:700;color:var(--accent)">0,00 €</span>
-        </div>
-      </div>
-      ${DB_FACTURES.filter(f=>!f.rapprochee).length>0?`
-      <div class="field"><label>Rapprocher avec une facture <span style="font-size:10px;color:var(--mut)">(optionnel)</span></label>
-        <select id="fFacture">
-          <option value="">— Aucune facture —</option>
-          ${DB_FACTURES.filter(f=>!f.rapprochee).map(f=>`<option value="${f.id}" ${t?.factureId===f.id?'selected':''}>${f.fournisseur} — ${dlbl(f.date)} — ${fa(f.montantTTC)}</option>`).join('')}
-        </select>
-      </div>`:''}`;
+
+      ${t?`
+      <div style="background:${prestationsLiees.length||chargeLiee?'rgba(0,200,150,.08)':'rgba(245,158,11,.08)'};border-radius:10px;padding:14px;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--mut);margin-bottom:8px">RAPPROCHEMENT ACTUEL</div>
+        ${prestationsLiees.length?`
+          <div style="font-size:13px;margin-bottom:8px">✅ Lié à ${prestationsLiees.length} prestation${prestationsLiees.length>1?'s':''} :</div>
+          ${prestationsLiees.map(p=>`<div style="font-size:12px;color:var(--mut);padding:2px 0">• ${p.nom} — ${fa(p.montant)}</div>`).join('')}
+        `:chargeLiee?`
+          <div style="font-size:13px">✅ Lié à la charge : <strong>${chargeLiee.nom}</strong></div>
+        `:`
+          <div style="font-size:13px;color:#92400e">⏳ Aucun rapprochement</div>
+        `}
+        <button type="button" class="btn btn-outline btn-sm" style="margin-top:10px" onclick="closeMo('mainModal');setTimeout(()=>${isCredit?`ouvrirRapprochementCaisse('${t.id}')`:`ouvrirRapprochementBanque('${t.id}')`},150)">
+          🔗 ${prestationsLiees.length||chargeLiee?'Modifier le rapprochement':'Rapprocher'}
+        </button>
+      </div>`:''}
+
+      ${!isCredit?`
+      <div class="field"><label>Facture TVA</label>
+        ${t?.factureId
+          ?`<div style="font-size:13px;color:var(--mint)">✅ Facture liée — ${fa(Math.abs(t.tva||0))} de TVA déductible
+              <button type="button" class="btn btn-ghost btn-sm" onclick="closeMo('mainModal');setTimeout(()=>ajouterFactureTVA('${t.id}'),150)">✏️</button>
+            </div>`
+          :`<button type="button" class="btn btn-outline btn-sm" onclick="closeMo('mainModal');setTimeout(()=>ajouterFactureTVA('${t.id}'),150)">🧾 Ajouter une facture</button>`
+        }
+      </div>`:''}
+    `;
   }
 
   if(ctx==='fixes'){
