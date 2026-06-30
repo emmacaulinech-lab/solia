@@ -2517,8 +2517,8 @@ const espWCorr=semaines.map((s,i)=>{
   reportPrec=val-espDeposeesW[i];
   return val;
 });
-const espEcartW=espWCorr.map((v,i)=>v-espDeposeesW[i]);
-const espEcartTot=espWCorr[nw-1]-espDeposesTot;
+const espEcartW=espWCorr.map((v,i)=>v+espDeposeesW[i]);
+const espEcartTot=espWCorr[nw-1]+espDeposesTot;
 
 let cumulEspNet=0;
 const espNetCumulW=semaines.map((s,i)=>{
