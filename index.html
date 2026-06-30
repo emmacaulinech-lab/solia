@@ -1743,7 +1743,12 @@ while(startW<=lastDChart){
 }
 
 const maxS=Math.max(...semaines.map(s=>s.ca),1);
-const colorsModes={'ESP':'#c47a4a','VIR':'#4a78c8','CHQ':'#7e22ce','PLANITY':'#0d9488'};
+const colorsModes={
+  'ESP':'rgba(196,122,74,.75)',
+  'VIR':'rgba(125,140,200,.75)',
+  'CHQ':'rgba(168,130,196,.75)',
+  'PLANITY':'rgba(110,180,165,.75)'
+};
 const chartEl=document.getElementById('dashChart');
 if(chartEl) chartEl.innerHTML=`
     <div style="display:flex;align-items:flex-end;gap:8px;height:170px;padding-bottom:20px;position:relative">
@@ -1754,19 +1759,19 @@ if(chartEl) chartEl.innerHTML=`
           ${s.ca>0?`<div style="font-size:9px;color:var(--mut);white-space:nowrap;font-weight:600">${fa(s.ca)}</div>`:'<div></div>'}
           <div style="width:100%;display:flex;flex-direction:column-reverse;border-radius:6px 6px 0 0;overflow:hidden;height:${hpx}px;min-height:3px">
             ${modesChart.filter(m=>s.parMode[m]>0).map(m=>{
-              const hPart=s.ca>0?Math.round(s.parMode[m]/s.ca*100):0;
-              return`<div style="width:100%;height:${hPart}%;background:${colorsModes[m]||'#999'}" title="${m}: ${fa(s.parMode[m])}"></div>`;
-            }).join('')}
+  const hPart=s.ca>0?Math.round(s.parMode[m]/s.ca*100):0;
+  return`<div style="width:100%;height:${hPart}%;background:${colorsModes[m]||'rgba(150,150,150,.6)'};backdrop-filter:blur(8px);border-top:1px solid rgba(255,255,255,.4)" title="${m}: ${fa(s.parMode[m])}"></div>`;
+}).join('')}
           </div>
           <div style="font-size:10px;color:${isNow?'#c47a4a':'var(--mut)'};font-weight:${isNow?700:400};position:absolute;bottom:0">${s.label}</div>
         </div>`;
       }).join('')}
     </div>
     <div style="display:flex;gap:14px;justify-content:center;margin-top:14px;flex-wrap:wrap">
-      ${modesChart.map(m=>`<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mut)">
-        <div style="width:10px;height:10px;border-radius:3px;background:${colorsModes[m]||'#999'}"></div>${m}
-      </div>`).join('')}
-    </div>`;
+  ${modesChart.map(m=>`<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mut)">
+    <div style="width:10px;height:10px;border-radius:50%;background:${colorsModes[m]||'rgba(150,150,150,.6)'};box-shadow:0 1px 3px rgba(0,0,0,.15)"></div>${m}
+  </div>`).join('')}
+</div>`;
     
 }
 
