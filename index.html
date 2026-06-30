@@ -577,10 +577,24 @@ select option{color:#1a0f0a;background:white}
       <div class="filters">
         <input class="fi" id="bs" placeholder="🔍 Rechercher..." oninput="renderBanque()" style="min-width:180px">
         <select class="fi" id="bm" onchange="renderBanque()"><option value="">Tous les mois</option></select>
+        <select class="fi" id="btype" onchange="renderBanque()">
+          <option value="">Tous types</option>
+          <option value="credit">Crédits</option>
+          <option value="debit">Débits</option>
+        </select>
+        <select class="fi" id="brap" onchange="renderBanque()">
+          <option value="">Rapproché ou non</option>
+          <option value="oui">✅ Rapprochés</option>
+          <option value="non">⏳ Non rapprochés</option>
+        </select>
+        <select class="fi" id="bmode" onchange="renderBanque()">
+          <option value="">Tous modes/charges</option>
+          ${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>`<option value="mode-${m}">${m}</option>`).join('')}
+          ${[...new Set([...DB.fixes,...DB.variables].map(f=>f.nom))].map(n=>`<option value="charge-${n}">${n}</option>`).join('')}
+        </select>
       </div>
       <div class="card" id="banqueTable"></div>
     </div>
-
     <div class="view" id="view-charges">
       <div class="page-header">
         <div><div class="page-title">📋 Charges</div><div class="page-sub">Fixes & variables</div></div>
@@ -1781,9 +1795,42 @@ function renderBanque(){
     <button class="btn btn-outline btn-sm" onclick="calculerTVA()">🧾 Calculer TVA</button>`;
   const s=(document.getElementById('bs')?.value||'').toLowerCase();
   const fm_=document.getElementById('bm')?.value||'';
+  const ftype=document.getElementById('btype')?.value||'';
+  const frap=document.getElementById('brap')?.value||'';
+  const fmode=document.getElementById('bmode')?.value||'';
+
   let rows=[...DB.banque].filter(t=>t.date).sort((a,b)=>b.date.localeCompare(a.date));
   if(s) rows=rows.filter(t=>t.nom?.toLowerCase().includes(s));
   if(fm_) rows=rows.filter(t=>inM(t.date,fm_));
+  if(ftype==='credit') rows=rows.filter(t=>t.montant>0);
+  if(ftype==='debit') rows=rows.filter(t=>t.montant<0);
+
+  if(frap){
+    rows=rows.filter(t=>{
+      const estRapproche=t.montant>0
+        ?(t.caisseIds?.length>0)
+        :[...DB.fixes,...DB.variables].some(f=>f.banqueIds?.includes(t.id)||f.banqueId===t.id);
+      return frap==='oui'?estRapproche:!estRapproche;
+    });
+  }
+
+  if(fmode){
+    if(fmode.startsWith('mode-')){
+      const mode=fmode.replace('mode-','');
+      rows=rows.filter(t=>{
+        if(t.montant<=0) return false;
+        const caisseLiees=DB.caisse.filter(c=>t.caisseIds?.includes(c.id));
+        return caisseLiees.some(c=>c.reglement===mode);
+      });
+    } else if(fmode.startsWith('charge-')){
+      const chargeNom=fmode.replace('charge-','');
+      rows=rows.filter(t=>{
+        if(t.montant>=0) return false;
+        const charge=[...DB.fixes,...DB.variables].find(f=>f.banqueIds?.includes(t.id)||f.banqueId===t.id);
+        return charge?.nom===chargeNom;
+      });
+    }
+  }
 
   if(!rows.length){
     document.getElementById('banqueTable').innerHTML=`<div class="empty"><div class="empty-icon">🏦</div><div class="empty-title">Aucun mouvement</div></div>`;
