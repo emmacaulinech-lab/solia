@@ -2026,19 +2026,36 @@ async function supprimerFactureLiee(banqueId){
 async function calculerTVA(){
   const mois=document.getElementById('bm')?.value||new Date().toISOString().slice(0,7);
   if(!mois){toast('⚠ Sélectionne un mois d\'abord');return;}
+
+  const exclus=CONFIG.exclusTVA||[];
+
   const credits=DB.banque.filter(b=>inM(b.date,mois)&&b.montant>0&&b.categorie==="Chiffre d'affaires");
   const tvaCollectee=Math.round(credits.reduce((s,b)=>s+(b.tva||0),0)*100)/100;
+
   const tvaDeductible=DB_FACTURES.filter(f=>{
-  if(!f.rapprochee||!f.operationBanqueId) return false;
-  const b=DB.banque.find(x=>x.id===f.operationBanqueId);
-  return b&&inM(b.date,mois);
-}).reduce((s,f)=>s+f.tva,0);
+    if(!f.rapprochee) return false;
+    const liId=f.operationBanqueId||f.banqueId;
+    if(!liId) return false;
+    const b=DB.banque.find(x=>x.id===liId);
+    return b&&inM(b.date,mois);
+  }).reduce((s,f)=>s+f.tva,0);
+
   const tvaNette=Math.round((tvaCollectee-tvaDeductible)*100)/100;
 
-  // Débits du mois sans facture associée
-  const debitsSansFacture=DB.banque.filter(b=>inM(b.date,mois)&&b.montant<0&&!b.factureId);
+  // Tous les débits du mois
+  const tousLesDebits=DB.banque.filter(b=>inM(b.date,mois)&&b.montant<0);
 
-  // Calculer le mois suivant
+  const avecFacture=tousLesDebits.filter(b=>{
+    const liId=b.id;
+    return DB_FACTURES.some(f=>(f.operationBanqueId===liId||f.banqueId===liId)&&f.rapprochee);
+  });
+  const sansFacture=tousLesDebits.filter(b=>{
+    const liId=b.id;
+    const aFacture=DB_FACTURES.some(f=>(f.operationBanqueId===liId||f.banqueId===liId)&&f.rapprochee);
+    return !aFacture&&!exclus.includes(b.nom);
+  });
+  const exclues=tousLesDebits.filter(b=>exclus.includes(b.nom));
+
   const [y,m]=mois.split('-').map(Number);
   let sy=y, sm=m+1;
   if(sm>12){sm=1;sy++;}
@@ -2052,21 +2069,48 @@ async function calculerTVA(){
         <div style="font-size:15px;font-weight:600">${mf(mois)}</div>
       </div>
 
-      ${debitsSansFacture.length?`
+      ${sansFacture.length?`
       <div style="background:#fff7ed;border:1.5px solid #f0c040;border-radius:10px;padding:14px 16px">
-        <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:10px">⚠️ ${debitsSansFacture.length} débit${debitsSansFacture.length>1?'s':''} sans facture — TVA potentiellement manquée</div>
+        <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:10px">⏳ ${sansFacture.length} opération${sansFacture.length>1?'s':''} sans facture</div>
         <div style="max-height:220px;overflow-y:auto">
-          ${debitsSansFacture.map(b=>`
+          ${sansFacture.map(b=>`
             <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0e0c0">
               <div>
                 <div style="font-size:12px;font-weight:600">${b.nom}</div>
                 <div style="font-size:11px;color:var(--mut)">${dlbl(b.date)}</div>
               </div>
-              <div style="display:flex;align-items:center;gap:8px">
+              <div style="display:flex;align-items:center;gap:6px">
                 <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red)">${fm(b.montant)}</span>
                 <button class="btn btn-primary btn-sm" onclick="closeMo('mainModal');setTimeout(()=>ajouterFactureTVA('${b.id}'),100)">🧾 Ajouter</button>
+                <button class="btn btn-ghost btn-sm" onclick="exclureTVA('${b.nom.replace(/'/g,"\\'")}')">🚫 Jamais</button>
               </div>
             </div>`).join('')}
+        </div>
+      </div>`:''}
+
+      ${avecFacture.length?`
+      <div style="background:#d1fae5;border-radius:10px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:700;color:#065f46;margin-bottom:10px">✅ ${avecFacture.length} opération${avecFacture.length>1?'s':''} avec facture</div>
+        <div style="max-height:160px;overflow-y:auto">
+          ${avecFacture.map(b=>{
+            const f=DB_FACTURES.find(x=>(x.operationBanqueId===b.id||x.banqueId===b.id)&&x.rapprochee);
+            return`<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:12px">
+              <span>${b.nom}</span>
+              <span style="color:#065f46;font-weight:600">TVA : ${fa(f?.tva||0)}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`:''}
+
+      ${exclues.length?`
+      <div style="background:var(--fog);border-radius:10px;padding:12px 14px">
+        <div style="font-size:11px;font-weight:700;color:var(--mut);margin-bottom:8px">🚫 ${exclues.length} exclue${exclues.length>1?'s':''} (jamais de facture)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${[...new Set(exclues.map(b=>b.nom))].map(nom=>`
+            <span style="background:white;border:1px solid #ddd;border-radius:20px;padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:6px">
+              ${nom}
+              <button onclick="retirerExclusionTVA('${nom.replace(/'/g,"\\'")}')" style="background:none;border:none;cursor:pointer;color:var(--mut);font-size:12px">✕</button>
+            </span>`).join('')}
         </div>
       </div>`:''}
 
@@ -2090,6 +2134,19 @@ async function calculerTVA(){
     <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>
     <button class="btn btn-primary" onclick="validerDeclarationTVA(${tvaNette},'${mois}','${moisSuivant}')">✓ Créer la charge</button>`;
   document.getElementById('mainModal').classList.add('open');
+}
+
+async function exclureTVA(nom){
+  if(!CONFIG.exclusTVA) CONFIG.exclusTVA=[];
+  if(!CONFIG.exclusTVA.includes(nom)) CONFIG.exclusTVA.push(nom);
+  await saveSettings();
+  calculerTVA();
+}
+
+async function retirerExclusionTVA(nom){
+  CONFIG.exclusTVA=(CONFIG.exclusTVA||[]).filter(n=>n!==nom);
+  await saveSettings();
+  calculerTVA();
 }
 
 async function validerDeclarationTVA(tvaNette, moisRef, moisSuivant){
