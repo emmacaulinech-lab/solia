@@ -1843,38 +1843,43 @@ function renderBanque(){
   const sm={};
   allSorted.forEach(t=>{running+=t.montant;sm[t.id]=running;});
 
-  let html='<table><thead><tr><th>Date</th><th>Libellé</th><th>Catégorie</th><th>Facture</th><th style="text-align:right">TVA</th><th style="text-align:right">Montant</th><th style="text-align:right">Solde</th><th></th></tr></thead><tbody>';
-  for(const t of rows){
+  let html='<table><thead><tr><th>Date</th><th>Libellé</th><th>Rapprochement</th><th style="text-align:right">TVA</th><th style="text-align:right">Montant</th><th style="text-align:right">Solde</th><th></th></tr></thead><tbody>';
+for(const t of rows){
+  const chargeLiee=t.montant<0?[...DB.fixes,...DB.variables].find(f=>f.banqueIds?.includes(t.id)||f.banqueId===t.id):null;
+  const estRapprocheCredit=t.montant>0&&t.caisseIds?.length>0;
+  const factureLiee=DB_FACTURES.find(f=>(f.operationBanqueId===t.id||f.banqueId===t.id)&&f.rapprochee);
+
   html+=`<tr style="background:${
-  t.montant>0
-    ?(t.caisseIds?.length?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
-    :([...DB.fixes,...DB.variables].some(f=>f.banqueIds?.includes(t.id)||f.banqueId===t.id)?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
-}">
-      <td class="td-mut">${dlbl(t.date)}</td>
-      <td style="font-weight:500">${t.nom}</td>
-      <td class="td-mut">${t.categorie?`<span class="badge" style="background:var(--fog2);color:var(--mut)">${t.categorie}</span>`:'—'}</td>
-     <td style="white-space:nowrap">
-  ${t.factureId
-    ?`<span style="color:var(--mint);font-size:12px">✅ ${DB_FACTURES.find(f=>f.id===t.factureId)?.fournisseur||'Facture'}</span>`
-    :t.montant>0
-      ?`<button class="btn btn-ghost btn-sm" onclick="ouvrirRapprochementCaisse('${t.id}')">🔗 Cliente</button>`
-      :`<div style="display:flex;gap:4px">
-          <button class="btn btn-ghost btn-sm" onclick="ouvrirRapprochementBanque('${t.id}')">🔗 Charge</button>
-          <button class="btn btn-ghost btn-sm" onclick="ajouterFactureTVA('${t.id}')" title="Ajouter une facture TVA">🧾</button>
-        </div>`
-  }
-</td>
-      <td class="td-mono" style="text-align:right;color:#92400e">${t.tva?fa(t.tva):'—'}</td>
-      <td class="${t.montant>=0?'td-green':'td-red'}" style="text-align:right">${fm(t.montant,t.montant>0)}</td>
-      <td class="td-mono" style="text-align:right;color:var(--mut)">${fa(sm[t.id]||0)}</td>
-      <td style="white-space:nowrap">
-        <button class="btn btn-ghost btn-sm" onclick="editEntry('banque','${t.id}')">✏️</button>
-        <button class="btn btn-danger btn-sm" onclick="delEntry('banque','${t.id}')">✕</button>
-      </td>
-    </tr>`;
-  }
-  html+='</tbody></table>';
-  document.getElementById('banqueTable').innerHTML=html;
+    t.montant>0
+      ?(estRapprocheCredit?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
+      :(chargeLiee?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
+  }">
+    <td class="td-mut">${dlbl(t.date)}</td>
+    <td style="font-weight:500">${t.nom}</td>
+    <td style="white-space:nowrap">
+      ${t.montant>0
+        ?(estRapprocheCredit
+            ?`<span style="font-size:12px;color:var(--mint);font-weight:600">✅ ${t.caisseIds.length} prestation${t.caisseIds.length>1?'s':''}</span>`
+            :`<button class="btn btn-outline btn-sm" onclick="ouvrirRapprochementCaisse('${t.id}')">⏳ Rapprocher</button>`)
+        :(chargeLiee
+            ?`<span style="font-size:12px;color:var(--mint);font-weight:600">✅ ${chargeLiee.nom}</span>`
+            :`<button class="btn btn-outline btn-sm" onclick="ouvrirRapprochementBanque('${t.id}')">⏳ Rapprocher</button>`)
+      }
+      ${t.montant<0?(factureLiee
+        ?`<span style="font-size:11px;color:#1d4ed8;margin-left:6px">🧾</span>`
+        :`<button class="btn btn-ghost btn-sm" onclick="ajouterFactureTVA('${t.id}')" title="Ajouter une facture">🧾</button>`):''}
+    </td>
+    <td class="td-mono" style="text-align:right;color:#92400e">${t.tva?fa(Math.abs(t.tva)):'—'}</td>
+    <td class="${t.montant>=0?'td-green':'td-red'}" style="text-align:right">${fm(t.montant,t.montant>0)}</td>
+    <td class="td-mono" style="text-align:right;color:var(--mut)">${fa(sm[t.id]||0)}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-ghost btn-sm" onclick="editEntry('banque','${t.id}')">✏️</button>
+      <button class="btn btn-danger btn-sm" onclick="delEntry('banque','${t.id}')">✕</button>
+    </td>
+  </tr>`;
+}
+html+='</tbody></table>';
+document.getElementById('banqueTable').innerHTML=html;
 }
 
 function ajouterFactureTVA(banqueId, retourTVA=false){
