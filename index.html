@@ -2413,9 +2413,15 @@ function renderRecap(){
       else parMode[m]=rows.filter(t=>t.reglement===m).reduce((s,t)=>s+t.montant,0);
     });
     const caNetS=Object.values(parMode).reduce((s,v)=>s+v,0);
-
-    // Achats réels banque
-    const achatsS=DB.banque.filter(b=>inSem(b.date,s)&&b.montant<0&&['Matériel','Achat'].includes(b.categorie)).reduce((s,b)=>s+b.montant,0);
+    
+// Achats réels banque — depuis la charge ACHATS rapprochée
+const achatsS=DB.banque.filter(b=>{
+  if(!inSem(b.date,s)||b.montant>=0) return false;
+  const chargeAchat=[...DB.fixes,...DB.variables].find(f=>
+    f.nom?.toUpperCase().includes('ACHAT')&&(f.banqueIds?.includes(b.id)||f.banqueId===b.id)
+  );
+  return !!chargeAchat;
+}).reduce((s,b)=>s+b.montant,0);
 
     // Charges semaine selon mode
     let chargeS;
