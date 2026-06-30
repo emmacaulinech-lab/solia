@@ -1830,7 +1830,7 @@ function renderBanque(){
   document.getElementById('banqueTable').innerHTML=html;
 }
 
-function ajouterFactureTVA(banqueId){
+function ajouterFactureTVA(banqueId, retourTVA=false){
   const b=DB.banque.find(x=>x.id===banqueId);
   if(!b) return;
   document.getElementById('mTitle').textContent='🧾 Facture(s) TVA';
@@ -1844,16 +1844,16 @@ function ajouterFactureTVA(banqueId){
       <label>Importer une ou plusieurs factures (PDF ou photo)</label>
       <label style="display:flex;align-items:center;justify-content:center;gap:8px;background:var(--accent);color:white;border-radius:10px;padding:14px;font-size:13px;font-weight:600;cursor:pointer">
         📤 Choisir des fichiers
-        <input type="file" id="ftva-files" accept=".pdf,image/*" multiple onchange="analyserFacturesTVA('${banqueId}')" style="display:none">
+        <input type="file" id="ftva-files" accept=".pdf,image/*" multiple onchange="analyserFacturesTVA('${banqueId}',${retourTVA})" style="display:none">
       </label>
     </div>
     <div id="ftva-result"></div>`;
   document.querySelector('#mainModal .modal-footer').innerHTML=`
-    <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>`;
+    <button class="btn btn-ghost" onclick="${retourTVA?'calculerTVA()':"closeMo('mainModal')"}">${retourTVA?'← Retour':'Annuler'}</button>`;
   document.getElementById('mainModal').classList.add('open');
 }
 
-async function analyserFacturesTVA(banqueId){
+async function analyserFacturesTVA(banqueId, retourTVA=false){
   const input=document.getElementById('ftva-files');
   const files=[...input.files];
   if(!files.length) return;
@@ -1926,13 +1926,13 @@ Réponds UNIQUEMENT en JSON valide sans backticks :
       if(match) facturesExtraites.push(JSON.parse(match[0]));
     }
 
-    afficherFacturesExtraites(banqueId, facturesExtraites);
+    afficherFacturesExtraites(banqueId, facturesExtraites, retourTVA);
   }catch(e){
     resultEl.innerHTML=`<div style="padding:16px;text-align:center;color:var(--red)">⚠️ Erreur : ${e.message}</div>`;
   }
 }
 
-function afficherFacturesExtraites(banqueId, factures){
+function afficherFacturesExtraites(banqueId, factures, retourTVA=false){
   window._facturesTemp=factures;
   const totalTVA=factures.reduce((s,f)=>s+(f.tva||0),0);
 
@@ -1955,7 +1955,7 @@ function afficherFacturesExtraites(banqueId, factures){
     </div>
     <div style="display:flex;gap:8px;margin-top:14px">
       <button class="btn btn-ghost" style="flex:1" onclick="closeMo('mainModal')">Annuler</button>
-      <button class="btn btn-primary" style="flex:1" onclick="validerFacturesTVA('${banqueId}')">✓ Enregistrer</button>
+      <button class="btn btn-primary" style="flex:1" onclick="validerFacturesTVA('${banqueId}',${retourTVA})">✓ Enregistrer</button>
     </div>`;
 }
 
@@ -1970,7 +1970,7 @@ function updateFactureExtraite(i){
   document.getElementById('ftva-total-tva').textContent=fa(totalTva);
 }
 
-async function validerFacturesTVA(banqueId){
+async function validerFacturesTVA(banqueId, retourTVA=false){
   const b=DB.banque.find(x=>x.id===banqueId);
   if(!b) return;
   const factures=window._facturesTemp||[];
@@ -2000,9 +2000,13 @@ async function validerFacturesTVA(banqueId){
   b.factureId=dernierFactureId;
   b.tva=-totalTva;
   await saveAll();
-  closeMo('mainModal');
   renderBanque();
   toast(`✓ ${factures.length} facture(s) enregistrée(s)`);
+  if(retourTVA){
+    calculerTVA();
+  } else {
+    closeMo('mainModal');
+  }
 }
 
 async function supprimerFactureLiee(banqueId){
@@ -2081,7 +2085,7 @@ async function calculerTVA(){
               </div>
               <div style="display:flex;align-items:center;gap:6px">
                 <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--red)">${fm(b.montant)}</span>
-                <button class="btn btn-primary btn-sm" onclick="closeMo('mainModal');setTimeout(()=>ajouterFactureTVA('${b.id}'),100)">🧾 Ajouter</button>
+                <button class="btn btn-primary btn-sm" onclick="ajouterFactureTVA('${b.id}', true)">🧾 Ajouter</button>
                 <button class="btn btn-ghost btn-sm" onclick="exclureTVA('${b.nom.replace(/'/g,"\\'")}')">🚫 Jamais</button>
               </div>
             </div>`).join('')}
