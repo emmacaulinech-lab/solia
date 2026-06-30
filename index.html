@@ -1614,7 +1614,7 @@ document.getElementById('dashModes').innerHTML=modes.map(m=>`
 
 // VIR en attente
   const modesAttente=CONFIG.modesAttente||['VIR'];
-const virAttente=DB.caisse.filter(t=>modesAttente.includes(t.reglement)&&!t.paye&&t.montant>0&&inM(t.date,mois));
+const virAttente=DB.caisse.filter(t=>modesAttente.includes(t.reglement)&&!t.rapprocheBanque&&t.montant>0&&inM(t.date,mois));
   const virEl=document.getElementById('dashVir');
   if(!virAttente.length){
     virEl.innerHTML='<div style="padding:16px 18px;font-size:13px;color:var(--mut)">✅ Aucun paiement en attente</div>';
@@ -1697,37 +1697,75 @@ document.getElementById('dashResultat').innerHTML=`
       </div>`:''}
     </div>`;
 
-  // Graphique CA par semaine
-  const moisChart=`${dashY}-${String(dashM+1).padStart(2,'0')}`;
-  const semaines=[];
-  const firstDayChart=new Date(dashY,dashM,1);
-  let startW=new Date(firstDayChart);
-  const dow=startW.getDay();
-  startW.setDate(startW.getDate()-(dow===0?6:dow-1));
-  const lastDChart=new Date(dashY,dashM+1,0);
-  while(startW<=lastDChart){
-    const l=new Date(startW);
-    const d=new Date(startW);
-    d.setDate(d.getDate()+6);
-    const d1=l.toISOString().split('T')[0];
-    const d2=d.toISOString().split('T')[0];
-    const caS=DB.caisse.filter(t=>t.date>=d1&&t.date<=d2&&t.montant>0).reduce((s,t)=>s+t.montant,0);
-    semaines.push({label:`S${semaines.length+1}`,ca:caS,d1,d2});
-    startW.setDate(startW.getDate()+7);
-  }
-  const maxS=Math.max(...semaines.map(s=>s.ca),1);
-  const chartEl=document.getElementById('dashChart');
-  if(chartEl) chartEl.innerHTML=`
-    <div style="display:flex;align-items:flex-end;gap:8px;height:120px;padding-bottom:20px;position:relative">
+  // Graphique CA par semaine — net + détail par mode
+const moisChart=`${dashY}-${String(dashM+1).padStart(2,'0')}`;
+const semaines=[];
+const firstDayChart=new Date(dashY,dashM,1);
+let startW=new Date(firstDayChart);
+const dow=startW.getDay();
+startW.setDate(startW.getDate()-(dow===0?6:dow-1));
+const lastDChart=new Date(dashY,dashM+1,0);
+const modesChart=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
+const collabsChart=CONFIG.praticiennes||[];
+
+while(startW<=lastDChart){
+  const l=new Date(startW);
+  const d=new Date(startW);
+  d.setDate(d.getDate()+6);
+  const d1=l.toISOString().split('T')[0];
+  const d2=d.toISOString().split('T')[0];
+
+  const rowsS=DB.caisse.filter(t=>t.date>=d1&&t.date<=d2&&t.montant>0);
+
+  const parMode={};
+  modesChart.forEach(m=>{
+    if(m==='ESP'){
+      let v=0;
+      for(const collab of collabsChart){
+        const pr=rowsS.filter(t=>t.praticien===collab.id);
+        if(!pr.length) continue;
+        const ca=pr.reduce((s,t)=>s+t.montant,0);
+        const plan=pr.filter(t=>t.reglement==='PLANITY').reduce((s,t)=>s+t.montant,0);
+        const chqvir=pr.filter(t=>['CHQ','VIR'].includes(t.reglement)).reduce((s,t)=>s+t.montant,0);
+        const taux=(collab.taux||40)/100;
+        v+=Math.max(0,ca*taux-(plan+chqvir));
+      }
+      v+=rowsS.filter(t=>(!t.praticien||t.praticien==='')&&t.reglement==='ESP').reduce((s,t)=>s+t.montant,0);
+      parMode[m]=v;
+    } else {
+      parMode[m]=rowsS.filter(t=>t.reglement===m).reduce((s,t)=>s+t.montant,0);
+    }
+  });
+
+  const caS=Object.values(parMode).reduce((s,v)=>s+v,0);
+  semaines.push({label:`S${semaines.length+1}`,ca:caS,parMode,d1,d2});
+  startW.setDate(startW.getDate()+7);
+}
+
+const maxS=Math.max(...semaines.map(s=>s.ca),1);
+const colorsModes={'ESP':'#c47a4a','VIR':'#4a78c8','CHQ':'#7e22ce','PLANITY':'#0d9488'};
+const chartEl=document.getElementById('dashChart');
+if(chartEl) chartEl.innerHTML=`
+    <div style="display:flex;align-items:flex-end;gap:8px;height:170px;padding-bottom:20px;position:relative">
       ${semaines.map(s=>{
-        const hpx=s.ca>0?Math.max(Math.round(s.ca/maxS*100),4):3;
+        const hpx=s.ca>0?Math.max(Math.round(s.ca/maxS*120),4):3;
         const isNow=NOW>=new Date(s.d1)&&NOW<=new Date(s.d2+'T23:59:59');
         return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px">
-          ${s.ca>0?`<div style="font-size:9px;color:var(--mut);white-space:nowrap">${fa(s.ca)}</div>`:'<div></div>'}
-          <div style="width:100%;background:${isNow?'#c47a4a':'#e8d8c8'};border-radius:6px 6px 0 0;height:${hpx}px;min-height:3px"></div>
+          ${s.ca>0?`<div style="font-size:9px;color:var(--mut);white-space:nowrap;font-weight:600">${fa(s.ca)}</div>`:'<div></div>'}
+          <div style="width:100%;display:flex;flex-direction:column-reverse;border-radius:6px 6px 0 0;overflow:hidden;height:${hpx}px;min-height:3px">
+            ${modesChart.filter(m=>s.parMode[m]>0).map(m=>{
+              const hPart=s.ca>0?Math.round(s.parMode[m]/s.ca*100):0;
+              return`<div style="width:100%;height:${hPart}%;background:${colorsModes[m]||'#999'}" title="${m}: ${fa(s.parMode[m])}"></div>`;
+            }).join('')}
+          </div>
           <div style="font-size:10px;color:${isNow?'#c47a4a':'var(--mut)'};font-weight:${isNow?700:400};position:absolute;bottom:0">${s.label}</div>
         </div>`;
       }).join('')}
+    </div>
+    <div style="display:flex;gap:14px;justify-content:center;margin-top:14px;flex-wrap:wrap">
+      ${modesChart.map(m=>`<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--mut)">
+        <div style="width:10px;height:10px;border-radius:3px;background:${colorsModes[m]||'#999'}"></div>${m}
+      </div>`).join('')}
     </div>`;
     
 }
