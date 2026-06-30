@@ -1847,10 +1847,86 @@ function ajouterFactureTVA(banqueId, retourTVA=false){
         <input type="file" id="ftva-files" accept=".pdf,image/*" multiple onchange="analyserFacturesTVA('${banqueId}',${retourTVA})" style="display:none">
       </label>
     </div>
+    <div style="text-align:center;font-size:12px;color:var(--mut);margin:10px 0">— ou —</div>
+    <button class="btn btn-outline" style="width:100%" onclick="saisieManuelleFactureTVA('${banqueId}',${retourTVA})">✏️ Saisir manuellement</button>
     <div id="ftva-result"></div>`;
   document.querySelector('#mainModal .modal-footer').innerHTML=`
     <button class="btn btn-ghost" onclick="${retourTVA?'calculerTVA()':"closeMo('mainModal')"}">${retourTVA?'← Retour':'Annuler'}</button>`;
   document.getElementById('mainModal').classList.add('open');
+}
+
+function saisieManuelleFactureTVA(banqueId, retourTVA=false){
+  const b=DB.banque.find(x=>x.id===banqueId);
+  if(!b) return;
+  const tvaAuto=Math.round(Math.abs(b.montant)/(1+(CONFIG.tva||0.2))*(CONFIG.tva||0.2)*100)/100;
+
+  document.getElementById('ftva-result').innerHTML=`
+    <div style="margin-top:16px;border-top:1px solid var(--fog);padding-top:16px">
+      <div class="field"><label>Fournisseur</label>
+        <input type="text" id="ftva-m-fourn" value="${b.nom}" style="font-size:14px;padding:10px">
+      </div>
+      <div class="field"><label>Numéro de facture <span style="font-size:10px;color:var(--mut)">(optionnel)</span></label>
+        <input type="text" id="ftva-m-num" placeholder="FA-2026-001" style="font-size:14px;padding:10px">
+      </div>
+      <div class="g2">
+        <div class="field"><label>Montant HT (€)</label>
+          <input type="number" id="ftva-m-ht" value="${(Math.abs(b.montant)-tvaAuto).toFixed(2)}" step="0.01" style="font-size:14px;padding:10px" oninput="updateManuelTVA()">
+        </div>
+        <div class="field"><label>TVA (€)</label>
+          <input type="number" id="ftva-m-tva" value="${tvaAuto}" step="0.01" style="font-size:14px;padding:10px" oninput="updateManuelTVA()">
+        </div>
+      </div>
+      <div style="background:#eff6ff;border-radius:10px;padding:10px 14px;font-size:12px;color:#1d4ed8;margin-bottom:14px">
+        TTC : <strong id="ftva-m-ttc">${fa(Math.abs(b.montant))}</strong>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" style="flex:1" onclick="${retourTVA?'calculerTVA()':"closeMo('mainModal')"}">Annuler</button>
+        <button class="btn btn-primary" style="flex:1" onclick="validerFactureManuelle('${banqueId}',${retourTVA})">✓ Enregistrer</button>
+      </div>
+    </div>`;
+}
+
+function updateManuelTVA(){
+  const ht=parseFloat(document.getElementById('ftva-m-ht')?.value)||0;
+  const tva=parseFloat(document.getElementById('ftva-m-tva')?.value)||0;
+  document.getElementById('ftva-m-ttc').textContent=fa(ht+tva);
+}
+
+async function validerFactureManuelle(banqueId, retourTVA=false){
+  const b=DB.banque.find(x=>x.id===banqueId);
+  if(!b) return;
+  const fourn=document.getElementById('ftva-m-fourn')?.value?.trim()||b.nom;
+  const num=document.getElementById('ftva-m-num')?.value?.trim()||'';
+  const ht=parseFloat(document.getElementById('ftva-m-ht')?.value)||0;
+  const tva=parseFloat(document.getElementById('ftva-m-tva')?.value)||0;
+
+  const factureId=genId();
+  const facture={
+    id:factureId,
+    fournisseur:fourn,
+    numeroFacture:num||`FA-${b.date.slice(0,7)}-${factureId.slice(-4)}`,
+    date:b.date,
+    montantHT:ht,
+    tva,
+    montantTTC:ht+tva,
+    rapprochee:true,
+    operationBanqueId:banqueId
+  };
+  DB_FACTURES.push(facture);
+  await saveFacture(facture);
+
+  b.factureId=factureId;
+  b.tva=-tva;
+  await saveAll();
+
+  renderBanque();
+  toast('✓ Facture enregistrée');
+
+  if(retourTVA){
+    calculerTVA();
+  } else {
+    closeMo('mainModal');
+  }
 }
 
 async function analyserFacturesTVA(banqueId, retourTVA=false){
