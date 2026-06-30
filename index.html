@@ -1801,7 +1801,7 @@ function renderBanque(){
   html+=`<tr style="background:${
   t.montant>0
     ?(t.caisseIds?.length?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
-    :(t.factureId?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
+    :([...DB.fixes,...DB.variables].some(f=>f.banqueId===t.id)?'rgba(0,200,150,.06)':'rgba(245,158,11,.06)')
 }">
       <td class="td-mut">${dlbl(t.date)}</td>
       <td style="font-weight:500">${t.nom}</td>
