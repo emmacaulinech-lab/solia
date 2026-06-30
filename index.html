@@ -1981,16 +1981,16 @@ async function validerFacturesTVA(banqueId){
   for(const f of factures){
     const factureId=genId();
     const facture={
-      id:factureId,
-      fournisseur:f.fournisseur||'Fournisseur',
-      numeroFacture:f.numeroFacture||`FA-${b.date.slice(0,7)}-${factureId.slice(-4)}`,
-      date:f.date||b.date,
-      montantHT:f.montantHT||0,
-      tva:f.tva||0,
-      montantTTC:f.montantTTC||0,
-      rapprochee:true,
-      banqueId
-    };
+  id:factureId,
+  fournisseur:f.fournisseur||'Fournisseur',
+  numeroFacture:f.numeroFacture||`FA-${b.date.slice(0,7)}-${factureId.slice(-4)}`,
+  date:f.date||b.date,
+  montantHT:f.montantHT||0,
+  tva:f.tva||0,
+  montantTTC:f.montantTTC||0,
+  rapprochee:true,
+  operationBanqueId:banqueId
+};
     DB_FACTURES.push(facture);
     await saveFacture(facture);
     totalTva+=f.tva||0;
@@ -2005,14 +2005,32 @@ async function validerFacturesTVA(banqueId){
   toast(`✓ ${factures.length} facture(s) enregistrée(s)`);
 }
 
+async function supprimerFactureLiee(banqueId){
+  const b=DB.banque.find(x=>x.id===banqueId);
+  if(!b) return;
+  if(!confirm('Supprimer la/les facture(s) liée(s) à ce mouvement ?')) return;
+
+  const factures=DB_FACTURES.filter(f=>f.operationBanqueId===banqueId||f.banqueId===banqueId);
+  for(const f of factures){
+    await deleteFacture(f.id);
+  }
+
+  b.factureId=null;
+  b.tva=0;
+  await saveAll();
+  closeMo('mainModal');
+  renderBanque();
+  toast('✓ Facture(s) supprimée(s)');
+}
+
 async function calculerTVA(){
   const mois=document.getElementById('bm')?.value||new Date().toISOString().slice(0,7);
   if(!mois){toast('⚠ Sélectionne un mois d\'abord');return;}
   const credits=DB.banque.filter(b=>inM(b.date,mois)&&b.montant>0&&b.categorie==="Chiffre d'affaires");
   const tvaCollectee=Math.round(credits.reduce((s,b)=>s+(b.tva||0),0)*100)/100;
   const tvaDeductible=DB_FACTURES.filter(f=>{
-  if(!f.rapprochee||!f.banqueId) return false;
-  const b=DB.banque.find(x=>x.id===f.banqueId);
+  if(!f.rapprochee||!f.operationBanqueId) return false;
+  const b=DB.banque.find(x=>x.id===f.operationBanqueId);
   return b&&inM(b.date,mois);
 }).reduce((s,f)=>s+f.tva,0);
   const tvaNette=Math.round((tvaCollectee-tvaDeductible)*100)/100;
@@ -2906,9 +2924,9 @@ function buildForm(ctx,editId=null){
     const isCredit=t?t.montant>0:true;
     const mois=t?.date?.slice(0,7)||today.slice(0,7);
 
-    // Trouver le rapprochement actuel
     const prestationsLiees=t?DB.caisse.filter(x=>x.banqueId===t.id):[];
     const chargeLiee=t?[...DB.fixes,...DB.variables].find(f=>f.banqueId===t.id):null;
+    const factureLiee=t?DB_FACTURES.find(f=>f.operationBanqueId===t.id):null;
 
     return`
       <div class="g2">
@@ -2933,18 +2951,19 @@ function buildForm(ctx,editId=null){
         </button>
       </div>`:''}
 
-      ${!isCredit?`
-      <div class="field"><label>Facture TVA</label>
-        ${t?.factureId
-          ?`<div style="font-size:13px;color:var(--mint)">✅ Facture liée — ${fa(Math.abs(t.tva||0))} de TVA déductible
-              <button type="button" class="btn btn-ghost btn-sm" onclick="closeMo('mainModal');setTimeout(()=>ajouterFactureTVA('${t.id}'),150)">✏️</button>
-            </div>`
-          :`<button type="button" class="btn btn-outline btn-sm" onclick="closeMo('mainModal');setTimeout(()=>ajouterFactureTVA('${t.id}'),150)">🧾 Ajouter une facture</button>`
-        }
-      </div>`:''}
+      ${t&&!isCredit?`
+<div class="field"><label>Facture TVA</label>
+  ${factureLiee
+    ?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:13px;color:var(--mint)">✅ ${factureLiee.fournisseur} — ${fa(factureLiee.tva)} de TVA déductible</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="closeMo('mainModal');setTimeout(()=>ajouterFactureTVA('${t.id}'),150)">✏️</button>
+        <button type="button" class="btn btn-danger btn-sm" onclick="supprimerFactureLiee('${t.id}')">✕ Supprimer</button>
+      </div>`
+    :`<button type="button" class="btn btn-outline btn-sm" onclick="closeMo('mainModal');setTimeout(()=>ajouterFactureTVA('${t.id}'),150)">🧾 Ajouter une facture</button>`
+  }
+</div>`:''}
     `;
   }
-
   if(ctx==='fixes'){
     const t=editId?DB.fixes.find(x=>x.id===editId):null;
     return`
