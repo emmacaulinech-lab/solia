@@ -3638,13 +3638,13 @@ async function importerMouvement(i){
   }
 
   if(rap?.type==='charge'){
-    const charge=[...DB.fixes,...DB.variables].find(f=>f.id===rap.chargeId);
-    if(charge){
-      charge.montant=-rap.montantReel;
-      charge.banqueId=banqueId;
-      charge.paye=true;
-    }
+  const charge=[...DB.fixes,...DB.variables].find(f=>f.id===rap.chargeId);
+  if(charge){
+    charge.montant=(charge.montant||0)-rap.montantReel;
+    charge.banqueId=banqueId;
+    charge.paye=true;
   }
+}
 
   await saveAll();
   importedMouvements.splice(i,1);
@@ -3672,12 +3672,12 @@ async function importerTousMouvements(){
         if(t){t.rapprocheBanque=true;t.banqueId=banqueId;}
       }
     }
-    if(rap?.type==='charge'){
-      const charge=[...DB.fixes,...DB.variables].find(f=>f.id===rap.chargeId);
-      if(charge){charge.montant=-rap.montantReel;charge.banqueId=banqueId;charge.paye=true;}
-    }
-    count++;
-  }
+   if(rap?.type==='charge'){
+  const charge=[...DB.fixes,...DB.variables].find(f=>f.id===rap.chargeId);
+  if(charge){charge.montant=(charge.montant||0)-rap.montantReel;charge.banqueId=banqueId;charge.paye=true;}
+}
+count++;
+}
   await saveAll();
   importedMouvements=[];
   renderImportBanqueResult();
