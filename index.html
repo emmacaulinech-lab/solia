@@ -3092,10 +3092,31 @@ function openModal(ctx,editId=null){
   const titles={caisse:editId?'Modifier prestation':'Nouvelle prestation',banque:editId?'Modifier mouvement':'Nouveau mouvement',fixes:editId?'Modifier charge fixe':'Nouvelle charge fixe',variables:editId?'Modifier charge variable':'Nouvelle charge variable'};
   document.getElementById('mTitle').textContent=titles[ctx]||'—';
   document.getElementById('mBody').innerHTML=buildForm(ctx,editId);
+if(ctx==='caisse') setTimeout(checkPrestNouvelle, 50);
   document.querySelector('#mainModal .modal-footer').innerHTML=`
     <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>
     <button class="btn btn-primary" onclick="saveEntry()">Valider</button>`;
   document.getElementById('mainModal').classList.add('open');
+}
+
+function checkPrestNouvelle(){
+  const val=document.getElementById('fPrest')?.value;
+  const btnEl=document.getElementById('add-prest-btn');
+  if(!btnEl) return;
+  if(val&&!CONFIG.prestations.includes(val)){
+    btnEl.innerHTML=`<button type="button" class="btn btn-outline btn-sm" onclick="ajouterPrestationListe()">+ Ajouter "${val}" à la liste des prestations</button>`;
+  } else {
+    btnEl.innerHTML='';
+  }
+}
+
+async function ajouterPrestationListe(){
+  const val=document.getElementById('fPrest')?.value;
+  if(!val||CONFIG.prestations.includes(val)) return;
+  CONFIG.prestations.push(val);
+  await saveSettings();
+  document.getElementById('add-prest-btn').innerHTML=`<span style="font-size:12px;color:var(--mint)">✅ Ajoutée à la liste</span>`;
+  toast('✓ Prestation ajoutée aux paramètres');
 }
 
 function buildForm(ctx,editId=null){
@@ -3120,11 +3141,12 @@ function buildForm(ctx,editId=null){
       </div>
       <div class="field"><label>Nom cliente</label><input type="text" id="fNom" value="${t?.nom||''}" list="cliDL" autocomplete="off" placeholder="Prénom Nom"></div>
       <div class="field"><label>Prestation</label>
-        <select id="fPrest">
-  ${t?.prestation && !CONFIG.prestations.includes(t.prestation) ? `<option selected>${t.prestation}</option>` : ''}
-  ${CONFIG.prestations.map(p=>`<option${t?.prestation===p?' selected':''}>${p}</option>`).join('')}
-</select>
-      </div>
+  <select id="fPrest" onchange="checkPrestNouvelle()">
+    ${t?.prestation && !CONFIG.prestations.includes(t.prestation) ? `<option selected>${t.prestation}</option>` : ''}
+    ${CONFIG.prestations.map(p=>`<option${t?.prestation===p?' selected':''}>${p}</option>`).join('')}
+  </select>
+  <div id="add-prest-btn" style="margin-top:6px"></div>
+</div>
       <div class="g2">
         <div class="field"><label>Mode règlement</label>
           <select id="fMode">${(CONFIG.modes||['ESP','VIR','CHQ','PLANITY']).map(m=>`<option${t?.reglement===m?' selected':''}>${m}</option>`).join('')}</select>
