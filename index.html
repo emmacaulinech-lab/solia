@@ -3250,6 +3250,9 @@ async function ajouterPrestationListe(){
 }
 
 function openPrestationsNonListees(){
+<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+  <button class="btn btn-outline btn-sm" onclick="closeMo('mainModal');setTimeout(openFusionPrestations,100)">🧹 Fusionner des doublons</button>
+</div>
   const nonListees={};
   for(const t of DB.caisse){
     if(t.prestation&&!CONFIG.prestations.includes(t.prestation)){
@@ -3296,6 +3299,119 @@ async function ajouterPrestationDepuisListe(nom){
 
   openPrestationsNonListees();
   toast(`✓ "${nom}" ajoutée à la liste`);
+}
+
+function openFusionPrestations(){
+  // Regrouper toutes les prestations utilisées dans Caisse
+  const toutes=[...new Set(DB.caisse.map(t=>t.prestation).filter(Boolean))].sort();
+  
+  document.getElementById('mTitle').textContent='🧹 Nettoyer les prestations';
+  document.getElementById('mBody').innerHTML=`
+    <div style="font-size:12px;color:var(--mut);margin-bottom:14px">
+      Sélectionne plusieurs variantes similaires, choisis le nom final, et fusionne-les en un clic.
+    </div>
+    <div class="field">
+      <label>Nom final (la version correcte)</label>
+      <input type="text" id="fusion-nom" list="fusion-dl" placeholder="ex: REMPLISSAGE 3 semaines" style="font-size:14px;padding:10px">
+      <datalist id="fusion-dl">${(CONFIG.prestations||[]).map(p=>`<option value="${p}">`).join('')}</datalist>
+    </div>
+    <div class="field">
+      <label>Sélectionne les variantes à fusionner</label>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:11px;color:var(--mut)" id="fusion-count">0 sélectionnée(s)</span>
+        <button type="button" onclick="fusionSelectAll()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--accent);font-weight:600">Tout sélectionner</button>
+      </div>
+      <div style="max-height:300px;overflow-y:auto;border:1.5px solid #ddd;border-radius:8px">
+        <input type="text" id="fusion-search" placeholder="🔍 Filtrer..." oninput="fusionFiltrer()" style="width:100%;padding:8px 12px;border:none;border-bottom:1px solid #ddd;font-size:12px;outline:none">
+        <div id="fusion-liste">
+          ${toutes.map(p=>{
+            const nb=DB.caisse.filter(t=>t.prestation===p).length;
+            return`<div class="fusion-item" data-nom="${p.replace(/"/g,'&quot;')}" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--fog);cursor:pointer" onclick="fusionToggle(this)">
+              <input type="checkbox" class="fusion-check" value="${p.replace(/"/g,'&quot;')}" style="accent-color:var(--accent);width:15px;height:15px;cursor:pointer" onclick="event.stopPropagation();fusionUpdateCount()">
+              <div style="flex:1">
+                <div style="font-size:12px;font-weight:500">${p}</div>
+                <div style="font-size:10px;color:var(--mut)">${nb} fois dans l'historique</div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+    <div style="background:#fff7ed;border-radius:8px;padding:10px 12px;font-size:11px;color:#92400e;margin-top:8px">
+      ⚠️ Cette action est irréversible — toutes les variantes sélectionnées seront renommées avec le nom final dans tout l'historique.
+    </div>`;
+
+  document.querySelector('#mainModal .modal-footer').innerHTML=`
+    <button class="btn btn-ghost" onclick="closeMo('mainModal')">Annuler</button>
+    <button class="btn btn-primary" onclick="validerFusion()">🔀 Fusionner</button>`;
+  document.getElementById('mainModal').classList.add('open');
+}
+
+function fusionToggle(el){
+  const cb=el.querySelector('.fusion-check');
+  cb.checked=!cb.checked;
+  el.style.background=cb.checked?'rgba(196,122,74,.08)':'';
+  fusionUpdateCount();
+}
+
+function fusionUpdateCount(){
+  const nb=document.querySelectorAll('.fusion-check:checked').length;
+  const el=document.getElementById('fusion-count');
+  if(el) el.textContent=`${nb} sélectionnée${nb>1?'s':''}`;
+}
+
+function fusionSelectAll(){
+  const checks=document.querySelectorAll('.fusion-check');
+  const allChecked=[...checks].every(c=>c.checked);
+  checks.forEach(c=>{
+    c.checked=!allChecked;
+    c.closest('.fusion-item').style.background=!allChecked?'rgba(196,122,74,.08)':'';
+  });
+  fusionUpdateCount();
+}
+
+function fusionFiltrer(){
+  const q=document.getElementById('fusion-search')?.value.toLowerCase()||'';
+  document.querySelectorAll('.fusion-item').forEach(el=>{
+    const nom=el.dataset.nom.toLowerCase();
+    el.style.display=nom.includes(q)?'flex':'none';
+  });
+}
+
+async function validerFusion(){
+  const nomFinal=document.getElementById('fusion-nom')?.value?.trim();
+  if(!nomFinal){toast('⚠ Saisis le nom final');return;}
+
+  const checks=[...document.querySelectorAll('.fusion-check:checked')];
+  if(!checks.length){toast('⚠ Sélectionne au moins une variante');return;}
+
+  const variantes=checks.map(c=>c.value);
+
+  // Renommer dans DB.caisse
+  let count=0;
+  for(const t of DB.caisse){
+    if(variantes.includes(t.prestation)&&t.prestation!==nomFinal){
+      t.prestation=nomFinal;
+      count++;
+    }
+  }
+
+  // Nettoyer CONFIG.prestations — supprimer les variantes, garder ou ajouter le nom final
+  CONFIG.prestations=CONFIG.prestations.filter(p=>!variantes.includes(p)||p===nomFinal);
+  if(!CONFIG.prestations.includes(nomFinal)) CONFIG.prestations.push(nomFinal);
+
+  // Mettre à jour franchisePrestations si actif
+  if(CONFIG.franchise&&CONFIG.franchisePrestations){
+    const etaitEnFranchise=variantes.some(v=>CONFIG.franchisePrestations.includes(v));
+    CONFIG.franchisePrestations=CONFIG.franchisePrestations.filter(p=>!variantes.includes(p)||p===nomFinal);
+    if(etaitEnFranchise&&!CONFIG.franchisePrestations.includes(nomFinal)){
+      CONFIG.franchisePrestations.push(nomFinal);
+    }
+  }
+
+  await saveAll();
+  closeMo('mainModal');
+  toast(`✓ ${count} prestation${count>1?'s':''} fusionnée${count>1?'s':''} → "${nomFinal}"`);
 }
 
 function buildForm(ctx,editId=null){
