@@ -3250,9 +3250,6 @@ async function ajouterPrestationListe(){
 }
 
 function openPrestationsNonListees(){
-<div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-  <button class="btn btn-outline btn-sm" onclick="closeMo('mainModal');setTimeout(openFusionPrestations,100)">🧹 Fusionner des doublons</button>
-</div>
   const nonListees={};
   for(const t of DB.caisse){
     if(t.prestation&&!CONFIG.prestations.includes(t.prestation)){
@@ -3265,6 +3262,9 @@ function openPrestationsNonListees(){
 
   document.getElementById('mTitle').textContent='📋 Prestations non listées';
   document.getElementById('mBody').innerHTML=liste.length?`
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <button class="btn btn-outline btn-sm" onclick="closeMo('mainModal');setTimeout(openFusionPrestations,100)">🧹 Fusionner des doublons</button>
+    </div>
     <div style="font-size:12px;color:var(--mut);margin-bottom:14px">${liste.length} prestation${liste.length>1?'s sont utilisées':' est utilisée'} dans Caisse mais ${liste.length>1?'ne figurent':'ne figure'} pas dans ta liste de paramètres. Ça peut fausser certains calculs (redevance, stats).</div>
     ${liste.map(p=>`
       <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--fog)">
