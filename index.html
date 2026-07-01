@@ -3274,8 +3274,12 @@ function openPrestationsNonListees(){
         </div>
         <button class="btn btn-primary btn-sm" onclick="ajouterPrestationDepuisListe('${p.nom.replace(/'/g,"\\'")}')">+ Ajouter</button>
       </div>`).join('')}
-  `:`<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Tout est à jour</div><div class="empty-sub">Toutes les prestations utilisées sont bien dans ta liste.</div></div>`;
-
+:`<div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <button class="btn btn-outline btn-sm" onclick="closeMo('mainModal');setTimeout(openFusionPrestations,100)">🧹 Fusionner des doublons</button>
+    </div>
+    <div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Tout est à jour</div><div class="empty-sub">Toutes les prestations utilisées sont bien dans ta liste.</div></div>
+  </div>`
   document.querySelector('#mainModal .modal-footer').innerHTML=`
     <button class="btn btn-ghost" onclick="closeMo('mainModal')">Fermer</button>`;
   document.getElementById('mainModal').classList.add('open');
