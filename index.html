@@ -2646,7 +2646,7 @@ const achatsS=DB.banque.filter(b=>{
     const espEncaisseS=espNet;
 
     // Redevance
-    const redevS=CONFIG.franchise?-calculerRedevance(mois)/nw:0;
+    const redevS=CONFIG.franchise?-Math.round(caNetS*(CONFIG.franchiseTaux||10)/100*100)/100:0;
 
     return{caNetS,parMode,achatsS,chargeS,espDeposeS,espEncaisseS,redevS};
   });
