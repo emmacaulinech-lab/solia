@@ -2660,9 +2660,9 @@ modes.forEach(m=>{
 const caNetRapprS=Object.values(parModeRappr).reduce((s,v)=>s+v,0);
 
 // Charges rapprochées = uniquement celles avec banqueId
-const chargesRapprS=[...DB.fixes,...DB.variables]
+const chargesRapprS=i===semAjust?[...DB.fixes,...DB.variables]
   .filter(f=>f.mois===mois&&(f.banqueIds?.length||f.banqueId))
-  .reduce((s,f)=>s+(f.montant||0),0)/nw;
+  .reduce((s,f)=>s+(f.montant||0),0):0;
 
 return{caNetS,parMode,achatsS,chargeS,espDeposeS,espEncaisseS,redevS,caNetRapprS,chargesRapprS};
   });
