@@ -601,8 +601,13 @@ select option{color:#1a0f0a;background:white}
 
     <div class="view" id="view-recap">
       <div class="page-header">
-        <div><div class="page-title">📊 Récap</div><div class="page-sub">Vue hebdomadaire</div></div>
-      </div>
+  <div><div class="page-title">📊 Récap</div><div class="page-sub">Vue hebdomadaire</div></div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button onclick="recapD(-1)" style="background:white;border:1.5px solid var(--line);border-radius:var(--r-sm);width:34px;height:34px;cursor:pointer;font-size:16px">‹</button>
+    <div id="recapMonthLabel" style="font-family:'DM Mono',monospace;font-size:13px;min-width:110px;text-align:center"></div>
+    <button onclick="recapD(1)" style="background:white;border:1.5px solid var(--line);border-radius:var(--r-sm);width:34px;height:34px;cursor:pointer;font-size:16px">›</button>
+  </div>
+</div>
       <div id="recapContent"></div>
     </div>
 
@@ -1463,6 +1468,8 @@ const MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','
 const MC=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
 const NOW=new Date();
 let dashM=NOW.getMonth(),dashY=NOW.getFullYear();
+let recapM=new Date().getMonth();
+let recapY=new Date().getFullYear();
 
 function fa(n){if(n==null||isNaN(n))return'—';return Math.abs(n).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
 function fm(n,sign=false){if(n==null||isNaN(n))return'—';const a=fa(n);if(sign&&n>0)return'+'+a;return(n<0?'-':'')+a;}
@@ -1525,7 +1532,12 @@ function popSelects(){
 // DASHBOARD
 // ══════════════════════════════════════
 function dashD(d){dashM+=d;if(dashM>11){dashM=0;dashY++;}if(dashM<0){dashM=11;dashY--;}renderDash();}
-
+function recapD(d){
+  recapM+=d;
+  if(recapM>11){recapM=0;recapY++;}
+  if(recapM<0){recapM=11;recapY--;}
+  renderRecap();
+}
 function renderDash(){
   const mois=`${dashY}-${String(dashM+1).padStart(2,'0')}`;
   document.getElementById('dashMonthLabel').textContent=MOIS[dashM]+' '+dashY;
@@ -2501,7 +2513,8 @@ function renderRecap(){
   if(!el) return;
 
   const now=new Date();
-  const mois=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+const mois=`${recapY}-${String(recapM+1).padStart(2,'0')}`;
+document.getElementById('recapMonthLabel').textContent=MOIS[recapM]+' '+recapY;
   const modes=CONFIG.modes||['ESP','VIR','CHQ','PLANITY'];
   const collabs=CONFIG.praticiennes||[];
 
