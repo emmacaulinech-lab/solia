@@ -2651,11 +2651,9 @@ const achatsS=DB.banque.filter(b=>{
 
 // CA net rapproché = uniquement les prestations rapprochées en banque
 const rowsRappr=rows.filter(t=>t.rapprocheBanque||t.depose);
-const espNetRappr=espNetRows(rowsRappr);
 const parModeRappr={};
 modes.forEach(m=>{
-  if(m==='ESP') parModeRappr[m]=espNetRappr;
-  else parModeRappr[m]=rowsRappr.filter(t=>t.reglement===m).reduce((s,t)=>s+t.montant,0);
+  parModeRappr[m]=rowsRappr.filter(t=>t.reglement===m).reduce((s,t)=>s+t.montant,0);
 });
 const caNetRapprS=Object.values(parModeRappr).reduce((s,v)=>s+v,0);
 
