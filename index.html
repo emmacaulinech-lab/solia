@@ -2528,16 +2528,17 @@ document.getElementById('recapMonthLabel').textContent=MOIS[recapM]+' '+recapY;
   const firstDay=new Date(y,m-1,1);
   const lastDay=new Date(y,m,0);
   let start=new Date(firstDay);
-  const dow=start.getDay();
-  start.setDate(start.getDate()-(dow===0?6:dow-1));
-  const semaines=[];
-  while(start<=lastDay){
-    const lundi=new Date(start);
-    const dimanche=new Date(start);
-    dimanche.setDate(dimanche.getDate()+6);
-    semaines.push({lundi:new Date(lundi),dimanche:new Date(dimanche)});
-    start.setDate(start.getDate()+7);
-  }
+const dow=start.getDay();
+start.setDate(start.getDate()-(dow===0?6:dow-1));
+const semaines=[];
+while(start<=lastDay){
+  const lundi=new Date(Math.max(start.getTime(),firstDay.getTime()));
+  const dimanche=new Date(start);
+  dimanche.setDate(dimanche.getDate()+6);
+  const dimancheClampe=new Date(Math.min(dimanche.getTime(),lastDay.getTime()));
+  semaines.push({lundi:new Date(lundi),dimanche:new Date(dimancheClampe)});
+  start.setDate(start.getDate()+7);
+}
   const nw=semaines.length;
 
   const inSem=(date,s)=>{
