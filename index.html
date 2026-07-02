@@ -2648,7 +2648,22 @@ const achatsS=DB.banque.filter(b=>{
     // Redevance
     const redevS=CONFIG.franchise?-Math.round(caNetS*(CONFIG.franchiseTaux||10)/100*100)/100:0;
 
-    return{caNetS,parMode,achatsS,chargeS,espDeposeS,espEncaisseS,redevS};
+// CA net rapproché = uniquement les prestations rapprochées en banque
+const rowsRappr=rows.filter(t=>t.rapprocheBanque||t.depose);
+const espNetRappr=espNetRows(rowsRappr);
+const parModeRappr={};
+modes.forEach(m=>{
+  if(m==='ESP') parModeRappr[m]=espNetRappr;
+  else parModeRappr[m]=rowsRappr.filter(t=>t.reglement===m).reduce((s,t)=>s+t.montant,0);
+});
+const caNetRapprS=Object.values(parModeRappr).reduce((s,v)=>s+v,0);
+
+// Charges rapprochées = uniquement celles avec banqueId
+const chargesRapprS=[...DB.fixes,...DB.variables]
+  .filter(f=>f.mois===mois&&(f.banqueIds?.length||f.banqueId))
+  .reduce((s,f)=>s+(f.montant||0),0)/nw;
+
+return{caNetS,parMode,achatsS,chargeS,espDeposeS,espEncaisseS,redevS,caNetRapprS,chargesRapprS};
   });
 
   // ── Totaux ──
@@ -2695,7 +2710,7 @@ const espNetCumulW=semaines.map((s,i)=>{
 });
 
   // ── Résultat ──
-  const resultat=caNetTotal+totalReel+achatsTotal+redevTotal;
+  const resultat=caNetTotal+totalReel+achatsTotal;
 
   // ── Helpers affichage ──
   const labelS=(s,i)=>{
@@ -2784,14 +2799,30 @@ const espNetCumulW=semaines.map((s,i)=>{
         ${row(`→ ${CONFIG.franchiseNom||'Franchise'}`,semData.map(d=>d.redevS),redevTotal,'#7e22ce')}
         `:''}
 
-        <tr style="background:#1a0f0a">
-          <td style="padding:10px 12px;font-size:13px;font-weight:700;color:white">RÉSULTAT NET</td>
-          ${semData.map(d=>{
-            const r=d.caNetS+d.chargeS+d.achatsS+d.redevS;
-            return`<td style="padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${r>=0?'#86efac':'#fca5a5'}">${fm(r,r>0)}</td>`;
-          }).join('')}
-          <td style="padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:14px;font-weight:900;color:${resultat>=0?'#86efac':'#fca5a5'}">${fm(resultat,resultat>0)}</td>
-        </tr>
+        ${(()=>{
+  const resultatGenW=semData.map(d=>d.caNetS+d.chargeS+d.achatsS);
+  const resultatRapprW=semData.map(d=>d.caNetRapprS+d.chargesRapprS+d.achatsS);
+  const ecartW=resultatGenW.map((v,i)=>v-resultatRapprW[i]);
+  const totGen=resultatGenW.reduce((s,v)=>s+v,0);
+  const totRappr=resultatRapprW.reduce((s,v)=>s+v,0);
+  const totEcart=totGen-totRappr;
+  return`
+  <tr style="background:#1a0f0a">
+    <td style="padding:10px 12px;font-size:12px;font-weight:700;color:white">📊 Résultat général</td>
+    ${resultatGenW.map(v=>`<td style="padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${v>=0?'#86efac':'#fca5a5'}">${fm(v,v>0)}</td>`).join('')}
+    <td style="padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:14px;font-weight:900;color:${totGen>=0?'#86efac':'#fca5a5'}">${fm(totGen,totGen>0)}</td>
+  </tr>
+  <tr style="background:#2d1a0a">
+    <td style="padding:10px 12px;font-size:12px;font-weight:700;color:#fcd34d">✅ Résultat rapproché</td>
+    ${resultatRapprW.map(v=>`<td style="padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${v>=0?'#86efac':'#fca5a5'}">${fm(v,v>0)}</td>`).join('')}
+    <td style="padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:14px;font-weight:900;color:${totRappr>=0?'#86efac':'#fca5a5'}">${fm(totRappr,totRappr>0)}</td>
+  </tr>
+  <tr style="background:#3d2a1a">
+    <td style="padding:10px 12px;font-size:12px;font-weight:600;color:#fed7aa">↕️ Écart</td>
+    ${ecartW.map(v=>`<td style="padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:${Math.abs(v)<0.01?'#666':v>0?'#fcd34d':'#86efac'}">${Math.abs(v)<0.01?'—':fm(v,true)}</td>`).join('')}
+    <td style="padding:10px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:${Math.abs(totEcart)<0.01?'#666':totEcart>0?'#fcd34d':'#86efac'}">${Math.abs(totEcart)<0.01?'—':fm(totEcart,true)}</td>
+  </tr>`;
+})()}
       </tbody>
     </table>
   </div>`;
