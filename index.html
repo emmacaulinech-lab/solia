@@ -2686,7 +2686,7 @@ const espWCorr=semaines.map((s,i)=>{
   const chq=DB.caisse.filter(t=>inSem(t.date,s)&&t.reglement==='CHQ'&&t.montant>0).reduce((s,t)=>s+t.montant,0);
   const vir=DB.caisse.filter(t=>inSem(t.date,s)&&t.reglement==='VIR'&&t.montant>0).reduce((s,t)=>s+t.montant,0);
   const plan=DB.caisse.filter(t=>inSem(t.date,s)&&t.reglement==='PLANITY'&&t.montant>0).reduce((s,t)=>s+t.montant,0);
-  const val=reportPrec+chq+vir+plan+semData[i].chargeS;
+  const val=reportPrec+chq+vir+plan+semData[i].chargeS+semData[i].achatsS;
   reportPrec=val+espDeposeesW[i];
   return val;
 });
