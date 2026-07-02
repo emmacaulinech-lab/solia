@@ -2796,6 +2796,13 @@ const espNetCumulW=semaines.map((s,i)=>{
         ${CONFIG.franchise?`
         ${section(`REDEVANCE (${CONFIG.franchiseTaux||10}%)`,'#7e22ce','#faf5ff')}
         ${row(`→ ${CONFIG.franchiseNom||'Franchise'}`,semData.map(d=>d.redevS),redevTotal,'#7e22ce')}
+        <tr style="background:#faf5ff">
+          <td colspan="${nw+2}" style="padding:8px 12px">
+            <button class="btn btn-outline btn-sm" style="border-color:#7e22ce;color:#7e22ce" onclick="mettreAJourRedevance('${mois}',${Math.abs(redevTotal)})">
+              🏪 Mettre à jour la redevance dans ${mf(nextMois(mois))}
+            </button>
+          </td>
+        </tr>
         `:''}
 
         ${(()=>{
@@ -2825,6 +2832,31 @@ const espNetCumulW=semaines.map((s,i)=>{
       </tbody>
     </table>
   </div>`;
+}
+
+function nextMois(mois){
+  const [y,m]=mois.split('-').map(Number);
+  let ny=y,nm=m+1;
+  if(nm>12){nm=1;ny++;}
+  return`${ny}-${String(nm).padStart(2,'0')}`;
+}
+
+async function mettreAJourRedevance(moisRef, montant){
+  const moisSuivant=nextMois(moisRef);
+  // Chercher une charge REDEVANCE existante dans le mois suivant
+  let charge=[...DB.fixes,...DB.variables].find(f=>
+    f.mois===moisSuivant&&f.nom?.toUpperCase().includes('REDEVANCE')
+  );
+  if(charge){
+    charge.prev=-montant;
+    toast(`✓ Redevance ${mf(moisSuivant)} mise à jour : ${fa(montant)}`);
+  } else {
+    const newCharge={id:genId(),mois:moisSuivant,nom:'REDEVANCE',prev:-montant,montant:0,banqueId:null,paye:false};
+    DB.fixes.push(newCharge);
+    toast(`✓ Charge REDEVANCE créée dans ${mf(moisSuivant)} : ${fa(montant)}`);
+  }
+  await saveAll();
+  renderCharges();
 }
 // ══════════════════════════════════════
 // CLIENTES
