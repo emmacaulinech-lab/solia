@@ -2802,7 +2802,7 @@ const espNetCumulW=semaines.map((s,i)=>{
 
         ${(()=>{
   const resultatGenW=semData.map(d=>d.caNetS+d.chargeS+d.achatsS);
-  const resultatRapprW=semData.map(d=>d.caNetRapprS+d.chargesRapprS+d.achatsS);
+  const resultatRapprW=semData.map(d=>d.caNetRapprS+d.chargesRapprS);
   const ecartW=resultatGenW.map((v,i)=>v-resultatRapprW[i]);
   const totGen=resultatGenW.reduce((s,v)=>s+v,0);
   const totRappr=resultatRapprW.reduce((s,v)=>s+v,0);
